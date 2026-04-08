@@ -1,0 +1,8 @@
+{
+    "name": "malformed-php",
+    "category": "edge",
+    "description": "AST matching skips malformed PHP files without crashing",
+    "mode": "ast",
+    "pattern": "new $CLASS()",
+    "path": "setup"
+}

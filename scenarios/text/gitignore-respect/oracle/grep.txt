@@ -1,0 +1,2 @@
+setup/vendor/lib.php:3:function ignored(): void
+setup/src/app.php:3:function visible(): void

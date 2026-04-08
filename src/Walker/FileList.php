@@ -18,13 +18,18 @@ final readonly class FileList implements \Countable, \IteratorAggregate, \JsonSe
     public function __construct(iterable $paths)
     {
         $normalized = [];
+        $seen = [];
 
         foreach ($paths as $path) {
-            $normalized[] = str_replace('\\', '/', $path);
-        }
+            $normalizedPath = str_replace('\\', '/', $path);
 
-        $normalized = array_values(array_unique($normalized));
-        sort($normalized, SORT_STRING);
+            if (isset($seen[$normalizedPath])) {
+                continue;
+            }
+
+            $seen[$normalizedPath] = true;
+            $normalized[] = $normalizedPath;
+        }
 
         $this->paths = $normalized;
     }

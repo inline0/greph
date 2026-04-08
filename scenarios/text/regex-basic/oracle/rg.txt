@@ -1,0 +1,2 @@
+setup/source.php:3:$foo = new Foo();
+setup/source.php:4:$bar = new Bar();

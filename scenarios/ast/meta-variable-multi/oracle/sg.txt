@@ -1,0 +1,3 @@
+setup/source.php:3:foo()
+setup/source.php:4:foo($a)
+setup/source.php:5:foo($a, $b, $c)

@@ -1,0 +1,2 @@
+setup/lines.txt:1:keep
+setup/lines.txt:3:keep-again

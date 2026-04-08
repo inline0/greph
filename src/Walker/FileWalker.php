@@ -84,11 +84,6 @@ final class FileWalker
             }
         }
 
-        usort(
-            $entries,
-            static fn (\SplFileInfo $left, \SplFileInfo $right): int => strcmp($left->getFilename(), $right->getFilename())
-        );
-
         foreach ($entries as $entry) {
             $path = $this->normalizePath($entry->getPathname());
             $name = $entry->getFilename();

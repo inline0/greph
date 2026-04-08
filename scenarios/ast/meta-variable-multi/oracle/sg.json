@@ -1,0 +1,26 @@
+[
+    {
+        "file": "setup/source.php",
+        "start_line": 3,
+        "end_line": 3,
+        "start_byte": 7,
+        "end_byte": 12,
+        "code": "foo()"
+    },
+    {
+        "file": "setup/source.php",
+        "start_line": 4,
+        "end_line": 4,
+        "start_byte": 14,
+        "end_byte": 21,
+        "code": "foo($a)"
+    },
+    {
+        "file": "setup/source.php",
+        "start_line": 5,
+        "end_line": 5,
+        "start_byte": 23,
+        "end_byte": 38,
+        "code": "foo($a, $b, $c)"
+    }
+]

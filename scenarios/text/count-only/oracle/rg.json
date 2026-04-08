@@ -1,0 +1,23 @@
+[
+    {
+        "file": "setup/a.txt",
+        "line": 1,
+        "column": 1,
+        "content": "needle",
+        "matched_text": "needle"
+    },
+    {
+        "file": "setup/a.txt",
+        "line": 2,
+        "column": 1,
+        "content": "needle",
+        "matched_text": "needle"
+    },
+    {
+        "file": "setup/b.txt",
+        "line": 1,
+        "column": 1,
+        "content": "needle",
+        "matched_text": "needle"
+    }
+]

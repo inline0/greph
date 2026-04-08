@@ -45,6 +45,8 @@ final class TextSearchTest extends TestCase
             }
         }
 
+        usort($matchedLines, static fn (array $left, array $right): int => $left <=> $right);
+
         $this->assertSame(
             [
                 [$this->workspace . '/src/App.php', 2, 'function saveThing(): void {}'],

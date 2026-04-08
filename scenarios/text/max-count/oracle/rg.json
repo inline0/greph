@@ -1,0 +1,9 @@
+[
+    {
+        "file": "setup/list.txt",
+        "line": 1,
+        "column": 1,
+        "content": "needle",
+        "matched_text": "needle"
+    }
+]

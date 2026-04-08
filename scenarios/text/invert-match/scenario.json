@@ -1,0 +1,11 @@
+{
+    "name": "invert-match",
+    "category": "text",
+    "description": "Invert a fixed-string match",
+    "pattern": "skip",
+    "flags": [
+        "-F",
+        "-v"
+    ],
+    "path": "setup"
+}

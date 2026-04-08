@@ -1,0 +1,9 @@
+[
+    {
+        "file": "setup/App.php",
+        "line": 3,
+        "column": 7,
+        "content": "echo 'target';",
+        "matched_text": "target"
+    }
+]

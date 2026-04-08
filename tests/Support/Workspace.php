@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Phgrep\Tests\Support;
 
+use Phgrep\Support\Filesystem;
+
 final class Workspace
 {
     public static function createDirectory(string $prefix): string
@@ -41,24 +43,12 @@ final class Workspace
 
     public static function remove(string $path): void
     {
-        if (!file_exists($path) && !is_link($path)) {
-            return;
-        }
+        Filesystem::remove($path);
+    }
 
-        if (is_file($path) || is_link($path)) {
-            @unlink($path);
-            return;
-        }
-
-        $entries = new \FilesystemIterator($path, \FilesystemIterator::CURRENT_AS_FILEINFO | \FilesystemIterator::SKIP_DOTS);
-
-        foreach ($entries as $entry) {
-            if ($entry instanceof \SplFileInfo) {
-                self::remove($entry->getPathname());
-            }
-        }
-
-        @rmdir($path);
+    public static function copyDirectory(string $source, string $destination): void
+    {
+        Filesystem::copyDirectory($source, $destination);
     }
 
     private static function root(): string

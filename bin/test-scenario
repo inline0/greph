@@ -1,0 +1,46 @@
+#!/usr/bin/env php
+<?php
+
+declare(strict_types=1);
+
+require __DIR__ . '/_bootstrap.php';
+
+use Phgrep\Tests\Oracle\ScenarioRepository;
+use Phgrep\Tests\Oracle\ScenarioRunner;
+
+$scenarioName = null;
+$refreshOracle = false;
+
+foreach (array_slice($argv, 1) as $argument) {
+    if ($argument === '--refresh') {
+        $refreshOracle = true;
+        continue;
+    }
+
+    $scenarioName ??= $argument;
+}
+
+if (!is_string($scenarioName) || $scenarioName === '') {
+    fwrite(STDERR, "Usage: test-scenario <scenario-name> [--refresh]\n");
+    exit(2);
+}
+
+$scenario = (new ScenarioRepository($phgrepRoot))->get($scenarioName);
+$result = (new ScenarioRunner())->run($scenario, $refreshOracle);
+
+fwrite(STDOUT, sprintf(
+    '[%s] %s%s',
+    $result['pass'] ? 'pass' : 'fail',
+    $scenarioName,
+    PHP_EOL,
+));
+
+if (!$result['pass']) {
+    $failures = $result['comparison']['expectation']['failures'] ?? [];
+
+    if ($failures !== []) {
+        fwrite(STDOUT, 'failures: ' . implode(', ', $failures) . PHP_EOL);
+    }
+}
+
+exit($result['pass'] ? 0 : 1);

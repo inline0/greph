@@ -1,0 +1,20 @@
+{
+    "name": "literal-simple",
+    "category": "text",
+    "description": "Simple fixed-string search across PHP files",
+    "pattern": "function",
+    "flags": [
+        "-F"
+    ],
+    "path": "setup",
+    "expectations": {
+        "grep": "exact",
+        "rg": "skip",
+        "rg_json": "semantic"
+    },
+    "oracle_disagreement": {
+        "grep_vs_rg": "grep preserves directory entry order while ripgrep prints files in lexical order here",
+        "phgrep_follows": "grep",
+        "reason": "Text mode is grep-compatible and must match grep -rn output ordering"
+    }
+}

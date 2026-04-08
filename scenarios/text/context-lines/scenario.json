@@ -1,0 +1,12 @@
+{
+    "name": "context-lines",
+    "category": "text",
+    "description": "Emit before and after context lines",
+    "pattern": "needle",
+    "flags": [
+        "-F",
+        "-C",
+        "1"
+    ],
+    "path": "setup"
+}

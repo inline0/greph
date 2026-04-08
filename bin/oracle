@@ -1,0 +1,35 @@
+#!/usr/bin/env php
+<?php
+
+declare(strict_types=1);
+
+require __DIR__ . '/_bootstrap.php';
+
+use Phgrep\Tests\Oracle\OracleCapture;
+use Phgrep\Tests\Oracle\ScenarioRepository;
+use Phgrep\Tests\Oracle\WorkspaceFactory;
+use Phgrep\Tests\Support\Workspace;
+
+$scenarioName = $argv[1] ?? null;
+
+if (!is_string($scenarioName) || $scenarioName === '') {
+    fwrite(STDERR, "Usage: oracle <scenario-name>\n");
+    exit(2);
+}
+
+$scenario = (new ScenarioRepository($phgrepRoot))->get($scenarioName);
+$workspaceFactory = new WorkspaceFactory();
+$workspace = $workspaceFactory->create($scenario, 'oracle');
+
+try {
+    $result = (new OracleCapture())->captureFromWorkspace($scenario, $workspace);
+
+    if (!$result['success']) {
+        fwrite(STDERR, implode(PHP_EOL, $result['errors']) . PHP_EOL);
+        exit(1);
+    }
+
+    fwrite(STDOUT, sprintf("Captured oracle for %s\n", $scenarioName));
+} finally {
+    Workspace::remove($workspace);
+}

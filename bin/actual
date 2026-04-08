@@ -1,0 +1,34 @@
+#!/usr/bin/env php
+<?php
+
+declare(strict_types=1);
+
+require __DIR__ . '/_bootstrap.php';
+
+use Phgrep\Tests\Oracle\ActualCapture;
+use Phgrep\Tests\Oracle\ScenarioRepository;
+use Phgrep\Tests\Oracle\WorkspaceFactory;
+use Phgrep\Tests\Support\Workspace;
+
+$scenarioName = $argv[1] ?? null;
+
+if (!is_string($scenarioName) || $scenarioName === '') {
+    fwrite(STDERR, "Usage: actual <scenario-name>\n");
+    exit(2);
+}
+
+$scenario = (new ScenarioRepository($phgrepRoot))->get($scenarioName);
+$workspace = (new WorkspaceFactory())->create($scenario, 'actual');
+
+try {
+    $result = (new ActualCapture())->captureFromWorkspace($scenario, $workspace);
+
+    if (!$result['success']) {
+        fwrite(STDERR, implode(PHP_EOL, $result['errors']) . PHP_EOL);
+        exit(1);
+    }
+
+    fwrite(STDOUT, sprintf("Captured actual output for %s\n", $scenarioName));
+} finally {
+    Workspace::remove($workspace);
+}

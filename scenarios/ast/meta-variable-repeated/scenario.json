@@ -1,0 +1,7 @@
+{
+    "name": "meta-variable-repeated",
+    "category": "ast",
+    "description": "Repeated variables must bind to the same node",
+    "pattern": "$X = $X",
+    "path": "setup"
+}

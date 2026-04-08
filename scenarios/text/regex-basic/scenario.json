@@ -1,0 +1,8 @@
+{
+    "name": "regex-basic",
+    "category": "text",
+    "description": "Regex text search for constructor assignments",
+    "pattern": "\\$[A-Za-z_][A-Za-z0-9_]* = new [A-Za-z_][A-Za-z0-9_]*\\(\\)",
+    "flags": [],
+    "path": "setup"
+}

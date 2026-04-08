@@ -1,0 +1,23 @@
+[
+    {
+        "file": "setup/helpers.php",
+        "line": 3,
+        "column": 1,
+        "content": "function gamma(): void",
+        "matched_text": "function"
+    },
+    {
+        "file": "setup/main.php",
+        "line": 3,
+        "column": 1,
+        "content": "function alpha(): void",
+        "matched_text": "function"
+    },
+    {
+        "file": "setup/main.php",
+        "line": 7,
+        "column": 1,
+        "content": "function beta(): void",
+        "matched_text": "function"
+    }
+]

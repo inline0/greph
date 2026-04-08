@@ -1,0 +1,7 @@
+{
+    "name": "meta-variable-multi",
+    "category": "ast",
+    "description": "Match variadic AST arguments",
+    "pattern": "foo($$$ARGS)",
+    "path": "setup"
+}

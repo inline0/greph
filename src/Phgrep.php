@@ -56,7 +56,7 @@ final class Phgrep
             }
         }
 
-        return $searcher->sortResults($flattened);
+        return $searcher->sortResults($flattened, $files->paths());
     }
 
     /**

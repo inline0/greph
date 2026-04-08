@@ -1,0 +1,9 @@
+{
+    "name": "isset-null-coalesce",
+    "category": "rewrite",
+    "description": "Rewrite isset ternaries to null coalescing",
+    "mode": "rewrite",
+    "pattern": "isset($X) ? $A : $Y",
+    "rewrite": "$A ?? $Y",
+    "path": "setup"
+}

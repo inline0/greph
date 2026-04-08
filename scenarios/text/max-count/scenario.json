@@ -1,0 +1,12 @@
+{
+    "name": "max-count",
+    "category": "text",
+    "description": "Stop after a maximum number of matches per file",
+    "pattern": "needle",
+    "flags": [
+        "-F",
+        "-m",
+        "1"
+    ],
+    "path": "setup"
+}

@@ -1,0 +1,31 @@
+#!/usr/bin/env php
+<?php
+
+declare(strict_types=1);
+
+require __DIR__ . '/_bootstrap.php';
+
+use Phgrep\Support\Json;
+use Phgrep\Tests\Oracle\ComplianceReporter;
+
+$outputPath = null;
+$arguments = array_slice($argv, 1);
+
+while ($arguments !== []) {
+    /** @var string $argument */
+    $argument = array_shift($arguments);
+
+    if ($argument === '--output') {
+        $outputPath = array_shift($arguments) ?: null;
+    }
+}
+
+$reporter = new ComplianceReporter($phgrepRoot);
+$report = $reporter->build();
+
+if (is_string($outputPath) && $outputPath !== '') {
+    Json::encodeFile($outputPath, $report);
+}
+
+fwrite(STDOUT, $reporter->renderText($report));
+exit(($report['summary']['failing'] ?? 0) === 0 ? 0 : 1);

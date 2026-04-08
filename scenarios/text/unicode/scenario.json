@@ -1,0 +1,20 @@
+{
+    "name": "unicode",
+    "category": "text",
+    "description": "Unicode-aware fixed string search",
+    "pattern": "Größe",
+    "flags": [
+        "-F"
+    ],
+    "path": "setup",
+    "expectations": {
+        "grep": "skip",
+        "rg": "exact",
+        "rg_json": "semantic"
+    },
+    "oracle_disagreement": {
+        "grep_vs_rg": "grep Unicode behavior varies by locale and platform",
+        "phgrep_follows": "rg",
+        "reason": "ripgrep is the more stable Unicode oracle here"
+    }
+}

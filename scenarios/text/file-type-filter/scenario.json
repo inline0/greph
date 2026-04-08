@@ -1,0 +1,12 @@
+{
+    "name": "file-type-filter",
+    "category": "text",
+    "description": "Restrict search to PHP files only",
+    "pattern": "target",
+    "flags": [
+        "-F",
+        "--type",
+        "php"
+    ],
+    "path": "setup"
+}

@@ -30,18 +30,25 @@ final class TextSearcher
             $results[] = $this->searchFile($file, $matcher, $options);
         }
 
-        return $this->sortResults($results);
+        return $results;
     }
 
     /**
      * @param list<TextFileResult> $results
+     * @param list<string>|null $fileOrder
      * @return list<TextFileResult>
      */
-    public function sortResults(array $results): array
+    public function sortResults(array $results, ?array $fileOrder = null): array
     {
+        if ($fileOrder === null) {
+            return $results;
+        }
+
+        $order = array_flip($fileOrder);
+
         usort(
             $results,
-            static fn (TextFileResult $left, TextFileResult $right): int => strcmp($left->file, $right->file)
+            static fn (TextFileResult $left, TextFileResult $right): int => [$order[$left->file] ?? PHP_INT_MAX, $left->file] <=> [$order[$right->file] ?? PHP_INT_MAX, $right->file]
         );
 
         return $results;

@@ -1,0 +1,71 @@
+#!/usr/bin/env php
+<?php
+
+declare(strict_types=1);
+
+require __DIR__ . '/_bootstrap.php';
+
+use Phgrep\Tests\Oracle\ScenarioRepository;
+use Phgrep\Tests\Oracle\ScenarioRunner;
+
+$category = null;
+$refreshOracle = false;
+$fast = false;
+$jobs = 1;
+
+$arguments = array_slice($argv, 1);
+
+while ($arguments !== []) {
+    /** @var string $argument */
+    $argument = array_shift($arguments);
+
+    switch ($argument) {
+        case '--refresh':
+            $refreshOracle = true;
+            break;
+        case '--fast':
+            $fast = true;
+            break;
+        case '--category':
+            $category = array_shift($arguments) ?: null;
+            break;
+        case '--jobs':
+            $jobs = max(1, (int) (array_shift($arguments) ?: '1'));
+            break;
+    }
+}
+
+$repository = new ScenarioRepository($phgrepRoot);
+$scenarios = $category === null ? $repository->all() : $repository->category($category);
+$runner = new ScenarioRunner();
+$passCount = 0;
+$failCount = 0;
+
+foreach ($scenarios as $scenario) {
+    $result = $runner->run($scenario, $refreshOracle);
+
+    if ($result['pass']) {
+        $passCount++;
+    } else {
+        $failCount++;
+    }
+
+    if (!$fast || !$result['pass']) {
+        fwrite(STDOUT, sprintf(
+            '[%s] %s%s',
+            $result['pass'] ? 'pass' : 'fail',
+            $scenario->name,
+            PHP_EOL,
+        ));
+    }
+}
+
+fwrite(STDOUT, sprintf(
+    "summary: pass=%d fail=%d jobs=%d%s",
+    $passCount,
+    $failCount,
+    $jobs,
+    PHP_EOL,
+));
+
+exit($failCount === 0 ? 0 : 1);

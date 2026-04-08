@@ -15,7 +15,8 @@
     },
     "autoload": {
         "psr-4": {
-            "Phgrep\\": "src/"
+            "Phgrep\\": "src/",
+            "Phgrep\\Benchmarks\\": "benchmarks/"
         }
     },
     "autoload-dev": {
@@ -29,13 +30,27 @@
         "sort-packages": true
     },
     "bin": [
-        "bin/phgrep"
+        "bin/phgrep",
+        "bin/oracle",
+        "bin/actual",
+        "bin/compare",
+        "bin/test-scenario",
+        "bin/test-regression",
+        "bin/verify-compliance",
+        "bin/bench"
     ],
     "scripts": {
         "test": "phpunit",
         "test:unit": "phpunit --testsuite unit",
+        "test:oracle": "php bin/test-regression",
         "analyse": "phpstan analyse --configuration=phpstan.neon.dist --memory-limit=512M",
         "cs": "phpcs --warning-severity=0",
-        "cs:fix": "phpcbf"
+        "cs:fix": "phpcbf",
+        "verify": [
+            "@analyse",
+            "@cs",
+            "@test",
+            "@test:oracle"
+        ]
     }
 }

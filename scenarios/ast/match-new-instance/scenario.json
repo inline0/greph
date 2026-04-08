@@ -1,0 +1,7 @@
+{
+    "name": "match-new-instance",
+    "category": "ast",
+    "description": "Find constructor calls by structure",
+    "pattern": "new $CLASS()",
+    "path": "setup"
+}

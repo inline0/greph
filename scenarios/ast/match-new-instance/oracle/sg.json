@@ -1,0 +1,18 @@
+[
+    {
+        "file": "setup/source.php",
+        "start_line": 3,
+        "end_line": 3,
+        "start_byte": 14,
+        "end_byte": 23,
+        "code": "new Foo()"
+    },
+    {
+        "file": "setup/source.php",
+        "start_line": 4,
+        "end_line": 4,
+        "start_byte": 32,
+        "end_byte": 41,
+        "code": "new Bar()"
+    }
+]

@@ -1,0 +1,9 @@
+[
+    {
+        "file": "setup/unicode.txt",
+        "line": 2,
+        "column": 1,
+        "content": "Gr\u00f6\u00dfe",
+        "matched_text": "Gr\u00f6\u00dfe"
+    }
+]

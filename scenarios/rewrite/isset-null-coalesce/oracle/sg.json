@@ -1,0 +1,6 @@
+[
+    {
+        "file": "setup/source.php",
+        "content": "<?php\n\n$value = $item ?? 'fallback';\n"
+    }
+]

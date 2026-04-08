@@ -1,0 +1,16 @@
+{
+    "name": "files-only",
+    "category": "text",
+    "description": "List matching files only",
+    "pattern": "target",
+    "flags": [
+        "-F",
+        "-l"
+    ],
+    "path": "setup",
+    "expectations": {
+        "grep": "exact",
+        "rg": "exact",
+        "rg_json": "skip"
+    }
+}

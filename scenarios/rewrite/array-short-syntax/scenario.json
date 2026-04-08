@@ -1,0 +1,9 @@
+{
+    "name": "array-short-syntax",
+    "category": "rewrite",
+    "description": "Rewrite array() calls to short syntax",
+    "mode": "rewrite",
+    "pattern": "array($$$ITEMS)",
+    "rewrite": "[$$$ITEMS]",
+    "path": "setup"
+}

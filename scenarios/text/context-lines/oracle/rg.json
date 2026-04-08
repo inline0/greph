@@ -1,0 +1,9 @@
+[
+    {
+        "file": "setup/context.txt",
+        "line": 2,
+        "column": 1,
+        "content": "needle",
+        "matched_text": "needle"
+    }
+]

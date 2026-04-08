@@ -43,13 +43,17 @@ final class FileWalkerTest extends TestCase
     public function itWalksDirectoriesAndRespectsIgnoreFilesByDefault(): void
     {
         $files = (new FileWalker())->walk($this->workspace)->paths();
+        $expected = [
+            $this->workspace . '/assets/logo.bin',
+            $this->workspace . '/src/App.php',
+            $this->workspace . '/src/AppTest.php',
+        ];
+
+        sort($files);
+        sort($expected);
 
         $this->assertSame(
-            [
-                $this->workspace . '/assets/logo.bin',
-                $this->workspace . '/src/App.php',
-                $this->workspace . '/src/AppTest.php',
-            ],
+            $expected,
             $files
         );
     }
@@ -64,13 +68,17 @@ final class FileWalkerTest extends TestCase
         );
 
         $files = (new FileWalker())->walk($this->workspace, $options)->paths();
+        $expected = [
+            $this->workspace . '/src/.hidden.php',
+            $this->workspace . '/src/App.php',
+            $this->workspace . '/src/AppTest.php',
+        ];
+
+        sort($files);
+        sort($expected);
 
         $this->assertSame(
-            [
-                $this->workspace . '/src/.hidden.php',
-                $this->workspace . '/src/App.php',
-                $this->workspace . '/src/AppTest.php',
-            ],
+            $expected,
             $files
         );
     }

@@ -1,0 +1,10 @@
+{
+    "name": "empty-file",
+    "category": "edge",
+    "description": "Searching an empty file should not crash",
+    "pattern": "anything",
+    "flags": [
+        "-F"
+    ],
+    "path": "setup"
+}
