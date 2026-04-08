@@ -1,0 +1,27 @@
+<?php
+
+declare(strict_types=1);
+
+namespace Phgrep\Text;
+
+final readonly class TextFileResult
+{
+    /**
+     * @param list<TextMatch> $matches
+     */
+    public function __construct(
+        public string $file,
+        public array $matches,
+    ) {
+    }
+
+    public function matchCount(): int
+    {
+        return count($this->matches);
+    }
+
+    public function hasMatches(): bool
+    {
+        return $this->matchCount() > 0;
+    }
+}

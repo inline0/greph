@@ -1,0 +1,58 @@
+<?php
+
+declare(strict_types=1);
+
+namespace Phgrep\Text;
+
+use Phgrep\Walker\FileTypeFilter;
+use Phgrep\Walker\WalkOptions;
+
+final readonly class TextSearchOptions
+{
+    public function __construct(
+        public bool $fixedString = false,
+        public bool $caseInsensitive = false,
+        public bool $wholeWord = false,
+        public bool $invertMatch = false,
+        public ?int $maxCount = null,
+        public int $beforeContext = 0,
+        public int $afterContext = 0,
+        public bool $countOnly = false,
+        public bool $filesWithMatches = false,
+        public bool $filesWithoutMatches = false,
+        public bool $jsonOutput = false,
+        public int $jobs = 1,
+        public bool $respectIgnore = true,
+        public bool $includeHidden = false,
+        public bool $followSymlinks = false,
+        public bool $skipBinaryFiles = true,
+        public bool $includeGitDirectory = false,
+        public ?FileTypeFilter $fileTypeFilter = null,
+        public int $maxFileSizeBytes = 10485760,
+    ) {
+        if ($this->jobs < 1) {
+            throw new \InvalidArgumentException('Job count must be greater than zero.');
+        }
+
+        if ($this->beforeContext < 0 || $this->afterContext < 0) {
+            throw new \InvalidArgumentException('Context values must not be negative.');
+        }
+
+        if ($this->maxCount !== null && $this->maxCount < 1) {
+            throw new \InvalidArgumentException('Max count must be greater than zero when provided.');
+        }
+    }
+
+    public function walkOptions(): WalkOptions
+    {
+        return new WalkOptions(
+            respectIgnore: $this->respectIgnore,
+            includeHidden: $this->includeHidden,
+            followSymlinks: $this->followSymlinks,
+            skipBinaryFiles: $this->skipBinaryFiles,
+            includeGitDirectory: $this->includeGitDirectory,
+            fileTypeFilter: $this->fileTypeFilter,
+            maxFileSizeBytes: $this->maxFileSizeBytes,
+        );
+    }
+}
