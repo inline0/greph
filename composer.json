@@ -1,0 +1,37 @@
+{
+    "name": "inline0/phgrep",
+    "description": "Pure PHP code search and structural refactoring tool.",
+    "type": "library",
+    "license": "proprietary",
+    "require": {
+        "php": "^8.2",
+        "ext-json": "*"
+    },
+    "require-dev": {
+        "phpstan/phpstan": "^2.0",
+        "phpunit/phpunit": "^11.0",
+        "squizlabs/php_codesniffer": "^3.10"
+    },
+    "autoload": {
+        "psr-4": {
+            "Phgrep\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Phgrep\\Tests\\": "tests/"
+        }
+    },
+    "config": {
+        "optimize-autoloader": true,
+        "process-timeout": 0,
+        "sort-packages": true
+    },
+    "scripts": {
+        "test": "phpunit",
+        "test:unit": "phpunit --testsuite unit",
+        "analyse": "phpstan analyse --configuration=phpstan.neon.dist --memory-limit=512M",
+        "cs": "phpcs --warning-severity=0",
+        "cs:fix": "phpcbf"
+    }
+}
