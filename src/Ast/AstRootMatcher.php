@@ -20,10 +20,6 @@ final class AstRootMatcher
             return false;
         }
 
-        if (!$this->matchesFixedArrayArity($patternRoot, $candidate)) {
-            return false;
-        }
-
         return match (true) {
             $patternRoot instanceof Expr\Array_ && $candidate instanceof Expr\Array_ => $this->matchesArrayKind($patternRoot, $candidate),
             $patternRoot instanceof Expr\FuncCall && $candidate instanceof Expr\FuncCall => $this->matchesNameNode($patternRoot->name, $candidate->name),
@@ -84,40 +80,5 @@ final class AstRootMatcher
         }
 
         return property_exists($node, 'kind') && is_int($node->kind) ? $node->kind : null;
-    }
-
-    private function matchesFixedArrayArity(Node $pattern, Node $candidate): bool
-    {
-        foreach ($pattern->getSubNodeNames() as $subNodeName) {
-            /** @var mixed $patternValue */
-            $patternValue = $pattern->$subNodeName;
-            /** @var mixed $candidateValue */
-            $candidateValue = $candidate->$subNodeName;
-
-            if (
-                is_array($patternValue)
-                && is_array($candidateValue)
-                && !$this->containsVariadicMetaVariable($patternValue)
-                && count($patternValue) !== count($candidateValue)
-            ) {
-                return false;
-            }
-        }
-
-        return true;
-    }
-
-    /**
-     * @param array<mixed> $values
-     */
-    private function containsVariadicMetaVariable(array $values): bool
-    {
-        foreach ($values as $value) {
-            if (MetaVariable::variadicName($value) !== null) {
-                return true;
-            }
-        }
-
-        return false;
     }
 }
