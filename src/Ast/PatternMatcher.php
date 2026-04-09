@@ -8,11 +8,15 @@ use PhpParser\Node;
 
 final class PatternMatcher
 {
+    /** @var array<string, string> */
+    private array $fingerprints = [];
+
     /**
      * @return array<string, mixed>|null
      */
     public function match(Node $pattern, Node $candidate): ?array
     {
+        $this->fingerprints = [];
         $captures = [];
 
         if (!$this->matchValue($pattern, $candidate, $captures)) {
@@ -136,18 +140,40 @@ final class PatternMatcher
 
     private function fingerprintNode(Node $node): string
     {
+        $cacheKey = 'node:' . spl_object_id($node);
+
+        if (isset($this->fingerprints[$cacheKey])) {
+            return $this->fingerprints[$cacheKey];
+        }
+
         $data = [$node::class];
 
         foreach ($node->getSubNodeNames() as $subNodeName) {
             /** @var mixed $subNodeValue */
             $subNodeValue = $node->$subNodeName;
-            $data[$subNodeName] = $subNodeValue instanceof Node
-                ? $this->fingerprintNode($subNodeValue)
-                : (is_array($subNodeValue)
-                    ? array_map(fn (mixed $item): string => $item instanceof Node ? $this->fingerprintNode($item) : serialize($item), $subNodeValue)
-                    : serialize($subNodeValue));
+            if ($subNodeValue instanceof Node) {
+                $data[$subNodeName] = $this->fingerprintNode($subNodeValue);
+                continue;
+            }
+
+            if (!is_array($subNodeValue)) {
+                $data[$subNodeName] = serialize($subNodeValue);
+                continue;
+            }
+
+            $serialized = [];
+
+            foreach ($subNodeValue as $item) {
+                $serialized[] = $item instanceof Node
+                    ? $this->fingerprintNode($item)
+                    : serialize($item);
+            }
+
+            $data[$subNodeName] = $serialized;
         }
 
-        return serialize($data);
+        $this->fingerprints[$cacheKey] = serialize($data);
+
+        return $this->fingerprints[$cacheKey];
     }
 }

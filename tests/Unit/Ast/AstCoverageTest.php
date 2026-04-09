@@ -58,6 +58,11 @@ final class AstCoverageTest extends TestCase
 
         $this->assertFalse($this->invokePrivateWithArgs($matcher, 'matchArray', [$variadicPattern, $variadicCandidate, &$variadicCaptures, 0, 0]));
         $this->assertSame(serialize([serialize(1), serialize('two')]), $this->invokePrivate($matcher, 'fingerprint', [1, 'two']));
+
+        $variable = new Expr\Variable('cached');
+        $fingerprint = $this->invokePrivate($matcher, 'fingerprint', $variable);
+
+        $this->assertSame($fingerprint, $this->invokePrivate($matcher, 'fingerprint', $variable));
     }
 
     #[Test]
