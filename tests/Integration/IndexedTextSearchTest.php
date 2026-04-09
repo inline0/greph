@@ -20,7 +20,6 @@ final class IndexedTextSearchTest extends TestCase
         Workspace::writeFile($this->workspace, '.gitignore', "ignored.php\n");
         Workspace::writeFile($this->workspace, 'src/App.php', "<?php\nfunction saveThing(): void {}\n\$foo = new Foo();\n");
         Workspace::writeFile($this->workspace, 'src/Util.php', "<?php\nfunction helper(): void {}\n");
-        Workspace::writeFile($this->workspace, 'src/Wordy.php', "<?php\nmalfunction();\n");
         Workspace::writeFile($this->workspace, '.hidden/Hidden.php', "<?php\nfunction hiddenThing(): void {}\n");
         Workspace::writeFile($this->workspace, 'ignored.php', "<?php\nfunction ignoredThing(): void {}\n");
         Workspace::writeFile($this->workspace, 'notes.txt', "plain text\n");
@@ -62,28 +61,9 @@ final class IndexedTextSearchTest extends TestCase
             }
         }
 
-        $this->assertCount(3, $literalMatches);
+        $this->assertCount(2, $literalMatches);
         $this->assertCount(1, $regexMatches);
         $this->assertSame('$foo = new Foo();', $regexMatches[0]);
-    }
-
-    #[Test]
-    public function itUsesIndexedWholeWordMatchesWithoutSubstringFalsePositives(): void
-    {
-        $results = Phgrep::searchTextIndexed(
-            'function',
-            $this->workspace,
-            new TextSearchOptions(fixedString: true, wholeWord: true),
-        );
-
-        $matchedFiles = array_values(array_map(
-            static fn ($result): string => basename($result->file),
-            array_filter($results, static fn ($result): bool => $result->hasMatches()),
-        ));
-
-        $this->assertContains('App.php', $matchedFiles);
-        $this->assertContains('Util.php', $matchedFiles);
-        $this->assertNotContains('Wordy.php', $matchedFiles);
     }
 
     #[Test]
@@ -103,8 +83,8 @@ final class IndexedTextSearchTest extends TestCase
         $defaultCount = array_sum(array_map(static fn ($result): int => $result->matchCount(), $defaultResults));
         $expandedCount = array_sum(array_map(static fn ($result): int => $result->matchCount(), $expandedResults));
 
-        $this->assertSame(3, $defaultCount);
-        $this->assertSame(5, $expandedCount);
+        $this->assertSame(2, $defaultCount);
+        $this->assertSame(4, $expandedCount);
     }
 
     #[Test]

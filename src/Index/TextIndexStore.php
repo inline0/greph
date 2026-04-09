@@ -8,7 +8,7 @@ use Phgrep\Support\Filesystem;
 
 final class TextIndexStore
 {
-    private const VERSION = 2;
+    private const VERSION = 1;
 
     private const METADATA_FILE = 'metadata.phpbin';
 
@@ -18,20 +18,9 @@ final class TextIndexStore
 
     private const FORWARD_FILE = 'forward.phpbin';
 
-    private const WORD_FORWARD_FILE = 'word-forward.phpbin';
-
-    private const LINE_OFFSETS_FILE = 'line-offsets.phpbin';
-
     private const POSTINGS_DIRECTORY = 'postings';
 
-    private const WORDS_DIRECTORY = 'words';
-
     private const QUERIES_DIRECTORY = 'queries';
-
-    /**
-     * @var array<string, array<int, list<int>>>
-     */
-    private array $lineOffsetsCache = [];
 
     public function defaultPath(string $rootPath): string
     {
@@ -42,8 +31,6 @@ final class TextIndexStore
     {
         return is_file($this->metadataPath($indexPath))
             && is_file($this->filesPath($indexPath))
-            && is_file($this->wordForwardPath($indexPath))
-            && is_file($this->lineOffsetsPath($indexPath))
             && ($this->hasLegacyPostings($indexPath) || is_dir($this->postingsDirectoryPath($indexPath)));
     }
 
@@ -82,26 +69,14 @@ final class TextIndexStore
         $files = $this->decodeFile($this->filesPath($indexPath));
         $postings = $includePostings ? $this->loadAllPostings($indexPath) : [];
         $forward = [];
-        $wordForward = [];
-        $lineOffsets = [];
 
         if ($includeForward) {
             $forwardPath = $this->forwardPath($indexPath);
-            $wordForwardPath = $this->wordForwardPath($indexPath);
-            $lineOffsetsPath = $this->lineOffsetsPath($indexPath);
 
             if (is_file($forwardPath)) {
                 $forward = $this->decodeFile($forwardPath);
             } else {
                 $forward = $this->forwardFromLegacyFiles($files);
-            }
-
-            if (is_file($wordForwardPath)) {
-                $wordForward = $this->decodeFile($wordForwardPath);
-            }
-
-            if (is_file($lineOffsetsPath)) {
-                $lineOffsets = $this->decodeFile($lineOffsetsPath);
             }
         }
 
@@ -113,8 +88,6 @@ final class TextIndexStore
             || !is_int($metadata['nextFileId'] ?? null)
             || !is_array($files)
             || !is_array($forward)
-            || !is_array($wordForward)
-            || !is_array($lineOffsets)
         ) {
             throw new \RuntimeException(sprintf('Index is corrupt: %s', $indexPath));
         }
@@ -134,8 +107,6 @@ final class TextIndexStore
             files: $files,
             postings: $postings,
             forward: $forward,
-            wordForward: $wordForward,
-            lineOffsets: $lineOffsets,
         );
     }
 
@@ -167,9 +138,6 @@ final class TextIndexStore
         $this->writeAtomic($this->filesPath($index->indexPath), $files);
         $this->writePostings($index->indexPath, $index->postings);
         $this->writeAtomic($this->forwardPath($index->indexPath), $index->forward);
-        $this->writeWordPostings($index->indexPath, $index->wordPostings);
-        $this->writeAtomic($this->wordForwardPath($index->indexPath), $index->wordForward);
-        $this->writeAtomic($this->lineOffsetsPath($index->indexPath), $index->lineOffsets);
         Filesystem::remove($this->queriesDirectoryPath($index->indexPath));
     }
 
@@ -233,83 +201,6 @@ final class TextIndexStore
         return $selected;
     }
 
-    /**
-     * @param list<string> $words
-     * @return array<string, array<int, list<int>>>
-     */
-    public function loadSelectedWordPostings(string $indexPath, array $words): array
-    {
-        if ($words === []) {
-            return [];
-        }
-
-        $selected = [];
-        $bucketedWords = [];
-
-        foreach (array_values(array_unique($words)) as $word) {
-            $bucket = $this->bucketName($word);
-            $bucketedWords[$bucket] ??= [];
-            $bucketedWords[$bucket][] = $word;
-        }
-
-        foreach ($bucketedWords as $bucket => $bucketWords) {
-            $path = $this->wordsDirectoryPath($indexPath) . '/' . $bucket . '.phpbin';
-
-            if (!is_file($path)) {
-                continue;
-            }
-
-            $postings = $this->normalizeWordPostingsPayload($this->decodeFile($path), $indexPath);
-
-            foreach ($bucketWords as $word) {
-                if (isset($postings[$word])) {
-                    $selected[$word] = $postings[$word];
-                }
-            }
-        }
-
-        return $selected;
-    }
-
-    /**
-     * @return list<int>|null
-     */
-    public function loadLineOffsets(string $indexPath, int $fileId): ?array
-    {
-        $lineOffsets = $this->loadLineOffsetsMap($indexPath);
-
-        $offsets = $lineOffsets[$fileId] ?? null;
-
-        if (!is_array($offsets)) {
-            return null;
-        }
-
-        return $offsets;
-    }
-
-    /**
-     * @return array<int, list<int>>
-     */
-    private function loadLineOffsetsMap(string $indexPath): array
-    {
-        $normalizedPath = Filesystem::normalizePath($indexPath);
-
-        if (isset($this->lineOffsetsCache[$normalizedPath])) {
-            return $this->lineOffsetsCache[$normalizedPath];
-        }
-
-        $lineOffsets = $this->decodeFile($this->lineOffsetsPath($normalizedPath));
-
-        if (!is_array($lineOffsets)) {
-            throw new \RuntimeException(sprintf('Index is corrupt: %s', $normalizedPath));
-        }
-
-        /** @var array<int, list<int>> $lineOffsets */
-        $this->lineOffsetsCache[$normalizedPath] = $lineOffsets;
-
-        return $lineOffsets;
-    }
-
     private function metadataPath(string $indexPath): string
     {
         return Filesystem::normalizePath($indexPath) . '/' . self::METADATA_FILE;
@@ -330,24 +221,9 @@ final class TextIndexStore
         return Filesystem::normalizePath($indexPath) . '/' . self::POSTINGS_DIRECTORY;
     }
 
-    private function wordsDirectoryPath(string $indexPath): string
-    {
-        return Filesystem::normalizePath($indexPath) . '/' . self::WORDS_DIRECTORY;
-    }
-
     private function forwardPath(string $indexPath): string
     {
         return Filesystem::normalizePath($indexPath) . '/' . self::FORWARD_FILE;
-    }
-
-    private function wordForwardPath(string $indexPath): string
-    {
-        return Filesystem::normalizePath($indexPath) . '/' . self::WORD_FORWARD_FILE;
-    }
-
-    private function lineOffsetsPath(string $indexPath): string
-    {
-        return Filesystem::normalizePath($indexPath) . '/' . self::LINE_OFFSETS_FILE;
     }
 
     private function queriesDirectoryPath(string $indexPath): string
@@ -446,39 +322,6 @@ final class TextIndexStore
         @unlink($this->postingsPath($indexPath));
     }
 
-    /**
-     * @param array<string, array<int, list<int>>> $postings
-     */
-    private function writeWordPostings(string $indexPath, array $postings): void
-    {
-        $wordsDirectory = $this->wordsDirectoryPath($indexPath);
-        $temporaryDirectory = $wordsDirectory . '.tmp';
-        $bucketedPostings = [];
-
-        foreach ($postings as $word => $fileMatches) {
-            $word = (string) $word;
-            $bucket = $this->bucketName($word);
-            $bucketedPostings[$bucket] ??= [];
-            $bucketedPostings[$bucket][$this->wordPostingKey($word)] = $fileMatches;
-        }
-
-        Filesystem::remove($temporaryDirectory);
-        Filesystem::ensureDirectory($temporaryDirectory);
-
-        foreach ($bucketedPostings as $bucket => $bucketPostings) {
-            ksort($bucketPostings);
-            $this->writeAtomic($temporaryDirectory . '/' . $bucket . '.phpbin', $bucketPostings);
-        }
-
-        Filesystem::remove($wordsDirectory);
-
-        if (!@rename($temporaryDirectory, $wordsDirectory)) {
-            Filesystem::remove($temporaryDirectory);
-
-            throw new \RuntimeException(sprintf('Failed to finalize word postings: %s', $indexPath));
-        }
-    }
-
     private function hasLegacyPostings(string $indexPath): bool
     {
         return is_file($this->postingsPath($indexPath));
@@ -492,11 +335,6 @@ final class TextIndexStore
     private function postingKey(string $trigram): string
     {
         return 't:' . $trigram;
-    }
-
-    private function wordPostingKey(string $word): string
-    {
-        return 'w:' . $word;
     }
 
     /**
@@ -527,45 +365,7 @@ final class TextIndexStore
             return substr($trigram, 2);
         }
 
-        if (str_starts_with($trigram, 'w:')) {
-            return substr($trigram, 2);
-        }
-
         return $trigram;
-    }
-
-    /**
-     * @return array<string, array<int, list<int>>>
-     */
-    private function normalizeWordPostingsPayload(mixed $payload, string $indexPath): array
-    {
-        if (!is_array($payload)) {
-            throw new \RuntimeException(sprintf('Index is corrupt: %s', $indexPath));
-        }
-
-        $postings = [];
-
-        foreach ($payload as $word => $fileMatches) {
-            if (!is_array($fileMatches)) {
-                continue;
-            }
-
-            $normalized = [];
-
-            foreach ($fileMatches as $fileId => $lineNumbers) {
-                $fileId = ctype_digit((string) $fileId) ? (int) $fileId : null;
-
-                if ($fileId === null || !is_array($lineNumbers)) {
-                    continue;
-                }
-
-                $normalized[$fileId] = array_values(array_filter($lineNumbers, static fn (mixed $value): bool => is_int($value)));
-            }
-
-            $postings[$this->decodePostingKey((string) $word)] = $normalized;
-        }
-
-        return $postings;
     }
 
     /**
