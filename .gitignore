@@ -6,6 +6,8 @@
 /benchmarks/corpora/synthetic/1k-files/
 /benchmarks/corpora/synthetic/10k-files/
 /benchmarks/corpora/synthetic/100k-lines-single/
+/benchmarks/corpora/wordpress/
+/benchmarks/corpora/laravel/
 /scenarios/**/actual/
 /scenarios/**/reports/
 .DS_Store

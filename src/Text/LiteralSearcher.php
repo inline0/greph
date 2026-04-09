@@ -4,13 +4,34 @@ declare(strict_types=1);
 
 namespace Phgrep\Text;
 
-final class LiteralSearcher
+final class LiteralSearcher implements TextMatcher
 {
+    private ?string $wholeWordRegex = null;
+
+    private int $needleLength;
+
     public function __construct(
         private readonly string $needle,
         private readonly bool $caseInsensitive = false,
         private readonly bool $wholeWord = false,
     ) {
+        $this->needleLength = strlen($this->needle);
+
+        if ($this->wholeWord) {
+            $pattern = preg_quote($this->needle, '#');
+            $pattern = '(?<![\pL\pN_])' . $pattern . '(?![\pL\pN_])';
+            $modifiers = $this->caseInsensitive ? 'iu' : 'u';
+            $this->wholeWordRegex = '#' . $pattern . '#' . $modifiers;
+        }
+    }
+
+    public function mayMatchContents(string $contents): bool
+    {
+        if ($this->needle === '') {
+            return true;
+        }
+
+        return ($this->caseInsensitive ? stripos($contents, $this->needle) : strpos($contents, $this->needle)) !== false;
     }
 
     public function match(string $line): ?LineMatch
@@ -26,16 +47,12 @@ final class LiteralSearcher
                 return null;
             }
 
-            return new LineMatch($position + 1, substr($line, $position, strlen($this->needle)));
+            return new LineMatch($position + 1, substr($line, $position, $this->needleLength));
         }
 
-        if ($this->wholeWord) {
-            $pattern = preg_quote($this->needle, '#');
-            $pattern = '(?<![\pL\pN_])' . $pattern . '(?![\pL\pN_])';
-            $modifiers = $this->caseInsensitive ? 'iu' : 'u';
-            $regex = '#' . $pattern . '#' . $modifiers;
+        if ($this->wholeWordRegex !== null) {
             $matches = [];
-            $matched = @preg_match($regex, $line, $matches, PREG_OFFSET_CAPTURE);
+            $matched = @preg_match($this->wholeWordRegex, $line, $matches, PREG_OFFSET_CAPTURE);
 
             if ($matched === false || $matched === 0) {
                 return null;

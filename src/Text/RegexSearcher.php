@@ -6,7 +6,7 @@ namespace Phgrep\Text;
 
 use Phgrep\Exceptions\PatternException;
 
-final class RegexSearcher
+final class RegexSearcher implements TextMatcher
 {
     private string $regex;
 
@@ -30,6 +30,15 @@ final class RegexSearcher
         if (@preg_match($this->regex, '') === false && @preg_match($this->fallbackRegex, '') === false) {
             throw new PatternException(sprintf('Invalid regex pattern: %s', $pattern));
         }
+    }
+
+    public function mayMatchContents(string $contents): bool
+    {
+        if ($this->literalPrefilter === null) {
+            return true;
+        }
+
+        return ($this->caseInsensitive ? stripos($contents, $this->literalPrefilter) : strpos($contents, $this->literalPrefilter)) !== false;
     }
 
     public function match(string $line): ?LineMatch

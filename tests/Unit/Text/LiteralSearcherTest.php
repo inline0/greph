@@ -34,4 +34,17 @@ final class LiteralSearcherTest extends TestCase
         $this->assertSame('needle', $plain->matchedText);
         $this->assertNull((new LiteralSearcher('missing'))->match('prefix needle suffix'));
     }
+
+    #[Test]
+    public function itCanPrefilterWholeFileContents(): void
+    {
+        $plain = new LiteralSearcher('needle');
+        $caseInsensitive = new LiteralSearcher('needle', caseInsensitive: true);
+        $wholeWord = new LiteralSearcher('word', wholeWord: true);
+
+        $this->assertTrue($plain->mayMatchContents("alpha\nneedle\nomega"));
+        $this->assertFalse($plain->mayMatchContents("alpha\nomega"));
+        $this->assertTrue($caseInsensitive->mayMatchContents("alpha\nNEEDLE\nomega"));
+        $this->assertTrue($wholeWord->mayMatchContents("swordfish and word boundaries"));
+    }
 }

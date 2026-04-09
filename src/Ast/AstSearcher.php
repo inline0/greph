@@ -16,6 +16,8 @@ final class AstSearcher
 
     private PatternMatcher $patternMatcher;
 
+    private AstPatternPrefilter $patternPrefilter;
+
     private ParserFactory $parserFactory;
 
     private Standard $printer;
@@ -23,10 +25,12 @@ final class AstSearcher
     public function __construct(
         ?PatternParser $patternParser = null,
         ?PatternMatcher $patternMatcher = null,
+        ?AstPatternPrefilter $patternPrefilter = null,
         ?ParserFactory $parserFactory = null,
     ) {
         $this->patternParser = $patternParser ?? new PatternParser();
         $this->patternMatcher = $patternMatcher ?? new PatternMatcher();
+        $this->patternPrefilter = $patternPrefilter ?? new AstPatternPrefilter();
         $this->parserFactory = $parserFactory ?? new ParserFactory();
         $this->printer = new Standard();
     }
@@ -37,6 +41,7 @@ final class AstSearcher
     public function searchFiles(FileList $files, string $pattern, AstSearchOptions $options): array
     {
         $parsedPattern = $this->patternParser->parse($pattern, $options->language);
+        $prefilterTokens = $this->patternPrefilter->extract($parsedPattern->root);
         $parser = $this->parserFactory->forLanguage($options->language);
         $matches = [];
 
@@ -44,6 +49,10 @@ final class AstSearcher
             $source = @file_get_contents($file);
 
             if ($source === false) {
+                continue;
+            }
+
+            if (!$this->patternPrefilter->mayMatch($prefilterTokens, $source)) {
                 continue;
             }
 

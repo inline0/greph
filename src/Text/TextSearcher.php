@@ -54,7 +54,7 @@ final class TextSearcher
         return $results;
     }
 
-    private function createMatcher(string $pattern, TextSearchOptions $options): LiteralSearcher|RegexSearcher
+    private function createMatcher(string $pattern, TextSearchOptions $options): TextMatcher
     {
         if ($options->fixedString) {
             return new LiteralSearcher($pattern, $options->caseInsensitive, $options->wholeWord);
@@ -70,7 +70,7 @@ final class TextSearcher
 
     private function searchFile(
         string $file,
-        LiteralSearcher|RegexSearcher $matcher,
+        TextMatcher $matcher,
         TextSearchOptions $options,
     ): TextFileResult {
         if ($options->beforeContext === 0 && $options->afterContext === 0) {
@@ -177,7 +177,29 @@ final class TextSearcher
 
     private function searchFileWithoutContext(
         string $file,
-        LiteralSearcher|RegexSearcher $matcher,
+        TextMatcher $matcher,
+        TextSearchOptions $options,
+    ): TextFileResult {
+        if (!$this->shouldUseContentsFastPath($matcher, $options)) {
+            return $this->searchFileWithStreamWithoutContext($file, $matcher, $options);
+        }
+
+        $contents = @file_get_contents($file);
+
+        if ($contents === false) {
+            return new TextFileResult($file, [], 0);
+        }
+
+        if (!$options->invertMatch && !$matcher->mayMatchContents($contents)) {
+            return new TextFileResult($file, [], 0);
+        }
+
+        return $this->searchContentsWithoutContext($file, $contents, $matcher, $options);
+    }
+
+    private function searchFileWithStreamWithoutContext(
+        string $file,
+        TextMatcher $matcher,
         TextSearchOptions $options,
     ): TextFileResult {
         $matches = [];
@@ -230,5 +252,77 @@ final class TextSearcher
         fclose($handle);
 
         return new TextFileResult($file, $matches, $foundCount);
+    }
+
+    private function searchContentsWithoutContext(
+        string $file,
+        string $contents,
+        TextMatcher $matcher,
+        TextSearchOptions $options,
+    ): TextFileResult {
+        $matches = [];
+        $foundCount = 0;
+        $lineNumber = 0;
+        $offset = 0;
+        $length = strlen($contents);
+
+        while ($offset < $length) {
+            $newlinePosition = strpos($contents, "\n", $offset);
+
+            if ($newlinePosition === false) {
+                $rawLine = substr($contents, $offset);
+                $offset = $length;
+            } else {
+                $rawLine = substr($contents, $offset, $newlinePosition - $offset);
+                $offset = $newlinePosition + 1;
+            }
+
+            $lineNumber++;
+            $lineContent = rtrim($rawLine, "\r");
+            $lineMatch = $matcher->match($lineContent);
+            $isSelected = $options->invertMatch ? $lineMatch === null : $lineMatch !== null;
+
+            if (!$isSelected) {
+                continue;
+            }
+
+            $foundCount++;
+
+            if ($options->countOnly || $options->filesWithMatches || $options->filesWithoutMatches) {
+                if ($options->filesWithMatches || $options->filesWithoutMatches) {
+                    break;
+                }
+
+                if ($options->maxCount !== null && $foundCount >= $options->maxCount) {
+                    break;
+                }
+
+                continue;
+            }
+
+            $matches[] = new TextMatch(
+                file: $file,
+                line: $lineNumber,
+                column: $lineMatch !== null ? $lineMatch->column : 1,
+                content: $lineContent,
+                matchedText: $lineMatch !== null ? $lineMatch->matchedText : '',
+                captures: $lineMatch !== null ? $lineMatch->captures : [],
+            );
+
+            if ($options->maxCount !== null && $foundCount >= $options->maxCount) {
+                break;
+            }
+        }
+
+        return new TextFileResult($file, $matches, $foundCount);
+    }
+
+    private function shouldUseContentsFastPath(TextMatcher $matcher, TextSearchOptions $options): bool
+    {
+        if ($matcher instanceof RegexSearcher) {
+            return true;
+        }
+
+        return $options->caseInsensitive || $options->wholeWord || $options->filesWithoutMatches;
     }
 }

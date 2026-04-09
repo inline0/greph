@@ -42,4 +42,15 @@ final class RegexSearcherTest extends TestCase
         $this->assertSame(2, $match->column);
         $this->assertSame('a', $match->matchedText);
     }
+
+    #[Test]
+    public function itCanPrefilterWholeFileContentsFromExtractedLiterals(): void
+    {
+        $searcher = new RegexSearcher('save', caseInsensitive: true, literalPrefilter: 'save');
+        $noPrefilter = new RegexSearcher('^save$');
+
+        $this->assertTrue($searcher->mayMatchContents("Before\nSAVE\nAfter"));
+        $this->assertFalse($searcher->mayMatchContents("Before\nstore\nAfter"));
+        $this->assertTrue($noPrefilter->mayMatchContents("anything"));
+    }
 }

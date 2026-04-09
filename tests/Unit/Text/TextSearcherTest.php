@@ -21,6 +21,7 @@ final class TextSearcherTest extends TestCase
         $this->workspace = Workspace::createDirectory('text-searcher');
         Workspace::writeFile($this->workspace, 'context.txt', "zero\nmatch\nafter one\nafter two\nignored\n");
         Workspace::writeFile($this->workspace, 'count.txt', "match\nmatch\n");
+        Workspace::writeFile($this->workspace, 'final-line.txt', "alpha\r\nmatch");
     }
 
     protected function tearDown(): void
@@ -64,6 +65,11 @@ final class TextSearcherTest extends TestCase
             'match',
             new TextSearchOptions(fixedString: true),
         );
+        $finalLineResults = $searcher->searchFiles(
+            new FileList([$this->workspace . '/final-line.txt']),
+            'match',
+            new TextSearchOptions(fixedString: true),
+        );
 
         $this->assertCount(1, $contextResults);
         $this->assertSame('zero', $contextResults[0]->matches[0]->beforeContext[0]['content']);
@@ -74,5 +80,8 @@ final class TextSearcherTest extends TestCase
         $this->assertSame(1, $countResults[0]->matchCount());
         $this->assertSame(1, $breakResults[0]->matchCount());
         $this->assertSame(0, $missingResults[0]->matchCount());
+        $this->assertSame(1, $finalLineResults[0]->matchCount());
+        $this->assertSame(2, $finalLineResults[0]->matches[0]->line);
+        $this->assertSame('match', $finalLineResults[0]->matches[0]->content);
     }
 }
