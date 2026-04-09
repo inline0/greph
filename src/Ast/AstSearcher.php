@@ -18,6 +18,8 @@ final class AstSearcher
 
     private AstPatternPrefilter $patternPrefilter;
 
+    private AstRootMatcher $rootMatcher;
+
     private ParserFactory $parserFactory;
 
     private Standard $printer;
@@ -26,11 +28,13 @@ final class AstSearcher
         ?PatternParser $patternParser = null,
         ?PatternMatcher $patternMatcher = null,
         ?AstPatternPrefilter $patternPrefilter = null,
+        ?AstRootMatcher $rootMatcher = null,
         ?ParserFactory $parserFactory = null,
     ) {
         $this->patternParser = $patternParser ?? new PatternParser();
         $this->patternMatcher = $patternMatcher ?? new PatternMatcher();
         $this->patternPrefilter = $patternPrefilter ?? new AstPatternPrefilter();
+        $this->rootMatcher = $rootMatcher ?? new AstRootMatcher();
         $this->parserFactory = $parserFactory ?? new ParserFactory();
         $this->printer = new Standard();
     }
@@ -93,7 +97,9 @@ final class AstSearcher
      */
     private function visitNode(Node $node, Pattern $pattern, string $source, string $file, array &$matches): void
     {
-        $captures = $this->patternMatcher->match($pattern->root, $node);
+        $captures = $this->rootMatcher->mayMatch($pattern->root, $node)
+            ? $this->patternMatcher->match($pattern->root, $node)
+            : null;
 
         if ($captures !== null) {
             $startFilePos = $node->getStartFilePos();

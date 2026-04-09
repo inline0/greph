@@ -16,6 +16,8 @@ final class AstRewriter
 
     private PatternMatcher $patternMatcher;
 
+    private AstRootMatcher $rootMatcher;
+
     private ParserFactory $parserFactory;
 
     private Standard $printer;
@@ -23,10 +25,12 @@ final class AstRewriter
     public function __construct(
         ?PatternParser $patternParser = null,
         ?PatternMatcher $patternMatcher = null,
+        ?AstRootMatcher $rootMatcher = null,
         ?ParserFactory $parserFactory = null,
     ) {
         $this->patternParser = $patternParser ?? new PatternParser();
         $this->patternMatcher = $patternMatcher ?? new PatternMatcher();
+        $this->rootMatcher = $rootMatcher ?? new AstRootMatcher();
         $this->parserFactory = $parserFactory ?? new ParserFactory();
         $this->printer = new Standard();
     }
@@ -133,7 +137,9 @@ final class AstRewriter
      */
     private function visitNode(Node $node, Pattern $pattern, string $source, array &$matches): void
     {
-        $captures = $this->patternMatcher->match($pattern->root, $node);
+        $captures = $this->rootMatcher->mayMatch($pattern->root, $node)
+            ? $this->patternMatcher->match($pattern->root, $node)
+            : null;
 
         if ($captures !== null) {
             $matches[] = [
