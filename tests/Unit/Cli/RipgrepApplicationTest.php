@@ -21,9 +21,16 @@ final class RipgrepApplicationTest extends TestCase
         $this->originalWorkingDirectory = getcwd() ?: '.';
         chdir($this->workspace);
 
-        Workspace::writeFile($this->workspace, 'single.txt', "alpha\nneedle\n");
+        Workspace::writeFile($this->workspace, '.gitignore', "vendor/\n");
+        Workspace::writeFile($this->workspace, 'single.txt', "alpha\nneedle\nNEEDLE\n");
+        Workspace::writeFile($this->workspace, 'counts.txt', "needle\nneedle\n");
+        Workspace::writeFile($this->workspace, 'context.txt', "before\nneedle\nafter\n");
+        Workspace::writeFile($this->workspace, 'invert.txt', "needle\nhay\n");
+        Workspace::writeFile($this->workspace, 'words.txt', "needle\nneedles\n");
         Workspace::writeFile($this->workspace, 'src/App.php', "<?php\nfunction visible(): void {}\n");
+        Workspace::writeFile($this->workspace, 'src/Other.txt', "function ignored\n");
         Workspace::writeFile($this->workspace, '.hidden/secret.txt', "needle\n");
+        Workspace::writeFile($this->workspace, 'vendor/ignored.txt', "ignored needle\n");
         symlink($this->workspace . '/single.txt', $this->workspace . '/link-to-single.txt');
     }
 
@@ -40,11 +47,13 @@ final class RipgrepApplicationTest extends TestCase
         $application = $harness['application'];
 
         $helpExit = $application->run(['rg', '--help']);
+        $shortHelpExit = $application->run(['rg', '-h']);
         $searchExit = $application->run(['rg', '--fixed-strings', '--ignore-case', 'needle', 'single.txt']);
 
         $stdout = $this->readStream($harness['stdout']);
 
         $this->assertSame(0, $helpExit);
+        $this->assertSame(0, $shortHelpExit);
         $this->assertSame(0, $searchExit);
         $this->assertStringContainsString('Usage:' . PHP_EOL . '  rg [options] pattern [path...]', $stdout);
         $this->assertStringContainsString("needle\n", $stdout);
@@ -59,12 +68,16 @@ final class RipgrepApplicationTest extends TestCase
         $defaultExit = $application->run(['rg', '--files', '.']);
         $hiddenExit = $application->run(['rg', '--files', '--hidden', '.']);
         $typedExit = $application->run(['rg', '--files', '--type', 'php', '.']);
+        $typeNotExit = $application->run(['rg', '--files', '--type-not', 'php', '.']);
+        $globExit = $application->run(['rg', '--files', '--glob', '*.php', '.']);
 
         $stdout = $this->readStream($harness['stdout']);
 
         $this->assertSame(0, $defaultExit);
         $this->assertSame(0, $hiddenExit);
         $this->assertSame(0, $typedExit);
+        $this->assertSame(0, $typeNotExit);
+        $this->assertSame(0, $globExit);
         $this->assertStringContainsString("single.txt\n", $stdout);
         $this->assertStringContainsString("src/App.php\n", $stdout);
         $this->assertStringContainsString(".hidden/secret.txt\n", $stdout);
@@ -98,13 +111,104 @@ final class RipgrepApplicationTest extends TestCase
     }
 
     #[Test]
-    public function itRejectsUnsupportedFilesFlags(): void
+    public function itSupportsSearchModesAndFilterFlags(): void
     {
-        $application = $this->newApplication()['application'];
+        $harness = $this->newApplication();
+        $application = $harness['application'];
 
+        $countExit = $application->run(['rg', '-c', '-F', 'needle', 'counts.txt']);
+        $jsonExit = $application->run(['rg', '--json', '-F', 'needle', 'single.txt']);
+        $filesWithExit = $application->run(['rg', '-l', '-F', 'needle', '.']);
+        $filesWithoutExit = $application->run(['rg', '--files-without-match', '-F', 'needle', '.']);
+        $beforeExit = $application->run(['rg', '-B', '1', '-F', 'needle', 'context.txt']);
+        $afterExit = $application->run(['rg', '-A', '1', '-F', 'needle', 'context.txt']);
+        $regexpExit = $application->run(['rg', '--regexp', 'needle', 'single.txt']);
+        $invertExit = $application->run(['rg', '-v', '-F', 'needle', 'invert.txt']);
+        $wordExit = $application->run(['rg', '-w', '-F', 'needle', 'words.txt']);
+        $hiddenExit = $application->run(['rg', '--hidden', '-F', 'needle', '.']);
+        $ignoredExit = $application->run(['rg', '--no-ignore', '-F', 'ignored', '.']);
+        $typeNotExit = $application->run(['rg', '--type-not', 'php', 'function', '.']);
+        $maxCountExit = $application->run(['rg', '-m', '1', '-F', 'needle', 'counts.txt']);
+        $threadExit = $application->run(['rg', '-j', '2', '-F', 'needle', 'single.txt']);
+        $delimiterExit = $application->run(['rg', '-F', '--', 'needle', 'single.txt']);
+
+        $stdout = $this->readStream($harness['stdout']);
+
+        $this->assertSame(0, $countExit);
+        $this->assertSame(0, $jsonExit);
+        $this->assertSame(0, $filesWithExit);
+        $this->assertSame(0, $filesWithoutExit);
+        $this->assertSame(0, $beforeExit);
+        $this->assertSame(0, $afterExit);
+        $this->assertSame(0, $regexpExit);
+        $this->assertSame(0, $invertExit);
+        $this->assertSame(0, $wordExit);
+        $this->assertSame(0, $hiddenExit);
+        $this->assertSame(0, $ignoredExit);
+        $this->assertSame(0, $typeNotExit);
+        $this->assertSame(0, $maxCountExit);
+        $this->assertSame(0, $threadExit);
+        $this->assertSame(0, $delimiterExit);
+        $this->assertStringContainsString("2\n", $stdout);
+        $this->assertStringContainsString('"type":"match"', $stdout);
+        $this->assertStringContainsString("before\n", $stdout);
+        $this->assertStringContainsString("after\n", $stdout);
+        $this->assertStringContainsString("hay\n", $stdout);
+        $this->assertStringContainsString("./words.txt:needle\n", $stdout);
+        $this->assertStringContainsString("./vendor/ignored.txt:ignored needle\n", $stdout);
+        $this->assertStringContainsString("./src/Other.txt:function ignored\n", $stdout);
+    }
+
+    #[Test]
+    public function itReportsMissingPatternsAndRejectsInvalidArguments(): void
+    {
+        $missingHarness = $this->newApplication();
+        $missingExit = $missingHarness['application']->run(['rg', '-F']);
+
+        $this->assertSame(2, $missingExit);
+        $this->assertSame("Missing search pattern.\n", $this->readStream($missingHarness['stderr']));
+
+        $unsupportedFiles = $this->newApplication()['application'];
         $this->expectException(\InvalidArgumentException::class);
         $this->expectExceptionMessage('Unsupported rg --files argument: --sort');
-        $application->run(['rg', '--files', '--sort', 'path', '.']);
+        $unsupportedFiles->run(['rg', '--files', '--sort', 'path', '.']);
+    }
+
+    #[Test]
+    public function itRejectsInvalidSearchValues(): void
+    {
+        $missingValue = $this->newApplication()['application'];
+
+        try {
+            $missingValue->run(['rg', '--glob']);
+            self::fail('Expected missing --glob value.');
+        } catch (\InvalidArgumentException $exception) {
+            $this->assertSame('Missing value for --glob.', $exception->getMessage());
+        }
+
+        $invalidThreads = $this->newApplication()['application'];
+
+        try {
+            $invalidThreads->run(['rg', '--threads', '0', '-F', 'needle', '.']);
+            self::fail('Expected invalid --threads value.');
+        } catch (\InvalidArgumentException $exception) {
+            $this->assertSame('Expected a positive integer for --threads.', $exception->getMessage());
+        }
+
+        $invalidContext = $this->newApplication()['application'];
+
+        try {
+            $invalidContext->run(['rg', '-A', 'nope', '-F', 'needle', '.']);
+            self::fail('Expected invalid -A value.');
+        } catch (\InvalidArgumentException $exception) {
+            $this->assertSame('Expected a non-negative integer for -A.', $exception->getMessage());
+        }
+
+        $unsupportedArg = $this->newApplication()['application'];
+
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('Unsupported rg argument: --bogus');
+        $unsupportedArg->run(['rg', '--bogus', 'needle', '.']);
     }
 
     /**

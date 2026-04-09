@@ -21,11 +21,17 @@ final class AstGrepApplicationTest extends TestCase
         $this->originalWorkingDirectory = getcwd() ?: '.';
         chdir($this->workspace);
 
+        Workspace::writeFile($this->workspace, '.gitignore', "vendor/\n");
         Workspace::writeFile($this->workspace, 'src/App.php', <<<'PHP'
 <?php
 
 $items = array(1, 2, 3);
+$client->send($message);
+dispatch($event);
 PHP);
+        Workspace::writeFile($this->workspace, '.hidden/Hidden.php', "<?php\ndispatch(\$hidden);\n");
+        Workspace::writeFile($this->workspace, 'vendor/Ignored.php', "<?php\ndispatch(\$ignored);\n");
+        Workspace::writeFile($this->workspace, 'notes.txt', "dispatch(\$text)\n");
     }
 
     protected function tearDown(): void
@@ -41,12 +47,14 @@ PHP);
         $application = $harness['application'];
 
         $helpExit = $application->run(['sg', '--help']);
+        $shortHelpExit = $application->run(['sg', '-h']);
         $scanExit = $application->run(['sg', 'scan', '-p', 'array($$$ITEMS)', 'src/App.php']);
         $positionalExit = $application->run(['sg', 'array($$$ITEMS)', 'src/App.php']);
 
         $stdout = $this->readStream($harness['stdout']);
 
         $this->assertSame(0, $helpExit);
+        $this->assertSame(0, $shortHelpExit);
         $this->assertSame(0, $scanExit);
         $this->assertSame(0, $positionalExit);
         $this->assertStringContainsString('Usage:' . PHP_EOL . '  sg run --pattern PATTERN [options] [path...]', $stdout);
@@ -100,6 +108,61 @@ PHP);
     }
 
     #[Test]
+    public function itSupportsJsonFilesWithMatchesAndFilterFlags(): void
+    {
+        $harness = $this->newApplication();
+        $application = $harness['application'];
+
+        $jsonExit = $application->run(['sg', 'run', '--json', '--pattern', 'dispatch($EVENT)', 'src/App.php']);
+        $streamExit = $application->run(['sg', 'run', '--json=stream', '--pattern', 'dispatch($EVENT)', 'src/App.php']);
+        $compactExit = $application->run(['sg', 'run', '--json=compact', '--pattern', '$CLIENT->send($MESSAGE)', 'src/App.php']);
+        $filesExit = $application->run(['sg', 'run', '--files-with-matches', '--pattern', 'array($$$ITEMS)', 'src/App.php']);
+        $hiddenExit = $application->run(['sg', 'run', '--hidden', '--pattern', 'dispatch($EVENT)', '.']);
+        $noIgnoreExit = $application->run(['sg', 'run', '--no-ignore', 'hidden', '--pattern', 'dispatch($EVENT)', '.']);
+        $globExit = $application->run(['sg', 'run', '--globs', 'src/*.php', '--pattern', 'dispatch($EVENT)', '.']);
+        $threadExit = $application->run(['sg', 'run', '--threads', '2', '--lang', 'php', '--pattern', '$CLIENT->send($MESSAGE)', 'src/App.php']);
+
+        $stdout = $this->readStream($harness['stdout']);
+
+        $this->assertSame(0, $jsonExit);
+        $this->assertSame(0, $streamExit);
+        $this->assertSame(0, $compactExit);
+        $this->assertSame(0, $filesExit);
+        $this->assertSame(0, $hiddenExit);
+        $this->assertSame(0, $noIgnoreExit);
+        $this->assertSame(0, $globExit);
+        $this->assertSame(0, $threadExit);
+        $this->assertStringContainsString('"file": "src/App.php"', $stdout);
+        $this->assertStringContainsString('src/App.php' . PHP_EOL, $stdout);
+        $this->assertStringContainsString('.hidden/Hidden.php:2:dispatch($hidden);', $stdout);
+        $this->assertStringContainsString('vendor/Ignored.php:2:dispatch($ignored);', $stdout);
+        $this->assertStringContainsString('$client->send($message)', $stdout);
+    }
+
+    #[Test]
+    public function itReturnsNoMatchStatusForFilesAndRewrites(): void
+    {
+        $filesHarness = $this->newApplication();
+        $rewriteHarness = $this->newApplication();
+
+        $filesExit = $filesHarness['application']->run(['sg', 'run', '--files-with-matches', '--pattern', 'isset($VALUE)', 'src/App.php']);
+        $rewriteExit = $rewriteHarness['application']->run([
+            'sg',
+            'rewrite',
+            '--pattern',
+            'isset($VALUE)',
+            '--rewrite',
+            '$VALUE !== null',
+            'src/App.php',
+        ]);
+
+        $this->assertSame(1, $filesExit);
+        $this->assertSame(1, $rewriteExit);
+        $this->assertSame('', $this->readStream($filesHarness['stdout']));
+        $this->assertSame('', $this->readStream($rewriteHarness['stdout']));
+    }
+
+    #[Test]
     public function itSupportsInteractiveRewriteAcceptAndDecline(): void
     {
         $acceptHarness = $this->newApplication("y\n");
@@ -150,6 +213,34 @@ PHP);
 
         $this->assertSame(2, $exitCode);
         $this->assertSame("Missing AST pattern.\n", $this->readStream($harness['stderr']));
+    }
+
+    #[Test]
+    public function itRejectsUnsupportedAndInvalidArguments(): void
+    {
+        $missingValue = $this->newApplication()['application'];
+
+        try {
+            $missingValue->run(['sg', 'run', '--pattern']);
+            self::fail('Expected missing --pattern value.');
+        } catch (\InvalidArgumentException $exception) {
+            $this->assertSame('Missing value for --pattern.', $exception->getMessage());
+        }
+
+        $invalidThreads = $this->newApplication()['application'];
+
+        try {
+            $invalidThreads->run(['sg', 'run', '--threads', '0', '--pattern', 'dispatch($EVENT)', 'src/App.php']);
+            self::fail('Expected invalid --threads value.');
+        } catch (\InvalidArgumentException $exception) {
+            $this->assertSame('Expected a positive integer for --threads.', $exception->getMessage());
+        }
+
+        $unsupported = $this->newApplication()['application'];
+
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('Unsupported sg argument: --bogus');
+        $unsupported->run(['sg', 'run', '--bogus', '--pattern', 'dispatch($EVENT)', 'src/App.php']);
     }
 
     /**
