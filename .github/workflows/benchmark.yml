@@ -132,38 +132,35 @@ jobs:
           ln -sfn "${{ steps.paths.outputs.corpus_root }}/wordpress" "${{ steps.paths.outputs.base_worktree }}/benchmarks/corpora/wordpress"
           composer install --working-dir "${{ steps.paths.outputs.base_worktree }}" --no-interaction --no-progress --prefer-dist
 
-      - name: Run head benchmark series
+      - name: Run interleaved benchmark series
         shell: bash
         run: |
-          args=(--corpus "${{ steps.settings.outputs.corpus }}" --repeat "${{ steps.settings.outputs.repeat }}" --warmup "${{ steps.settings.outputs.warmup }}" --compare "rg,grep,sg" --output "$HEAD_OUTPUT")
+          head_run_dir="build/benchmarks/head-runs"
+          base_run_dir="${{ steps.paths.outputs.base_worktree }}/build/benchmarks/base-runs"
+          mkdir -p "$head_run_dir" "$base_run_dir"
+
+          args=(--corpus "${{ steps.settings.outputs.corpus }}" --compare "rg,grep,sg")
           if [[ -n "${{ steps.settings.outputs.category }}" ]]; then
             args+=(--category "${{ steps.settings.outputs.category }}")
           fi
-          php bin/bench-series "${args[@]}"
-
-      - name: Run base benchmark series
-        shell: bash
-        run: |
-          run_dir="${{ steps.paths.outputs.base_worktree }}/build/benchmarks/base-runs"
-          mkdir -p "$run_dir"
-
-          warmup_args=(--corpus "${{ steps.settings.outputs.corpus }}" --compare "rg,grep,sg")
-          run_args=(--corpus "${{ steps.settings.outputs.corpus }}" --compare "rg,grep,sg")
-
-          if [[ -n "${{ steps.settings.outputs.category }}" ]]; then
-            warmup_args+=(--category "${{ steps.settings.outputs.category }}")
-            run_args+=(--category "${{ steps.settings.outputs.category }}")
-          fi
 
           for iteration in $(seq 1 "${{ steps.settings.outputs.warmup }}"); do
-            php "${{ steps.paths.outputs.base_worktree }}/bin/bench" "${warmup_args[@]}" >/dev/null
+            php bin/bench "${args[@]}" >/dev/null
+            php "${{ steps.paths.outputs.base_worktree }}/bin/bench" "${args[@]}" >/dev/null
           done
 
           for iteration in $(seq 1 "${{ steps.settings.outputs.repeat }}"); do
-            php "${{ steps.paths.outputs.base_worktree }}/bin/bench" "${run_args[@]}" --output "$run_dir/run-$iteration.json" >/dev/null
+            if (( iteration % 2 == 1 )); then
+              php bin/bench "${args[@]}" --output "$head_run_dir/run-$iteration.json" >/dev/null
+              php "${{ steps.paths.outputs.base_worktree }}/bin/bench" "${args[@]}" --output "$base_run_dir/run-$iteration.json" >/dev/null
+            else
+              php "${{ steps.paths.outputs.base_worktree }}/bin/bench" "${args[@]}" --output "$base_run_dir/run-$iteration.json" >/dev/null
+              php bin/bench "${args[@]}" --output "$head_run_dir/run-$iteration.json" >/dev/null
+            fi
           done
 
-          php bin/bench-aggregate --output "${{ steps.paths.outputs.base_worktree }}/$BASE_OUTPUT" "$run_dir"/run-*.json >/dev/null
+          php bin/bench-aggregate --output "$HEAD_OUTPUT" "$head_run_dir"/run-*.json >/dev/null
+          php bin/bench-aggregate --output "${{ steps.paths.outputs.base_worktree }}/$BASE_OUTPUT" "$base_run_dir"/run-*.json >/dev/null
 
       - name: Compare benchmark series
         shell: bash
