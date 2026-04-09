@@ -96,6 +96,9 @@ Current benchmark baseline commit: `e542ee4`
 - `a8b84e8` `Add AST count-only benchmark path`
   - `ast-internal` measures parse plus match cost without `AstMatch` construction or sorting
   - the new category runs on both local and GitHub benchmark workflows
+- `809671f` `Add AST parse-only benchmark path`
+  - `ast-parse` measures parser cost after the existing AST prefilters, without candidate traversal or matching
+  - combined with `ast` and `ast-internal`, it shows parser cost dominates current AST runs on WordPress
 
 ### Rejected Or Reverted
 
@@ -130,10 +133,10 @@ Current benchmark baseline commit: `e542ee4`
 
 ### In Flight
 
-- Add an internal AST parse-only benchmark path
-  - measure parse cost after the existing AST prefilters, without candidate traversal or matching
-  - use it alongside `ast-internal` and full `ast` timings to separate parser cost from matcher cost
-  - validate with local benchmarks and a CI workflow run for the new category
+- Strengthen AST parser-side prefilters
+  - use the `ast-parse` signal to cut parse volume before `nikic/php-parser` runs
+  - focus on parser-side heuristics rather than more matcher micro-optimizations
+  - validate on CI with `ast` plus `ast-parse` once a concrete prefilter change lands
 
 ## Ordered Queue
 
@@ -181,7 +184,7 @@ Current benchmark baseline commit: `e542ee4`
 
 ## Immediate Next Steps
 
-1. Finish the internal AST parse-only benchmark path and run it in CI.
-2. Use `ast-parse`, `ast-internal`, and full `ast` together to decide whether AST work should focus on parsing or matching.
+1. Use `ast-parse`, `ast-internal`, and full `ast` together to target parser-side wins next.
+2. Land the benchmark report threshold annotations so CI calls out obvious wins and regressions directly.
 3. Keep rejecting changes that do not clearly beat runner noise.
 4. Keep every pass isolated and CI-verified.
