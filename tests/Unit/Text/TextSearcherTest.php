@@ -22,6 +22,7 @@ final class TextSearcherTest extends TestCase
         Workspace::writeFile($this->workspace, 'context.txt', "zero\nmatch\nafter one\nafter two\nignored\n");
         Workspace::writeFile($this->workspace, 'count.txt', "match\nmatch\n");
         Workspace::writeFile($this->workspace, 'final-line.txt', "alpha\r\nmatch");
+        Workspace::writeFile($this->workspace, 'literal-scan.txt', "noise\nprefix match suffix match\nskip\nMATCH again\n");
     }
 
     protected function tearDown(): void
@@ -83,5 +84,23 @@ final class TextSearcherTest extends TestCase
         $this->assertSame(1, $finalLineResults[0]->matchCount());
         $this->assertSame(2, $finalLineResults[0]->matches[0]->line);
         $this->assertSame('match', $finalLineResults[0]->matches[0]->content);
+    }
+
+    #[Test]
+    public function itUsesOccurrenceScanningForPlainLiteralSearches(): void
+    {
+        $searcher = new TextSearcher();
+        $results = $searcher->searchFiles(
+            new FileList([$this->workspace . '/literal-scan.txt']),
+            'match',
+            new TextSearchOptions(fixedString: true, caseInsensitive: true),
+        );
+
+        $this->assertSame(2, $results[0]->matchCount());
+        $this->assertSame(2, $results[0]->matches[0]->line);
+        $this->assertSame(8, $results[0]->matches[0]->column);
+        $this->assertSame('match', $results[0]->matches[0]->matchedText);
+        $this->assertSame(4, $results[0]->matches[1]->line);
+        $this->assertSame('MATCH', $results[0]->matches[1]->matchedText);
     }
 }

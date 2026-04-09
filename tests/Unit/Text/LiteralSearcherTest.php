@@ -47,4 +47,19 @@ final class LiteralSearcherTest extends TestCase
         $this->assertTrue($caseInsensitive->mayMatchContents("alpha\nNEEDLE\nomega"));
         $this->assertTrue($wholeWord->mayMatchContents("swordfish and word boundaries"));
     }
+
+    #[Test]
+    public function itCanScanWholeContentsForLiteralOffsets(): void
+    {
+        $plain = new LiteralSearcher('needle');
+        $caseInsensitive = new LiteralSearcher('needle', caseInsensitive: true);
+        $wholeWord = new LiteralSearcher('needle', wholeWord: true);
+
+        $this->assertTrue($plain->supportsOccurrenceScan());
+        $this->assertSame(7, $plain->findInContents("prefix needle suffix"));
+        $this->assertSame('needle', $plain->matchedTextAt("prefix needle suffix", 7));
+        $this->assertSame(7, $caseInsensitive->findInContents("prefix NEEDLE suffix"));
+        $this->assertSame('NEEDLE', $caseInsensitive->matchedTextAt("prefix NEEDLE suffix", 7));
+        $this->assertFalse($wholeWord->supportsOccurrenceScan());
+    }
 }

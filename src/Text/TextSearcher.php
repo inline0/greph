@@ -194,6 +194,10 @@ final class TextSearcher
             return new TextFileResult($file, [], 0);
         }
 
+        if ($matcher instanceof LiteralSearcher && !$options->invertMatch && $matcher->supportsOccurrenceScan()) {
+            return $this->searchContentsByLiteral($file, $contents, $matcher, $options);
+        }
+
         return $this->searchContentsWithoutContext($file, $contents, $matcher, $options);
     }
 
@@ -323,6 +327,62 @@ final class TextSearcher
             return true;
         }
 
-        return $options->caseInsensitive || $options->wholeWord || $options->filesWithoutMatches;
+        return $matcher instanceof LiteralSearcher
+            || $options->caseInsensitive
+            || $options->wholeWord
+            || $options->filesWithoutMatches;
+    }
+
+    private function searchContentsByLiteral(
+        string $file,
+        string $contents,
+        LiteralSearcher $matcher,
+        TextSearchOptions $options,
+    ): TextFileResult {
+        $matches = [];
+        $foundCount = 0;
+        $contentsLength = strlen($contents);
+        $lineStart = 0;
+        $lineNumber = 1;
+        $lineEnd = strpos($contents, "\n");
+        $offset = 0;
+
+        while (($position = $matcher->findInContents($contents, $offset)) !== false) {
+            while ($lineEnd !== false && $position > $lineEnd) {
+                $lineStart = $lineEnd + 1;
+                $lineNumber++;
+                $lineEnd = strpos($contents, "\n", $lineStart);
+            }
+
+            $lineStop = $lineEnd === false ? $contentsLength : $lineEnd;
+            $lineContent = rtrim(substr($contents, $lineStart, $lineStop - $lineStart), "\r");
+            $foundCount++;
+
+            if (!$options->countOnly && !$options->filesWithMatches && !$options->filesWithoutMatches) {
+                $matches[] = new TextMatch(
+                    file: $file,
+                    line: $lineNumber,
+                    column: ($position - $lineStart) + 1,
+                    content: $lineContent,
+                    matchedText: $matcher->matchedTextAt($contents, $position),
+                );
+            }
+
+            if (
+                $options->filesWithMatches
+                || $options->filesWithoutMatches
+                || ($options->maxCount !== null && $foundCount >= $options->maxCount)
+                || $lineEnd === false
+            ) {
+                break;
+            }
+
+            $lineStart = $lineEnd + 1;
+            $lineNumber++;
+            $offset = $lineStart;
+            $lineEnd = strpos($contents, "\n", $lineStart);
+        }
+
+        return new TextFileResult($file, $matches, $foundCount);
     }
 }

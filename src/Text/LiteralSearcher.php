@@ -31,7 +31,7 @@ final class LiteralSearcher implements TextMatcher
             return true;
         }
 
-        return ($this->caseInsensitive ? stripos($contents, $this->needle) : strpos($contents, $this->needle)) !== false;
+        return $this->findInContents($contents) !== false;
     }
 
     public function match(string $line): ?LineMatch
@@ -71,5 +71,22 @@ final class LiteralSearcher implements TextMatcher
         }
 
         return new LineMatch($position + 1, $this->needle);
+    }
+
+    public function supportsOccurrenceScan(): bool
+    {
+        return !$this->wholeWord && $this->needle !== '';
+    }
+
+    public function findInContents(string $contents, int $offset = 0): int|false
+    {
+        return $this->caseInsensitive
+            ? stripos($contents, $this->needle, $offset)
+            : strpos($contents, $this->needle, $offset);
+    }
+
+    public function matchedTextAt(string $contents, int $offset): string
+    {
+        return substr($contents, $offset, $this->needleLength);
     }
 }
