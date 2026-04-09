@@ -48,71 +48,15 @@ final class Phgrep
         $files = self::walk($paths, $options->walkOptions());
         $searcher = new TextSearcher();
         $codec = new TextResultCodec();
-        $needsAllFileResults = self::textSearchNeedsAllFileResults($options);
-        $canUseFileListPayload = $options->filesWithMatches && !$needsAllFileResults;
 
         if (!self::shouldUseWorkers($options->jobs, count($files))) {
             return $searcher->searchFiles($files, $pattern, $options);
         }
 
         $chunks = (new WorkSplitter())->split($files, $options->jobs);
-
-        if ($canUseFileListPayload) {
-            $results = (new WorkerPool())->map(
-                $chunks,
-                static function (FileList $chunk) use ($searcher, $pattern, $options): array {
-                    $matches = [];
-
-                    foreach ($searcher->searchFiles($chunk, $pattern, $options) as $result) {
-                        if ($result->hasMatches()) {
-                            $matches[] = $result->file;
-                        }
-                    }
-
-                    return $matches;
-                },
-                $options->jobs,
-                static function (mixed $chunkPaths): array {
-                    if (!is_array($chunkPaths)) {
-                        throw new \RuntimeException('Worker returned invalid matched file list.');
-                    }
-
-                    return array_values(array_filter($chunkPaths, static fn (mixed $path): bool => is_string($path)));
-                },
-                static function (mixed $payload): array {
-                    if (!is_array($payload)) {
-                        throw new \RuntimeException('Worker returned invalid matched file list.');
-                    }
-
-                    return array_values(array_filter($payload, static fn (mixed $path): bool => is_string($path)));
-                },
-            );
-
-            $flattened = [];
-
-            foreach ($results as $chunkPaths) {
-                foreach ($chunkPaths as $path) {
-                    $flattened[] = new TextFileResult($path, [], 1);
-                }
-            }
-
-            return $searcher->sortResults($flattened, $files->paths());
-        }
-
         $results = (new WorkerPool())->map(
             $chunks,
-            static function (FileList $chunk) use ($searcher, $pattern, $options, $needsAllFileResults): array {
-                $chunkResults = $searcher->searchFiles($chunk, $pattern, $options);
-
-                if ($needsAllFileResults) {
-                    return $chunkResults;
-                }
-
-                return array_values(array_filter(
-                    $chunkResults,
-                    static fn (TextFileResult $result): bool => $result->hasMatches(),
-                ));
-            },
+            static fn (FileList $chunk): array => $searcher->searchFiles($chunk, $pattern, $options),
             $options->jobs,
             static function (mixed $chunkResults) use ($codec): array {
                 if (!is_array($chunkResults)) {
@@ -292,10 +236,5 @@ final class Phgrep
     private static function shouldUseWorkers(int $jobs, int $fileCount): bool
     {
         return $jobs > 1 && $fileCount > ($jobs * 750);
-    }
-
-    private static function textSearchNeedsAllFileResults(TextSearchOptions $options): bool
-    {
-        return $options->countOnly || $options->filesWithoutMatches;
     }
 }
