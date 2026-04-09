@@ -19,6 +19,13 @@ final class AstCacheStore
 
     private const TREES_DIRECTORY = 'trees';
 
+    private AstQueryCacheStore $queryCacheStore;
+
+    public function __construct(?AstQueryCacheStore $queryCacheStore = null)
+    {
+        $this->queryCacheStore = $queryCacheStore ?? new AstQueryCacheStore();
+    }
+
     public function defaultPath(string $rootPath): string
     {
         return Filesystem::normalizePath($rootPath) . '/.phgrep-ast-cache';
@@ -123,6 +130,7 @@ final class AstCacheStore
         $this->writeAtomic($this->metadataPath($cache->indexPath), $metadata);
         $this->writeAtomic($this->filesPath($cache->indexPath), $cache->files);
         $this->writeAtomic($this->factsPath($cache->indexPath), $cache->facts);
+        $this->queryCacheStore->clear($cache->indexPath);
     }
 
     /**

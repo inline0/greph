@@ -20,16 +20,20 @@ final class CachedAstSearcher
 
     private AstFactQuery $factQuery;
 
+    private AstQueryCacheStore $queryCacheStore;
+
     public function __construct(
         ?AstCacheStore $store = null,
         ?AstSearcher $astSearcher = null,
         ?PatternParser $patternParser = null,
         ?AstFactQuery $factQuery = null,
+        ?AstQueryCacheStore $queryCacheStore = null,
     ) {
         $this->store = $store ?? new AstCacheStore();
         $this->astSearcher = $astSearcher ?? new AstSearcher();
         $this->patternParser = $patternParser ?? new PatternParser();
         $this->factQuery = $factQuery ?? new AstFactQuery();
+        $this->queryCacheStore = $queryCacheStore ?? new AstQueryCacheStore();
     }
 
     /**
@@ -64,6 +68,14 @@ final class CachedAstSearcher
 
             $selectedPaths[$file['id']] = $absolutePath;
             $selectedFileIds[$file['id']] = true;
+        }
+
+        if ($this->canUseQueryCache($resolvedPaths, $cache->rootPath, $options)) {
+            $cachedMatches = $this->queryCacheStore->load($cache, $pattern, $options);
+
+            if ($cachedMatches !== null) {
+                return $this->filterCachedMatches($cachedMatches, $selection);
+            }
         }
 
         $candidateIds = $this->factQuery->candidateIds($cache->facts, $patternObject);
@@ -108,7 +120,29 @@ final class CachedAstSearcher
             static fn (AstMatch $left, AstMatch $right): int => [$left->file, $left->startFilePos] <=> [$right->file, $right->startFilePos]
         );
 
+        if ($this->canPopulateQueryCache($resolvedPaths, $cache->rootPath, $options)) {
+            $this->queryCacheStore->save($cache, $pattern, $options, $matches);
+        }
+
         return $matches;
+    }
+
+    /**
+     * @param list<AstMatch> $matches
+     * @param array{files: array<string, true>, directories: list<string>} $selection
+     * @return list<AstMatch>
+     */
+    private function filterCachedMatches(array $matches, array $selection): array
+    {
+        $filtered = [];
+
+        foreach ($matches as $match) {
+            if ($this->matchesSelection($match->file, $selection)) {
+                $filtered[] = $match;
+            }
+        }
+
+        return $filtered;
     }
 
     /**
@@ -200,6 +234,50 @@ final class CachedAstSearcher
     private function isWithinRoot(string $path, string $rootPath): bool
     {
         return $path === $rootPath || str_starts_with($path, $rootPath . '/');
+    }
+
+    /**
+     * @param list<string> $resolvedPaths
+     */
+    private function canUseQueryCache(array $resolvedPaths, string $rootPath, AstSearchOptions $options): bool
+    {
+        if (!$this->supportsQueryCache($options)) {
+            return false;
+        }
+
+        foreach ($resolvedPaths as $path) {
+            if (!$this->isWithinRoot($path, $rootPath)) {
+                return false;
+            }
+        }
+
+        return $resolvedPaths !== [];
+    }
+
+    /**
+     * @param list<string> $resolvedPaths
+     */
+    private function canPopulateQueryCache(array $resolvedPaths, string $rootPath, AstSearchOptions $options): bool
+    {
+        return $this->supportsQueryCache($options)
+            && count($resolvedPaths) === 1
+            && $resolvedPaths[0] === $rootPath;
+    }
+
+    private function supportsQueryCache(AstSearchOptions $options): bool
+    {
+        return $options->language === 'php'
+            && $options->respectIgnore
+            && !$options->includeHidden
+            && !$options->followSymlinks
+            && $options->skipBinaryFiles
+            && !$options->includeGitDirectory
+            && $options->fileTypeFilter === null
+            && $options->maxFileSizeBytes === 10485760
+            && $options->globPatterns === []
+            && $options->skipParseErrors
+            && !$options->dryRun
+            && !$options->interactive;
     }
 
     /**
