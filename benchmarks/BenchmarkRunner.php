@@ -94,6 +94,17 @@ final class BenchmarkRunner
                 $matchCount = count($results);
                 break;
 
+            case 'ast-internal':
+                $matchCount = (new \Phgrep\Ast\AstSearcher())->countFiles(
+                    Phgrep::walk($corpusPath),
+                    (string) $suite['pattern'],
+                    new AstSearchOptions(
+                        jobs: (int) ($suite['jobs'] ?? 1),
+                        language: (string) ($suite['lang'] ?? 'php'),
+                    ),
+                );
+                break;
+
             case 'walker':
                 $matchCount = count(Phgrep::walk($corpusPath));
                 break;

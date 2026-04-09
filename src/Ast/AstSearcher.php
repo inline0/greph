@@ -48,10 +48,49 @@ final class AstSearcher
      */
     public function searchFiles(FileList $files, string $pattern, AstSearchOptions $options): array
     {
+        $matches = [];
+
+        $this->scanFiles(
+            $files,
+            $pattern,
+            $options,
+            function (Node $candidate, array $captures, string $source, string $file) use (&$matches): void {
+                $matches[] = $this->createMatch($candidate, $captures, $source, $file);
+            },
+        );
+
+        usort(
+            $matches,
+            static fn (AstMatch $left, AstMatch $right): int => [$left->file, $left->startFilePos] <=> [$right->file, $right->startFilePos]
+        );
+
+        return $matches;
+    }
+
+    public function countFiles(FileList $files, string $pattern, AstSearchOptions $options): int
+    {
+        $count = 0;
+
+        $this->scanFiles(
+            $files,
+            $pattern,
+            $options,
+            static function () use (&$count): void {
+                $count++;
+            },
+        );
+
+        return $count;
+    }
+
+    /**
+     * @param callable(Node, array<string, mixed>, string, string): void $onMatch
+     */
+    private function scanFiles(FileList $files, string $pattern, AstSearchOptions $options, callable $onMatch): void
+    {
         $parsedPattern = $this->patternParser->parse($pattern, $options->language);
         $prefilterTokens = $this->patternPrefilter->extract($parsedPattern->root);
         $parser = $this->parserFactory->forLanguage($options->language);
-        $matches = [];
 
         foreach ($files as $file) {
             $source = @file_get_contents($file);
@@ -84,16 +123,9 @@ final class AstSearcher
                     continue;
                 }
 
-                $matches[] = $this->createMatch($candidate, $captures, $source, $file);
+                $onMatch($candidate, $captures, $source, $file);
             }
         }
-
-        usort(
-            $matches,
-            static fn (AstMatch $left, AstMatch $right): int => [$left->file, $left->startFilePos] <=> [$right->file, $right->startFilePos]
-        );
-
-        return $matches;
     }
 
     /**
