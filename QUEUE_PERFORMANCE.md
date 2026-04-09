@@ -50,7 +50,7 @@ gh workflow run Benchmark \
 
 ## Current State
 
-Current benchmark baseline commit: `6057d44`
+Current benchmark baseline commit: `c94da50`
 
 ### Accepted Wins
 
@@ -76,6 +76,10 @@ Current benchmark baseline commit: `6057d44`
   - `new $CLASS()`: `-39.44%`
   - `array($$$ITEMS)`: `+1.37%`
   - kept because the target operation moved massively and the sibling op stayed within noise
+- `c94da50` `Prefilter long array syntax searches`
+  - `array($$$ITEMS)`: `-1.41%`
+  - `new $CLASS()`: `-2.20%`
+  - kept because both benchmark ops moved in the same direction with no regression signal
 
 ### Accepted Benchmark Infrastructure
 
@@ -102,10 +106,10 @@ Current benchmark baseline commit: `6057d44`
 
 ### In Flight
 
-- AST token-aware long-array prefilter
-  - scan PHP tokens for long `array(...)` syntax before the full AST parse runs
-  - only apply this prefilter when the pattern root is long-form `array(...)`
-  - validate on CI against `6057d44` with the `ast` category before keeping
+- AST capture fingerprint memoization
+  - reuse subtree fingerprints within one matcher invocation instead of reserializing the same nodes repeatedly
+  - target repeated metavariable equality checks in `PatternMatcher::bindCapture`
+  - validate on CI against `c94da50` with the `ast` category before keeping
 
 ## Ordered Queue
 
@@ -152,7 +156,7 @@ Current benchmark baseline commit: `6057d44`
 
 ## Immediate Next Steps
 
-1. Finish the AST token-aware long-array prefilter pass and benchmark it against `6057d44`.
-2. If the AST pass wins, stay in AST pruning and prefilter work until that surface flattens.
+1. Finish the AST capture-fingerprint memoization pass and benchmark it against `c94da50`.
+2. If the AST pass wins, stay in AST matcher-cost work until that surface flattens.
 3. If the AST pass is flat or negative, pivot back to text-path work or parser-cost isolation.
 4. Keep every pass isolated and CI-verified.
