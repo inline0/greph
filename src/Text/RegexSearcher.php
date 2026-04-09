@@ -12,20 +12,12 @@ final class RegexSearcher implements TextMatcher
 
     private ?string $fallbackRegex = null;
 
-    /** @var list<string> */
-    private array $literalPrefilters;
-
-    /**
-     * @param string|list<string>|null $literalPrefilter
-     */
     public function __construct(
         string $pattern,
         private readonly bool $caseInsensitive = false,
         bool $wholeWord = false,
-        string|array|null $literalPrefilter = null,
+        private readonly ?string $literalPrefilter = null,
     ) {
-        $this->literalPrefilters = $this->normalizePrefilters($literalPrefilter);
-
         if ($wholeWord) {
             $pattern = '(?<![\pL\pN_])(?:' . $pattern . ')(?![\pL\pN_])';
         }
@@ -42,12 +34,21 @@ final class RegexSearcher implements TextMatcher
 
     public function mayMatchContents(string $contents): bool
     {
-        return $this->matchesPrefilters($contents);
+        if ($this->literalPrefilter === null) {
+            return true;
+        }
+
+        return ($this->caseInsensitive ? stripos($contents, $this->literalPrefilter) : strpos($contents, $this->literalPrefilter)) !== false;
     }
 
     public function match(string $line): ?LineMatch
     {
-        if (!$this->matchesPrefilters($line)) {
+        if (
+            $this->literalPrefilter !== null
+            && (($this->caseInsensitive
+                ? stripos($line, $this->literalPrefilter)
+                : strpos($line, $this->literalPrefilter)) === false)
+        ) {
             return null;
         }
 
@@ -77,36 +78,5 @@ final class RegexSearcher implements TextMatcher
     private function wrapPattern(string $pattern, string $modifiers): string
     {
         return '#' . str_replace('#', '\#', $pattern) . '#' . $modifiers;
-    }
-
-    /**
-     * @param string|list<string>|null $literalPrefilter
-     * @return list<string>
-     */
-    private function normalizePrefilters(string|array|null $literalPrefilter): array
-    {
-        if ($literalPrefilter === null) {
-            return [];
-        }
-
-        if (is_string($literalPrefilter)) {
-            return $literalPrefilter === '' ? [] : [$literalPrefilter];
-        }
-
-        return array_values(array_filter(
-            $literalPrefilter,
-            static fn (string $prefilter): bool => $prefilter !== ''
-        ));
-    }
-
-    private function matchesPrefilters(string $subject): bool
-    {
-        foreach ($this->literalPrefilters as $literalPrefilter) {
-            if (($this->caseInsensitive ? stripos($subject, $literalPrefilter) : strpos($subject, $literalPrefilter)) === false) {
-                return false;
-            }
-        }
-
-        return true;
     }
 }
