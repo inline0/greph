@@ -90,17 +90,42 @@ final class IndexedTextSearchTest extends TestCase
     #[Test]
     public function itSupportsFileListingAndIncrementalRefresh(): void
     {
+        $countResults = Phgrep::searchTextIndexed(
+            'function',
+            $this->workspace,
+            new TextSearchOptions(fixedString: true, countOnly: true),
+        );
+        $filesWithMatches = Phgrep::searchTextIndexed(
+            'function',
+            $this->workspace,
+            new TextSearchOptions(fixedString: true, filesWithMatches: true),
+        );
         $filesWithoutMatches = Phgrep::searchTextIndexed(
             'function',
             $this->workspace,
             new TextSearchOptions(fixedString: true, filesWithoutMatches: true),
         );
 
+        $countMap = [];
+        $filesWithMatchesMap = [];
+
         $withoutMatches = array_values(array_map(static fn ($result): string => basename($result->file), array_filter(
             $filesWithoutMatches,
             static fn ($result): bool => !$result->hasMatches(),
         )));
 
+        foreach ($countResults as $result) {
+            $countMap[basename($result->file)] = $result->matchCount();
+        }
+
+        foreach ($filesWithMatches as $result) {
+            $filesWithMatchesMap[basename($result->file)] = $result->hasMatches();
+        }
+
+        $this->assertSame(1, $countMap['App.php']);
+        $this->assertSame(1, $countMap['Util.php']);
+        $this->assertTrue($filesWithMatchesMap['App.php']);
+        $this->assertTrue($filesWithMatchesMap['Util.php']);
         $this->assertContains('notes.txt', $withoutMatches);
 
         sleep(1);

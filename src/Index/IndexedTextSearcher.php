@@ -49,8 +49,10 @@ final class IndexedTextSearcher
 
         $index = $this->store->load($indexPath);
         $selectedPaths = [];
+        $selectedPathSet = [];
         $fallbackPaths = [];
         $explicitSelections = [];
+        $selection = $this->buildSelection($resolvedPaths, $index->rootPath);
 
         foreach ($resolvedPaths as $path) {
             if ($this->isWithinRoot($path, $index->rootPath)) {
@@ -67,7 +69,7 @@ final class IndexedTextSearcher
         foreach ($index->files as $file) {
             $absolutePath = $index->rootPath . '/' . $file['p'];
 
-            if (!$this->matchesSelections($absolutePath, $resolvedPaths, $index->rootPath)) {
+            if (!$this->matchesSelection($absolutePath, $selection)) {
                 continue;
             }
 
@@ -79,10 +81,11 @@ final class IndexedTextSearcher
             }
 
             $selectedPaths[] = $absolutePath;
+            $selectedPathSet[$absolutePath] = true;
         }
 
         foreach (array_keys($explicitSelections) as $explicitPath) {
-            if (!in_array($explicitPath, $selectedPaths, true)) {
+            if (!isset($selectedPathSet[$explicitPath])) {
                 $fallbackPaths[] = $explicitPath;
             }
         }
@@ -97,9 +100,9 @@ final class IndexedTextSearcher
             );
         }
 
-        $seed = $this->querySeed($pattern, $options);
+        $seeds = $this->querySeeds($pattern, $options);
 
-        if ($seed === null || strlen($seed) < 3) {
+        if ($seeds === []) {
             return $this->mergeResults(
                 $selectedPaths,
                 $fallbackPaths,
@@ -109,7 +112,7 @@ final class IndexedTextSearcher
             );
         }
 
-        $candidateIds = $this->candidateIds($index->indexPath, $seed);
+        $candidateIds = $this->candidateIds($index->indexPath, $seeds);
 
         return $this->mergeResults(
             $selectedPaths,
@@ -143,11 +146,12 @@ final class IndexedTextSearcher
             }
         } else {
             $candidatePaths = [];
+            $selectedPathSet = array_fill_keys($selectedPaths, true);
 
             foreach ($index->files as $file) {
                 $absolutePath = $index->rootPath . '/' . $file['p'];
 
-                if (!in_array($absolutePath, $selectedPaths, true) || !isset($candidateIds[$file['id']])) {
+                if (!isset($selectedPathSet[$absolutePath]) || !isset($candidateIds[$file['id']])) {
                     continue;
                 }
 
@@ -180,7 +184,7 @@ final class IndexedTextSearcher
             }
         }
 
-        return $this->textSearcher->sortResults($orderedResults, $order);
+        return $orderedResults;
     }
 
     /**
@@ -225,40 +229,79 @@ final class IndexedTextSearcher
     }
 
     /**
+     * @param list<string> $seeds
      * @return array<int, true>
      */
-    private function candidateIds(string $indexPath, string $seed): array
+    private function candidateIds(string $indexPath, array $seeds): array
     {
-        $trigrams = $this->trigramExtractor->extract($seed);
+        $trigrams = [];
+
+        foreach ($seeds as $seed) {
+            $trigrams = [...$trigrams, ...$this->trigramExtractor->extract($seed)];
+        }
+
+        $trigrams = array_values(array_unique($trigrams));
 
         if ($trigrams === []) {
             return [];
         }
 
-        $firstTrigram = array_shift($trigrams);
-        $postings = $this->store->loadSelectedPostings($indexPath, array_merge([$firstTrigram], $trigrams));
-        $candidateIds = array_fill_keys($postings[$firstTrigram] ?? [], true);
+        $postings = $this->store->loadSelectedPostings($indexPath, $trigrams);
+        $trigramLists = [];
 
         foreach ($trigrams as $trigram) {
-            $postingSet = array_fill_keys($postings[$trigram] ?? [], true);
+            $fileIds = $postings[$trigram] ?? [];
 
-            $candidateIds = array_intersect_key($candidateIds, $postingSet);
+            if ($fileIds === []) {
+                return [];
+            }
 
-            if ($candidateIds === []) {
+            $trigramLists[] = [
+                'trigram' => $trigram,
+                'fileIds' => $fileIds,
+            ];
+        }
+
+        usort(
+            $trigramLists,
+            static fn (array $left, array $right): int => count($left['fileIds']) <=> count($right['fileIds'])
+        );
+
+        $candidateFileIds = $trigramLists[0]['fileIds'];
+
+        foreach (array_slice($trigramLists, 1) as $postingList) {
+            $candidateFileIds = $this->intersectSortedFileIds($candidateFileIds, $postingList['fileIds']);
+
+            if ($candidateFileIds === []) {
                 break;
             }
         }
 
-        return $candidateIds;
+        return array_fill_keys($candidateFileIds, true);
     }
 
-    private function querySeed(string $pattern, TextSearchOptions $options): ?string
+    /**
+     * @return list<string>
+     */
+    private function querySeeds(string $pattern, TextSearchOptions $options): array
     {
         if ($options->fixedString) {
-            return $pattern;
+            return strlen($pattern) >= 3 ? [$pattern] : [];
         }
 
-        return $this->literalExtractor->extract($pattern);
+        $segments = $this->literalExtractor->extractSegments($pattern);
+        $segments = array_values(array_filter($segments, static fn (string $segment): bool => strlen($segment) >= 3));
+
+        if ($segments === []) {
+            return [];
+        }
+
+        // Alternation makes "all segments are required" unsafe, so stay conservative there.
+        if (str_contains($pattern, '|')) {
+            return [$segments[0]];
+        }
+
+        return array_slice($segments, 0, 3);
     }
 
     /**
@@ -287,18 +330,41 @@ final class IndexedTextSearcher
 
     /**
      * @param list<string> $resolvedPaths
+     * @return array{files: array<string, true>, directories: list<string>}
      */
-    private function matchesSelections(string $absolutePath, array $resolvedPaths, string $rootPath): bool
+    private function buildSelection(array $resolvedPaths, string $rootPath): array
     {
+        $selection = [
+            'files' => [],
+            'directories' => [],
+        ];
+
         foreach ($resolvedPaths as $path) {
             if (!$this->isWithinRoot($path, $rootPath)) {
                 continue;
             }
 
-            if (is_file($path) && $absolutePath === $path) {
-                return true;
+            if (is_file($path)) {
+                $selection['files'][$path] = true;
+                continue;
             }
 
+            $selection['directories'][] = $path;
+        }
+
+        return $selection;
+    }
+
+    /**
+     * @param array{files: array<string, true>, directories: list<string>} $selection
+     */
+    private function matchesSelection(string $absolutePath, array $selection): bool
+    {
+        if (isset($selection['files'][$absolutePath])) {
+            return true;
+        }
+
+        foreach ($selection['directories'] as $path) {
             if ($absolutePath === $path || str_starts_with($absolutePath, $path . '/')) {
                 return true;
             }
@@ -310,6 +376,41 @@ final class IndexedTextSearcher
     private function isWithinRoot(string $path, string $rootPath): bool
     {
         return $path === $rootPath || str_starts_with($path, $rootPath . '/');
+    }
+
+    /**
+     * @param list<int> $left
+     * @param list<int> $right
+     * @return list<int>
+     */
+    private function intersectSortedFileIds(array $left, array $right): array
+    {
+        $intersection = [];
+        $leftIndex = 0;
+        $rightIndex = 0;
+        $leftCount = count($left);
+        $rightCount = count($right);
+
+        while ($leftIndex < $leftCount && $rightIndex < $rightCount) {
+            $leftValue = $left[$leftIndex];
+            $rightValue = $right[$rightIndex];
+
+            if ($leftValue === $rightValue) {
+                $intersection[] = $leftValue;
+                $leftIndex++;
+                $rightIndex++;
+                continue;
+            }
+
+            if ($leftValue < $rightValue) {
+                $leftIndex++;
+                continue;
+            }
+
+            $rightIndex++;
+        }
+
+        return $intersection;
     }
 
     /**

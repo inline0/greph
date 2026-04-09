@@ -7,6 +7,7 @@ namespace Phgrep\Benchmarks;
 use Phgrep\Ast\AstSearchOptions;
 use Phgrep\Index\TextIndexBuilder;
 use Phgrep\Index\TextIndexStore;
+use Phgrep\Index\TrigramExtractor;
 use Phgrep\Phgrep;
 use Phgrep\Support\CommandRunner;
 use Phgrep\Support\Filesystem;
@@ -73,7 +74,7 @@ final class BenchmarkRunner
         $fileCount = iterator_count(Phgrep::walk($corpusPath));
         $indexPath = $this->rootPath . '/build/benchmarks/indexes/' . $corpusName;
 
-        if ($suite['category'] === 'indexed-text') {
+        if (in_array($suite['category'], ['indexed-text', 'indexed-load'], true)) {
             if (!(new TextIndexStore())->exists($indexPath)) {
                 (new TextIndexBuilder())->build($corpusPath, $indexPath);
             }
@@ -161,6 +162,20 @@ final class BenchmarkRunner
                 foreach ($results as $result) {
                     $matchCount += $result->matchCount();
                 }
+                break;
+
+            case 'indexed-load':
+                $store = new TextIndexStore();
+
+                if (($suite['mode'] ?? 'metadata') === 'postings') {
+                    $trigrams = (new TrigramExtractor())->extract((string) ($suite['pattern'] ?? ''));
+                    $postings = $store->loadSelectedPostings($indexPath, $trigrams);
+                    $matchCount = count($postings);
+                    break;
+                }
+
+                $loaded = $store->load($indexPath);
+                $matchCount = count($loaded->files);
                 break;
 
             default:
