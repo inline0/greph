@@ -10,6 +10,8 @@ use PhpParser\Node\Stmt;
 
 final class AstPatternPrefilter
 {
+    private const COMMENT_AWARE_GAP_PATTERN = '(?:(?:\s+)|(?:\/\*.*?\*\/)|(?:\/\/[^\n]*(?:\n|$))|(?:#[^\n]*(?:\n|$)))*';
+
     /**
      * @return list<string>
      */
@@ -124,31 +126,25 @@ final class AstPatternPrefilter
 
     private function hasLongArraySyntax(string $contents): bool
     {
-        $length = strlen($contents);
-        $index = 0;
+        if (preg_match('/\barray' . self::COMMENT_AWARE_GAP_PATTERN . '\(/is', $contents) !== 1) {
+            return false;
+        }
 
-        while ($index < $length) {
-            if ($this->skipNonCode($contents, $index, $length)) {
+        $tokens = token_get_all($contents);
+        $tokenCount = count($tokens);
+
+        for ($index = 0; $index < $tokenCount; $index++) {
+            $token = $tokens[$index];
+
+            if (!is_array($token) || $token[0] !== T_ARRAY) {
                 continue;
             }
 
-            $identifier = $this->readIdentifier($contents, $index, $length);
+            $nextIndex = $this->nextSignificantTokenIndex($tokens, $index + 1);
 
-            if ($identifier === null || strtolower($identifier) !== 'array') {
-                if ($identifier === null) {
-                    $index++;
-                }
-
-                continue;
-            }
-
-            $cursor = $this->skipGapTokens($contents, $index, $length);
-
-            if ($cursor < $length && $contents[$cursor] === '(') {
+            if ($nextIndex !== null && $tokens[$nextIndex] === '(') {
                 return true;
             }
-
-            $index = $cursor;
         }
 
         return false;
@@ -156,26 +152,51 @@ final class AstPatternPrefilter
 
     private function hasZeroArgumentNewExpression(string $contents): bool
     {
-        $length = strlen($contents);
-        $index = 0;
+        if (
+            preg_match(
+                '/\bnew\b(?:(?![;{]).)*?(?:\(\s*\)|(?=' . self::COMMENT_AWARE_GAP_PATTERN . '[;{]))/is',
+                $contents,
+            ) !== 1
+        ) {
+            return false;
+        }
 
-        while ($index < $length) {
-            if ($this->skipNonCode($contents, $index, $length)) {
+        $tokens = token_get_all($contents);
+        $tokenCount = count($tokens);
+
+        for ($index = 0; $index < $tokenCount; $index++) {
+            $token = $tokens[$index];
+
+            if (!is_array($token) || $token[0] !== T_NEW) {
                 continue;
             }
 
-            $identifier = $this->readIdentifier($contents, $index, $length);
+            $nextIndex = $this->nextSignificantTokenIndex($tokens, $index + 1);
 
-            if ($identifier === null || strtolower($identifier) !== 'new') {
-                if ($identifier === null) {
-                    $index++;
+            if ($nextIndex === null) {
+                continue;
+            }
+
+            for ($cursor = $nextIndex; $cursor < $tokenCount; $cursor++) {
+                $current = $tokens[$cursor];
+
+                if ($this->isIgnorableToken($current)) {
+                    continue;
                 }
 
-                continue;
-            }
+                if ($current === '(') {
+                    $closingIndex = $this->nextSignificantTokenIndex($tokens, $cursor + 1);
 
-            if ($this->matchesZeroArgumentNewFrom($contents, $index, $length)) {
-                return true;
+                    if ($closingIndex !== null && $tokens[$closingIndex] === ')') {
+                        return true;
+                    }
+
+                    continue 2;
+                }
+
+                if ($current === ';' || $current === '{') {
+                    return true;
+                }
             }
         }
 
@@ -193,180 +214,24 @@ final class AstPatternPrefilter
         return property_exists($node, 'kind') && $node->kind === Expr\Array_::KIND_LONG;
     }
 
-    private function matchesZeroArgumentNewFrom(string $contents, int $startIndex, int $length): bool
+    /**
+     * @param list<int|string|array{int, string, int}> $tokens
+     */
+    private function nextSignificantTokenIndex(array $tokens, int $startIndex): ?int
     {
-        $index = $this->skipGapTokens($contents, $startIndex, $length);
+        $tokenCount = count($tokens);
 
-        while ($index < $length) {
-            $index = $this->skipGapTokens($contents, $index, $length);
-
-            if ($index >= $length) {
-                return false;
+        for ($index = $startIndex; $index < $tokenCount; $index++) {
+            if (!$this->isIgnorableToken($tokens[$index])) {
+                return $index;
             }
-
-            $character = $contents[$index];
-
-            if ($character === ';' || $character === '{') {
-                return true;
-            }
-
-            if ($character === '(') {
-                $closingIndex = $this->skipGapTokens($contents, $index + 1, $length);
-
-                return $closingIndex < $length && $contents[$closingIndex] === ')';
-            }
-
-            if ($character === '$') {
-                $index++;
-                $this->consumeIdentifierTail($contents, $index, $length);
-                continue;
-            }
-
-            if ($character === '\\') {
-                $index++;
-                continue;
-            }
-
-            if ($character === ':' && ($contents[$index + 1] ?? '') === ':') {
-                $index += 2;
-                continue;
-            }
-
-            if ($character === '-' && ($contents[$index + 1] ?? '') === '>') {
-                $index += 2;
-                continue;
-            }
-
-            if ($this->readIdentifier($contents, $index, $length) !== null) {
-                continue;
-            }
-
-            $index++;
         }
 
-        return false;
+        return null;
     }
 
-    private function skipGapTokens(string $contents, int $startIndex, int $length): int
+    private function isIgnorableToken(mixed $token): bool
     {
-        $index = $startIndex;
-
-        while ($index < $length) {
-            $character = $contents[$index];
-
-            if (ctype_space($character)) {
-                $index++;
-                continue;
-            }
-
-            if ($character === '/' && ($contents[$index + 1] ?? '') === '/') {
-                $index += 2;
-
-                while ($index < $length && $contents[$index] !== "\n") {
-                    $index++;
-                }
-
-                continue;
-            }
-
-            if ($character === '#') {
-                $index++;
-
-                while ($index < $length && $contents[$index] !== "\n") {
-                    $index++;
-                }
-
-                continue;
-            }
-
-            if ($character === '/' && ($contents[$index + 1] ?? '') === '*') {
-                $index += 2;
-
-                while ($index + 1 < $length && !($contents[$index] === '*' && $contents[$index + 1] === '/')) {
-                    $index++;
-                }
-
-                $index = min($length, $index + 2);
-                continue;
-            }
-
-            break;
-        }
-
-        return $index;
-    }
-
-    private function skipNonCode(string $contents, int &$index, int $length): bool
-    {
-        $start = $index;
-        $index = $this->skipGapTokens($contents, $index, $length);
-
-        if ($index !== $start) {
-            return true;
-        }
-
-        $character = $contents[$index] ?? null;
-
-        if ($character === null) {
-            return false;
-        }
-
-        if ($character === '\'' || $character === '"' || $character === '`') {
-            $this->skipQuotedString($contents, $index, $length, $character);
-
-            return true;
-        }
-
-        return false;
-    }
-
-    private function skipQuotedString(string $contents, int &$index, int $length, string $quote): void
-    {
-        $index++;
-
-        while ($index < $length) {
-            if ($contents[$index] === '\\') {
-                $index += 2;
-                continue;
-            }
-
-            if ($contents[$index] === $quote) {
-                $index++;
-
-                return;
-            }
-
-            $index++;
-        }
-    }
-
-    private function readIdentifier(string $contents, int &$index, int $length): ?string
-    {
-        if (!$this->isIdentifierStart($contents[$index] ?? null)) {
-            return null;
-        }
-
-        $start = $index;
-        $index++;
-        $this->consumeIdentifierTail($contents, $index, $length);
-
-        return substr($contents, $start, $index - $start);
-    }
-
-    private function consumeIdentifierTail(string $contents, int &$index, int $length): void
-    {
-        while ($index < $length && $this->isIdentifierPart($contents[$index])) {
-            $index++;
-        }
-    }
-
-    private function isIdentifierStart(?string $character): bool
-    {
-        return $character !== null && ($character === '_' || ctype_alpha($character));
-    }
-
-    private function isIdentifierPart(string $character): bool
-    {
-        return $character === '_' || ctype_alnum($character);
+        return is_array($token) && in_array($token[0], [T_WHITESPACE, T_COMMENT, T_DOC_COMMENT], true);
     }
 }

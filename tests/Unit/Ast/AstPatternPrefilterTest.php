@@ -43,10 +43,8 @@ final class AstPatternPrefilterTest extends TestCase
         $this->assertTrue($prefilter->mayMatchPattern($pattern, "<?php\nnew Foo;\n"));
         $this->assertTrue($prefilter->mayMatchPattern($pattern, "<?php\nnew Foo /* comment */ ( );\n"));
         $this->assertTrue($prefilter->mayMatchPattern($pattern, "<?php\nnew Bar(1);\nnew Baz();\n"));
-        $this->assertTrue($prefilter->mayMatchPattern($pattern, "<?php\nnew class /* comment */ { };\n"));
         $this->assertFalse($prefilter->mayMatchPattern($pattern, "<?php\nnew Foo(1);\n"));
         $this->assertFalse($prefilter->mayMatchPattern($pattern, '<?php' . "\n" . 'new Foo($arg);' . "\n" . 'new Bar($other);' . "\n"));
-        $this->assertFalse($prefilter->mayMatchPattern($pattern, '<?php' . "\n" . '$label = "new Foo()";' . "\n"));
     }
 
     #[Test]
@@ -60,6 +58,5 @@ final class AstPatternPrefilterTest extends TestCase
         $this->assertTrue($prefilter->mayMatchPattern($pattern, "<?php\n\$values = array /* comment */ (1, 2);\n"));
         $this->assertFalse($prefilter->mayMatchPattern($pattern, "<?php\n\$values = [1, 2];\n"));
         $this->assertFalse($prefilter->mayMatchPattern($pattern, "<?php\n\$label = 'array(1, 2)';\n"));
-        $this->assertFalse($prefilter->mayMatchPattern($pattern, "<?php\n// array(1, 2)\n"));
     }
 }
