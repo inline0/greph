@@ -6,7 +6,9 @@ namespace Phgrep\Index;
 
 use Phgrep\Support\Filesystem;
 use Phgrep\Text\LiteralExtractor;
+use Phgrep\Text\LiteralSearcher;
 use Phgrep\Text\TextFileResult;
+use Phgrep\Text\TextMatch;
 use Phgrep\Text\TextSearchOptions;
 use Phgrep\Text\TextSearcher;
 use Phgrep\Walker\FileList;
@@ -109,6 +111,16 @@ final class IndexedTextSearcher
                 $pattern,
                 $options,
                 null,
+            );
+        }
+
+        if ($this->canUseDirectWholeWordPath($pattern, $options)) {
+            return $this->mergeWholeWordResults(
+                $selectedPaths,
+                $fallbackPaths,
+                $pattern,
+                $options,
+                $index,
             );
         }
 
@@ -235,6 +247,22 @@ final class IndexedTextSearcher
         return $options->countOnly || $options->filesWithMatches || $options->filesWithoutMatches;
     }
 
+    private function canUseDirectWholeWordPath(string $pattern, TextSearchOptions $options): bool
+    {
+        if (
+            $pattern === ''
+            || !$options->fixedString
+            || !$options->wholeWord
+            || $options->invertMatch
+        ) {
+            return false;
+        }
+
+        return $options->beforeContext === 0
+            && $options->afterContext === 0
+            && $this->isWordPattern($pattern);
+    }
+
     /**
      * @param array{files: array<string, true>, directories: list<string>} $selection
      * @param array<string, true> $explicitSelections
@@ -308,6 +336,11 @@ final class IndexedTextSearcher
         return true;
     }
 
+    private function isWordPattern(string $pattern): bool
+    {
+        return preg_match('/^[\p{L}\p{N}_]+$/u', $pattern) === 1;
+    }
+
     /**
      * @param list<TextFileResult> $cachedResults
      * @param list<string> $selectedPaths
@@ -357,6 +390,162 @@ final class IndexedTextSearcher
         }
 
         return $results;
+    }
+
+    /**
+     * @param list<string> $selectedPaths
+     * @param list<string> $fallbackPaths
+     * @return list<TextFileResult>
+     */
+    private function mergeWholeWordResults(
+        array $selectedPaths,
+        array $fallbackPaths,
+        string $pattern,
+        TextSearchOptions $options,
+        TextIndex $index,
+    ): array {
+        $word = strtolower($pattern);
+        $wordPostings = $this->store->loadSelectedWordPostings($index->indexPath, [$word]);
+        $matchedFiles = $wordPostings[$word] ?? [];
+        $selectedPathSet = array_fill_keys($selectedPaths, true);
+        $resultsByPath = [];
+
+        foreach ($index->files as $file) {
+            $absolutePath = $index->rootPath . '/' . $file['p'];
+
+            if (!isset($selectedPathSet[$absolutePath])) {
+                continue;
+            }
+
+            $lineNumbers = $matchedFiles[$file['id']] ?? [];
+
+            if ($lineNumbers === []) {
+                $resultsByPath[$absolutePath] = new TextFileResult($absolutePath, [], 0);
+                continue;
+            }
+
+            $resultsByPath[$absolutePath] = $this->buildWholeWordIndexedResult(
+                $absolutePath,
+                $file['id'],
+                $lineNumbers,
+                $pattern,
+                $options,
+                $index->indexPath,
+            );
+        }
+
+        if ($fallbackPaths !== []) {
+            foreach ($this->textSearcher->searchFiles(new FileList($fallbackPaths), $pattern, $options) as $result) {
+                $resultsByPath[$result->file] = $result;
+            }
+        }
+
+        $orderedResults = [];
+
+        foreach (array_values(array_unique([...$selectedPaths, ...$fallbackPaths])) as $path) {
+            if (isset($resultsByPath[$path])) {
+                $orderedResults[] = $resultsByPath[$path];
+            }
+        }
+
+        return $orderedResults;
+    }
+
+    /**
+     * @param list<int> $lineNumbers
+     */
+    private function buildWholeWordIndexedResult(
+        string $file,
+        int $fileId,
+        array $lineNumbers,
+        string $pattern,
+        TextSearchOptions $options,
+        string $indexPath,
+    ): TextFileResult {
+        if ($options->filesWithMatches || $options->filesWithoutMatches) {
+            return new TextFileResult($file, [], $lineNumbers !== [] ? 1 : 0);
+        }
+
+        $lineOffsets = $this->store->loadLineOffsets($indexPath, $fileId);
+
+        if ($lineOffsets === null) {
+            $results = $this->textSearcher->searchFiles(new FileList([$file]), $pattern, $options);
+
+            return $results[0] ?? new TextFileResult($file, [], 0);
+        }
+
+        $matcher = new LiteralSearcher($pattern, $options->caseInsensitive, true);
+        $handle = @fopen($file, 'rb');
+
+        if ($handle === false) {
+            return new TextFileResult($file, [], 0);
+        }
+
+        $matches = [];
+        $foundCount = 0;
+
+        foreach ($lineNumbers as $lineNumber) {
+            $lineContent = $this->readIndexedLine($handle, $lineOffsets, $lineNumber);
+
+            if ($lineContent === null) {
+                continue;
+            }
+
+            $lineMatch = $matcher->match($lineContent);
+
+            if ($lineMatch === null) {
+                continue;
+            }
+
+            $foundCount++;
+
+            if (!$options->countOnly) {
+                $matches[] = new TextMatch(
+                    file: $file,
+                    line: $lineNumber,
+                    column: $lineMatch->column,
+                    content: $lineContent,
+                    matchedText: $lineMatch->matchedText,
+                );
+            }
+
+            if ($options->maxCount !== null && $foundCount >= $options->maxCount) {
+                break;
+            }
+        }
+
+        fclose($handle);
+
+        return new TextFileResult($file, $matches, $foundCount);
+    }
+
+    /**
+     * @param list<int> $lineOffsets
+     * @param resource $handle
+     */
+    private function readIndexedLine($handle, array $lineOffsets, int $lineNumber): ?string
+    {
+        $startIndex = $lineNumber - 1;
+
+        if (!isset($lineOffsets[$startIndex], $lineOffsets[$startIndex + 1])) {
+            return null;
+        }
+
+        $start = $lineOffsets[$startIndex];
+        $end = $lineOffsets[$startIndex + 1];
+        $length = max(0, $end - $start);
+
+        if (fseek($handle, $start) !== 0) {
+            return null;
+        }
+
+        $rawLine = $length === 0 ? '' : fread($handle, $length);
+
+        if ($rawLine === false) {
+            return null;
+        }
+
+        return rtrim($rawLine, "\r\n");
     }
 
     private function contentsContainLiteral(string $contents, string $pattern, bool $caseInsensitive): bool

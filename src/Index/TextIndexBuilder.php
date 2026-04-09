@@ -17,15 +17,19 @@ final class TextIndexBuilder
 
     private TrigramExtractor $trigramExtractor;
 
+    private WordMatchExtractor $wordMatchExtractor;
+
     private TextIndexStore $store;
 
     public function __construct(
         ?FileWalker $fileWalker = null,
         ?TrigramExtractor $trigramExtractor = null,
+        ?WordMatchExtractor $wordMatchExtractor = null,
         ?TextIndexStore $store = null,
     ) {
         $this->fileWalker = $fileWalker ?? new FileWalker();
         $this->trigramExtractor = $trigramExtractor ?? new TrigramExtractor();
+        $this->wordMatchExtractor = $wordMatchExtractor ?? new WordMatchExtractor();
         $this->store = $store ?? new TextIndexStore();
     }
 
@@ -36,10 +40,12 @@ final class TextIndexBuilder
         $scannedFiles = $this->scanFiles($rootPath, $indexPath);
         $files = [];
         $forward = [];
+        $wordForward = [];
+        $lineOffsets = [];
         $nextFileId = 1;
 
         foreach ($scannedFiles as $scan) {
-            $trigrams = $this->extractFileTrigrams($scan['absolutePath']);
+            $analysis = $this->analyzeFile($scan['absolutePath']);
             $files[] = [
                 'id' => $nextFileId,
                 'p' => $scan['relativePath'],
@@ -49,7 +55,9 @@ final class TextIndexBuilder
                 'g' => $scan['ignored'],
                 'o' => $scan['order'],
             ];
-            $forward[$nextFileId] = $trigrams;
+            $forward[$nextFileId] = $analysis['trigrams'];
+            $wordForward[$nextFileId] = $analysis['words'];
+            $lineOffsets[$nextFileId] = $analysis['lineOffsets'];
             $nextFileId++;
         }
 
@@ -62,6 +70,9 @@ final class TextIndexBuilder
             files: $files,
             postings: $this->buildPostings($forward),
             forward: $forward,
+            wordPostings: $this->buildWordPostings($wordForward),
+            wordForward: $wordForward,
+            lineOffsets: $lineOffsets,
         );
         $this->store->save($index);
 
@@ -99,6 +110,8 @@ final class TextIndexBuilder
         $scannedFiles = $this->scanFiles($rootPath, $indexPath);
         $existingByPath = [];
         $existingForward = $existingIndex->forward;
+        $existingWordForward = $existingIndex->wordForward;
+        $existingLineOffsets = $existingIndex->lineOffsets;
 
         foreach ($existingIndex->files as $file) {
             $existingByPath[$file['p']] = $file;
@@ -106,6 +119,8 @@ final class TextIndexBuilder
 
         $files = [];
         $forward = [];
+        $wordForward = [];
+        $lineOffsets = [];
         $nextFileId = $existingIndex->nextFileId;
         $addedFiles = 0;
         $updatedFiles = 0;
@@ -129,13 +144,15 @@ final class TextIndexBuilder
                     'o' => $scan['order'],
                 ];
                 $forward[$existing['id']] = $existingForward[$existing['id']] ?? $this->extractFileTrigrams($scan['absolutePath']);
+                $wordForward[$existing['id']] = $existingWordForward[$existing['id']] ?? $this->extractFileWords($scan['absolutePath']);
+                $lineOffsets[$existing['id']] = $existingLineOffsets[$existing['id']] ?? $this->extractFileLineOffsets($scan['absolutePath']);
                 $unchangedFiles++;
                 unset($existingByPath[$scan['relativePath']]);
                 continue;
             }
 
             $fileId = is_array($existing) ? $existing['id'] : $nextFileId++;
-            $trigrams = $this->extractFileTrigrams($scan['absolutePath']);
+            $analysis = $this->analyzeFile($scan['absolutePath']);
             $files[] = [
                 'id' => $fileId,
                 'p' => $scan['relativePath'],
@@ -145,7 +162,9 @@ final class TextIndexBuilder
                 'g' => $scan['ignored'],
                 'o' => $scan['order'],
             ];
-            $forward[$fileId] = $trigrams;
+            $forward[$fileId] = $analysis['trigrams'];
+            $wordForward[$fileId] = $analysis['words'];
+            $lineOffsets[$fileId] = $analysis['lineOffsets'];
 
             if (is_array($existing)) {
                 $updatedFiles++;
@@ -165,6 +184,9 @@ final class TextIndexBuilder
             files: $files,
             postings: $this->buildPostings($forward),
             forward: $forward,
+            wordPostings: $this->buildWordPostings($wordForward),
+            wordForward: $wordForward,
+            lineOffsets: $lineOffsets,
         );
         $this->store->save($index);
 
@@ -178,6 +200,34 @@ final class TextIndexBuilder
             deletedFiles: $deletedFiles,
             unchangedFiles: $unchangedFiles,
         );
+    }
+
+    /**
+     * @return array{
+     *   trigrams: list<string>,
+     *   words: array<string, list<int>>,
+     *   lineOffsets: list<int>
+     * }
+     */
+    private function analyzeFile(string $path): array
+    {
+        $contents = @file_get_contents($path);
+
+        if ($contents === false) {
+            return [
+                'trigrams' => [],
+                'words' => [],
+                'lineOffsets' => [0],
+            ];
+        }
+
+        $wordData = $this->wordMatchExtractor->extract($contents);
+
+        return [
+            'trigrams' => $this->trigramExtractor->extract($contents),
+            'words' => $wordData['words'],
+            'lineOffsets' => $wordData['lineOffsets'],
+        ];
     }
 
     private function resolveRootPath(string $rootPath): string
@@ -280,17 +330,51 @@ final class TextIndexBuilder
     }
 
     /**
+     * @param array<int, array<string, list<int>>> $wordForward
+     * @return array<string, array<int, list<int>>>
+     */
+    private function buildWordPostings(array $wordForward): array
+    {
+        $postings = [];
+
+        foreach ($wordForward as $fileId => $words) {
+            foreach ($words as $word => $lineNumbers) {
+                $postings[$word] ??= [];
+                $postings[$word][$fileId] = $lineNumbers;
+            }
+        }
+
+        ksort($postings);
+
+        foreach ($postings as &$fileMatches) {
+            ksort($fileMatches);
+        }
+
+        return $postings;
+    }
+
+    /**
      * @return list<string>
      */
     private function extractFileTrigrams(string $path): array
     {
-        $contents = @file_get_contents($path);
+        return $this->analyzeFile($path)['trigrams'];
+    }
 
-        if ($contents === false) {
-            return [];
-        }
+    /**
+     * @return array<string, list<int>>
+     */
+    private function extractFileWords(string $path): array
+    {
+        return $this->analyzeFile($path)['words'];
+    }
 
-        return $this->trigramExtractor->extract($contents);
+    /**
+     * @return list<int>
+     */
+    private function extractFileLineOffsets(string $path): array
+    {
+        return $this->analyzeFile($path)['lineOffsets'];
     }
 
     private function isHiddenPath(string $relativePath): bool

@@ -53,6 +53,8 @@ final class TextIndexBuilderTest extends TestCase
         $this->assertTrue($recordsByPath['.hidden/Secret.php']['h']);
         $this->assertTrue($recordsByPath['ignored.php']['g']);
         $this->assertContains('fun', $index->forward[$recordsByPath['src/App.php']['id']]);
+        $this->assertSame([2], $index->wordForward[$recordsByPath['src/App.php']['id']]['function']);
+        $this->assertSame([0, 6, 34], $index->lineOffsets[$recordsByPath['src/App.php']['id']]);
 
         sleep(1);
         Workspace::writeFile($this->workspace, 'src/App.php', "<?php\nfunction changed(): void {}\n");

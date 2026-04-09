@@ -107,6 +107,7 @@ final class BenchmarkRunner
                 $results = Phgrep::searchText((string) $suite['pattern'], $corpusPath, new TextSearchOptions(
                     fixedString: (bool) ($suite['fixed'] ?? false),
                     caseInsensitive: (bool) ($suite['case_insensitive'] ?? false),
+                    wholeWord: (bool) ($suite['whole_word'] ?? false),
                     jobs: (int) ($suite['jobs'] ?? 1),
                 ));
 
@@ -212,6 +213,7 @@ final class BenchmarkRunner
                     new TextSearchOptions(
                         fixedString: (bool) ($suite['fixed'] ?? false),
                         caseInsensitive: (bool) ($suite['case_insensitive'] ?? false),
+                        wholeWord: (bool) ($suite['whole_word'] ?? false),
                         countOnly: (bool) ($suite['count_only'] ?? false),
                         filesWithMatches: (bool) ($suite['files_with_matches'] ?? false),
                         filesWithoutMatches: (bool) ($suite['files_without_matches'] ?? false),
