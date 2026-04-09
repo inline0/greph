@@ -4,8 +4,12 @@ declare(strict_types=1);
 
 namespace Phgrep\Tests\Unit\Text;
 
+use Phgrep\Text\LineMatch;
+use Phgrep\Text\LiteralSearcher;
+use Phgrep\Text\RegexSearcher;
 use Phgrep\Tests\Support\Workspace;
 use Phgrep\Text\TextFileResult;
+use Phgrep\Text\TextMatcher;
 use Phgrep\Text\TextSearchOptions;
 use Phgrep\Text\TextSearcher;
 use Phgrep\Walker\FileList;
@@ -41,6 +45,24 @@ final class TextSearcherTest extends TestCase
         ];
 
         $this->assertSame($results, $searcher->sortResults($results));
+    }
+
+    #[Test]
+    public function itSortsUsingAnExplicitFileOrder(): void
+    {
+        $searcher = new TextSearcher();
+        $results = [
+            new TextFileResult('z.php', []),
+            new TextFileResult('a.php', []),
+            new TextFileResult('b.php', []),
+        ];
+
+        $sorted = $searcher->sortResults($results, ['b.php', 'a.php']);
+
+        $this->assertSame(['b.php', 'a.php', 'z.php'], array_map(
+            static fn (TextFileResult $result): string => $result->file,
+            $sorted,
+        ));
     }
 
     #[Test]
@@ -121,5 +143,207 @@ final class TextSearcherTest extends TestCase
         $this->assertSame('$foo = new Bar()', $results[0]->matches[0]->matchedText);
         $this->assertSame(3, $results[0]->matches[1]->line);
         $this->assertSame('$foo = new Bar()', $results[0]->matches[1]->matchedText);
+    }
+
+    #[Test]
+    public function itCoversStreamAndContentsFallbackPaths(): void
+    {
+        $searcher = new TextSearcher();
+        $matcher = new class implements TextMatcher
+        {
+            public function match(string $line): ?LineMatch
+            {
+                if (!str_contains($line, 'match')) {
+                    return null;
+                }
+
+                return new LineMatch(2, 'match');
+            }
+
+            public function mayMatchContents(string $contents): bool
+            {
+                return true;
+            }
+        };
+
+        $streamResult = $this->invokeMethod(
+            $searcher,
+            'searchFileWithoutContext',
+            $this->workspace . '/count.txt',
+            $matcher,
+            new TextSearchOptions(countOnly: true, maxCount: 1),
+        );
+        $streamListResult = $this->invokeMethod(
+            $searcher,
+            'searchFileWithoutContext',
+            $this->workspace . '/count.txt',
+            $matcher,
+            new TextSearchOptions(filesWithMatches: true),
+        );
+        $streamMissingResult = $this->invokeMethod(
+            $searcher,
+            'searchFileWithoutContext',
+            $this->workspace . '/missing-stream.txt',
+            $matcher,
+            new TextSearchOptions(),
+        );
+
+        $contentsResult = $this->invokeMethod(
+            $searcher,
+            'searchContentsWithoutContext',
+            'memory.txt',
+            "miss\r\nmatch\r\nfinal match",
+            $matcher,
+            new TextSearchOptions(countOnly: true, maxCount: 1),
+        );
+        $contentsWithoutMatches = $this->invokeMethod(
+            $searcher,
+            'searchContentsWithoutContext',
+            'memory.txt',
+            "alpha\nbeta",
+            $matcher,
+            new TextSearchOptions(filesWithoutMatches: true, invertMatch: true),
+        );
+
+        $this->assertSame(1, $streamResult->matchCount());
+        $this->assertSame(1, $streamListResult->matchCount());
+        $this->assertSame(0, $streamMissingResult->matchCount());
+        $this->assertSame(1, $contentsResult->matchCount());
+        $this->assertSame(1, $contentsWithoutMatches->matchCount());
+    }
+
+    #[Test]
+    public function itCoversFastPathHelpersAndDecisionBranches(): void
+    {
+        $searcher = new TextSearcher();
+        $customMatcher = new class implements TextMatcher
+        {
+            public function match(string $line): ?LineMatch
+            {
+                return str_contains($line, 'needle') ? new LineMatch(1, 'needle') : null;
+            }
+
+            public function mayMatchContents(string $contents): bool
+            {
+                return str_contains($contents, 'needle');
+            }
+        };
+
+        $shouldUseFastPath = $this->invokeMethod(
+            $searcher,
+            'shouldUseContentsFastPath',
+            $customMatcher,
+            new TextSearchOptions(),
+        );
+        $shouldUseFastPathForFilesWithout = $this->invokeMethod(
+            $searcher,
+            'shouldUseContentsFastPath',
+            $customMatcher,
+            new TextSearchOptions(filesWithoutMatches: true),
+        );
+        $literalFastPath = $this->invokeMethod(
+            $searcher,
+            'shouldUseContentsFastPath',
+            new LiteralSearcher('needle'),
+            new TextSearchOptions(fixedString: true),
+        );
+        $regexFastPath = $this->invokeMethod(
+            $searcher,
+            'shouldUseContentsFastPath',
+            new RegexSearcher('new [A-Za-z]+', false, false, 'new '),
+            new TextSearchOptions(),
+        );
+
+        $regexPrefilterResult = $this->invokeMethod(
+            $searcher,
+            'searchContentsByRegexPrefilter',
+            'memory.txt',
+            '$foo = new Bar()',
+            new RegexSearcher('\$foo = new [A-Za-z_][A-Za-z0-9_]*\(\)', false, false, 'new '),
+            new TextSearchOptions(),
+        );
+        $literalResult = $this->invokeMethod(
+            $searcher,
+            'searchContentsByLiteral',
+            'memory.txt',
+            "needle\r\nneedle",
+            new LiteralSearcher('needle'),
+            new TextSearchOptions(countOnly: true, maxCount: 1, fixedString: true),
+        );
+
+        $this->assertFalse($shouldUseFastPath);
+        $this->assertTrue($shouldUseFastPathForFilesWithout);
+        $this->assertTrue($literalFastPath);
+        $this->assertTrue($regexFastPath);
+        $this->assertSame(1, $regexPrefilterResult->matchCount());
+        $this->assertSame(1, $literalResult->matchCount());
+    }
+
+    #[Test]
+    public function itCoversRemainingStreamAndContentsBranches(): void
+    {
+        $searcher = new TextSearcher();
+        $matcher = new class implements TextMatcher
+        {
+            public function match(string $line): ?LineMatch
+            {
+                return str_contains($line, 'match') ? new LineMatch(3, 'match', ['value' => 'match']) : null;
+            }
+
+            public function mayMatchContents(string $contents): bool
+            {
+                return true;
+            }
+        };
+
+        $streamResult = $this->invokeMethod(
+            $searcher,
+            'searchFileWithStreamWithoutContext',
+            $this->workspace . '/context.txt',
+            $matcher,
+            new TextSearchOptions(maxCount: 1),
+        );
+        $contentsResult = $this->invokeMethod(
+            $searcher,
+            'searchContentsWithoutContext',
+            'tail.txt',
+            "alpha\ntail match",
+            $matcher,
+            new TextSearchOptions(maxCount: 1),
+        );
+        $contentsCountOnly = $this->invokeMethod(
+            $searcher,
+            'searchContentsWithoutContext',
+            'count.txt',
+            "match\nmatch",
+            $matcher,
+            new TextSearchOptions(countOnly: true),
+        );
+        $streamCountOnly = $this->invokeMethod(
+            $searcher,
+            'searchFileWithStreamWithoutContext',
+            $this->workspace . '/count.txt',
+            $matcher,
+            new TextSearchOptions(countOnly: true),
+        );
+
+        $this->assertCount(1, $streamResult->matches);
+        $this->assertSame('match', $streamResult->matches[0]->matchedText);
+        $this->assertSame(['value' => 'match'], $streamResult->matches[0]->captures);
+        $this->assertCount(1, $contentsResult->matches);
+        $this->assertSame('tail match', $contentsResult->matches[0]->content);
+        $this->assertSame(2, $contentsCountOnly->matchCount());
+        $this->assertSame(2, $streamCountOnly->matchCount());
+    }
+
+    /**
+     * @return mixed
+     */
+    private function invokeMethod(object $object, string $method, mixed ...$arguments): mixed
+    {
+        $reflection = new \ReflectionMethod($object, $method);
+        $reflection->setAccessible(true);
+
+        return $reflection->invoke($object, ...$arguments);
     }
 }

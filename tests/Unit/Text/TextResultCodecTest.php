@@ -55,4 +55,46 @@ final class TextResultCodecTest extends TestCase
 
         $codec->decode([['f' => '/tmp/a.php']]);
     }
+
+    #[Test]
+    public function itRejectsInvalidTopLevelAndMatchPayloadsAndSkipsInvalidContextRows(): void
+    {
+        $codec = new TextResultCodec();
+
+        try {
+            $codec->decode('bad');
+            self::fail('Expected invalid top-level payload to throw.');
+        } catch (\RuntimeException $exception) {
+            $this->assertStringContainsString('Worker returned invalid text payload.', $exception->getMessage());
+        }
+
+        try {
+            $codec->decode([[
+                'f' => '/tmp/a.php',
+                'c' => 1,
+                'm' => [['l' => 2, 'c' => 1]],
+            ]]);
+            self::fail('Expected invalid match payload to throw.');
+        } catch (\RuntimeException $exception) {
+            $this->assertStringContainsString('Worker returned invalid text match payload.', $exception->getMessage());
+        }
+
+        $decoded = $codec->decode([[
+            'f' => '/tmp/a.php',
+            'c' => 1,
+            'm' => [[
+                'l' => 2,
+                'c' => 1,
+                't' => 'line',
+                'b' => 'bad',
+                'a' => [
+                    ['line' => 'bad', 'content' => 'skip'],
+                    ['line' => 3, 'content' => 'keep'],
+                ],
+            ]],
+        ]]);
+
+        $this->assertSame([], $decoded[0]->matches[0]->beforeContext);
+        $this->assertSame([['line' => 3, 'content' => 'keep']], $decoded[0]->matches[0]->afterContext);
+    }
 }

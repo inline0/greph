@@ -68,4 +68,19 @@ final class AstRootMatcherTest extends TestCase
         $this->assertTrue($this->matcher->mayMatch($longPattern->root, $longCandidate->root));
         $this->assertFalse($this->matcher->mayMatch($longPattern->root, $shortCandidate->root));
     }
+
+    #[Test]
+    public function itCoversPermissivePrivateRootChecks(): void
+    {
+        $dynamicFunctionPattern = $this->parser->parse('$CALLABLE()');
+        $literalFunctionCandidate = $this->parser->parse('dispatch($event)');
+        $dynamicMethodPattern = $this->parser->parse('$client->$METHOD($message)');
+        $literalMethodCandidate = $this->parser->parse('$client->send($message)');
+        $newWithArgsPattern = $this->parser->parse('new Foo($value)');
+        $newWithArgsCandidate = $this->parser->parse('new Foo()');
+
+        $this->assertTrue($this->matcher->mayMatch($dynamicFunctionPattern->root, $literalFunctionCandidate->root));
+        $this->assertTrue($this->matcher->mayMatch($dynamicMethodPattern->root, $literalMethodCandidate->root));
+        $this->assertTrue($this->matcher->mayMatch($newWithArgsPattern->root, $newWithArgsCandidate->root));
+    }
 }

@@ -64,6 +64,10 @@ final class RegexSearcherTest extends TestCase
         $this->assertFalse($searcher->findPrefilterInContents("abc = old Foo()\n"));
         $this->assertNotNull($searcher->matchPrefilteredLine('$foo = new Bar()'));
         $this->assertNull($searcher->matchPrefilteredLine('$foo = old Bar()'));
-        $this->assertFalse((new RegexSearcher('^save$'))->supportsOccurrenceScan());
+        $noPrefilter = new RegexSearcher('^save$');
+
+        $this->assertNull($searcher->match('old content'));
+        $this->assertFalse($noPrefilter->supportsOccurrenceScan());
+        $this->assertFalse($noPrefilter->findPrefilterInContents("save\n"));
     }
 }

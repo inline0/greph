@@ -64,4 +64,25 @@ final class PhgrepParallelThresholdTest extends TestCase
         $this->assertCount(1501, $rewriteResults);
         $this->assertTrue($rewriteResults[0]->changed());
     }
+
+    #[Test]
+    public function itUsesTheParallelTextPathForLargeRegexFileLists(): void
+    {
+        $paths = [];
+
+        for ($index = 0; $index < 4001; $index++) {
+            $path = $this->workspace . sprintf('/regex/Regex%04d.php', $index);
+            Workspace::writeFile($this->workspace, sprintf('regex/Regex%04d.php', $index), "<?php\nfunction demo(): void {}\n");
+            $paths[] = $path;
+        }
+
+        $results = Phgrep::searchText(
+            'function demo',
+            $paths,
+            new TextSearchOptions(jobs: 2),
+        );
+
+        $this->assertCount(4001, $results);
+        $this->assertSame(4001, array_sum(array_map(static fn ($result): int => $result->matchCount(), $results)));
+    }
 }

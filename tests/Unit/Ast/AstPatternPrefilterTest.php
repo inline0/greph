@@ -61,4 +61,37 @@ final class AstPatternPrefilterTest extends TestCase
         $this->assertFalse($prefilter->mayMatchPattern($pattern, "<?php\n\$values = [1, 2];\n"));
         $this->assertFalse($prefilter->mayMatchPattern($pattern, "<?php\n\$label = 'array(1, 2)';\n"));
     }
+
+    #[Test]
+    public function itCoversAdditionalKeywordAndHelperBranches(): void
+    {
+        $parser = new PatternParser();
+        $prefilter = new AstPatternPrefilter();
+
+        $this->assertSame(['include'], $prefilter->extract($parser->parse('include $file;')->root));
+        $this->assertSame(['include_once'], $prefilter->extract($parser->parse('include_once $file;')->root));
+        $this->assertSame(['require'], $prefilter->extract($parser->parse('require $file;')->root));
+        $this->assertSame(['require_once'], $prefilter->extract($parser->parse('require_once $file;')->root));
+        $this->assertSame(['isset'], $prefilter->extract($parser->parse('isset($value)')->root));
+        $this->assertSame(['empty'], $prefilter->extract($parser->parse('empty($value)')->root));
+        $this->assertTrue($prefilter->mayMatchPattern($parser->parse('dispatch($event)')->root, "<?php\nanything();\n"));
+
+        $this->assertFalse($this->invokeMethod($prefilter, 'hasLongArraySyntax', "<?php\narray foo;\n"));
+        $this->assertFalse($this->invokeMethod($prefilter, 'hasZeroArgumentNewExpression', "<?php\nnewvalue;\n"));
+        $this->assertFalse($this->invokeMethod($prefilter, 'hasZeroArgumentNewExpression', "<?php\nnew"));
+        $this->assertTrue($this->invokeMethod($prefilter, 'hasZeroArgumentNewExpression', "<?php\nnew Foo {\n"));
+        $this->assertFalse($this->invokeMethod($prefilter, 'isLongArraySyntax', new \PhpParser\Node\Expr\Array_([])));
+        $this->assertNull($this->invokeMethod($prefilter, 'nextSignificantTokenIndex', [[T_WHITESPACE, ' ', 1]], 0));
+    }
+
+    /**
+     * @return mixed
+     */
+    private function invokeMethod(object $object, string $method, mixed ...$arguments): mixed
+    {
+        $reflection = new \ReflectionMethod($object, $method);
+        $reflection->setAccessible(true);
+
+        return $reflection->invoke($object, ...$arguments);
+    }
 }

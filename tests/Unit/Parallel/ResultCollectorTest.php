@@ -68,6 +68,34 @@ final class ResultCollectorTest extends TestCase
         (new ResultCollector())->collect([$this->spawnWorker('')]);
     }
 
+    #[Test]
+    public function itCollectsSeekableWorkerOutputAndRemovesTemporaryFiles(): void
+    {
+        $this->requirePcntl();
+
+        $tempPath = tempnam(sys_get_temp_dir(), 'phgrep-result-');
+        $this->assertNotFalse($tempPath);
+        file_put_contents($tempPath, serialize(['result' => 'seekable']));
+        $handle = fopen($tempPath, 'rb');
+        $this->assertIsResource($handle);
+
+        $pid = pcntl_fork();
+        $this->assertNotSame(-1, $pid);
+
+        if ($pid === 0) {
+            exit(0);
+        }
+
+        $result = (new ResultCollector())->collectWorker([
+            'pid' => $pid,
+            'socket' => $handle,
+            'tempPath' => $tempPath,
+        ]);
+
+        $this->assertSame('seekable', $result);
+        $this->assertFileDoesNotExist($tempPath);
+    }
+
     private function requirePcntl(): void
     {
         if (!function_exists('pcntl_fork')) {

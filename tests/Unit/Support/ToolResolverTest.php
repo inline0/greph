@@ -73,4 +73,14 @@ final class ToolResolverTest extends TestCase
         $this->expectExceptionMessage('Unable to resolve required binary: grep');
         $resolver->grep();
     }
+
+    #[Test]
+    public function itCanUseTheDefaultBinaryLocatorForSystemGrep(): void
+    {
+        $resolver = new ToolResolver();
+        $command = $resolver->grep();
+
+        $this->assertCount(1, $command);
+        $this->assertNotSame('', $command[0]);
+    }
 }

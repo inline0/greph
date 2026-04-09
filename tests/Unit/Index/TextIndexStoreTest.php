@@ -54,6 +54,18 @@ final class TextIndexStoreTest extends TestCase
 
         $this->assertSame([1, 2], $legacySelected['fun']);
         $this->assertSame([1, 2], $legacyIndex->postings['fun']);
+
+        Workspace::writeFile($this->workspace, '.phgrep-index/files.phpbin', serialize([
+            ['id' => 1, 'p' => 'src/App.php', 's' => 10, 'm' => 1, 'h' => false, 'g' => false, 't' => ['fun', 99], 'o' => 0],
+        ]));
+        Workspace::writeFile($this->workspace, '.phgrep-index/postings.phpbin', serialize(['fun' => [1], 'bad' => 'skip']));
+        Workspace::remove($result->indexPath . '/forward.phpbin');
+
+        $legacyForwardIndex = $store->load($result->indexPath, includeForward: true, includePostings: true);
+
+        $this->assertSame([1 => ['fun']], $legacyForwardIndex->forward);
+        $this->assertSame([1], $legacyForwardIndex->postings['fun']);
+        $this->assertArrayNotHasKey('bad', $legacyForwardIndex->postings);
     }
 
     #[Test]
@@ -98,6 +110,15 @@ final class TextIndexStoreTest extends TestCase
             self::fail('Expected corrupt postings payload to throw.');
         } catch (\RuntimeException $exception) {
             $this->assertStringContainsString('Index is corrupt', $exception->getMessage());
+        }
+
+        Workspace::writeFile($this->workspace, '.phgrep-index/metadata.phpbin', '');
+
+        try {
+            $store->load($indexPath);
+            self::fail('Expected empty metadata file to throw.');
+        } catch (\RuntimeException $exception) {
+            $this->assertStringContainsString('Failed to read index file', $exception->getMessage());
         }
     }
 
