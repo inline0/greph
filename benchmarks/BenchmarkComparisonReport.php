@@ -21,11 +21,12 @@ final class BenchmarkComparisonReport
             '- `win` <= -3.00%',
             '- `regression` >= +3.00%',
             '- otherwise `noise`',
+            '- spread shown as `min..max / n` from the repeated measured runs',
             '',
             '## phgrep delta',
             '',
-            '| Signal | Corpus | Category | Operation | Base | Head | Delta | Change |',
-            '| --- | --- | --- | --- | ---: | ---: | ---: | ---: |',
+            '| Signal | Corpus | Category | Operation | Base | Base spread | Head | Head spread | Delta | Change |',
+            '| --- | --- | --- | --- | ---: | --- | ---: | --- | ---: | ---: |',
         ];
 
         $baseMap = $this->index($base);
@@ -37,11 +38,11 @@ final class BenchmarkComparisonReport
             $baseResult = $baseMap[$key] ?? null;
             $headResult = $headMap[$key] ?? null;
 
-            if (($baseResult?->tool ?? $headResult?->tool) !== 'phgrep') {
+            if ($baseResult === null || $headResult === null) {
                 continue;
             }
 
-            if ($baseResult === null || $headResult === null) {
+            if ($baseResult->tool !== 'phgrep') {
                 continue;
             }
 
@@ -51,13 +52,15 @@ final class BenchmarkComparisonReport
                 : 0.0;
 
             $lines[] = sprintf(
-                '| %s | %s | %s | %s | %.2fms | %.2fms | %+.2fms | %+.2f%% |',
+                '| %s | %s | %s | %s | %.2fms | %s | %.2fms | %s | %+.2fms | %+.2f%% |',
                 $this->signal($deltaPercent),
                 $headResult->corpus,
                 $headResult->category,
                 $headResult->operation,
                 $baseResult->durationMs,
+                $this->spread($baseResult),
                 $headResult->durationMs,
+                $this->spread($headResult),
                 $delta,
                 $deltaPercent,
             );
@@ -83,6 +86,22 @@ final class BenchmarkComparisonReport
         }
 
         $lines[] = '';
+        $lines[] = '## Head Memory Snapshot';
+        $lines[] = '';
+        $lines[] = '| Corpus | Category | Operation | phgrep peak memory |';
+        $lines[] = '| --- | --- | --- | ---: |';
+
+        foreach ($this->headMemoryRows($head) as $row) {
+            $lines[] = sprintf(
+                '| %s | %s | %s | %.2fMB |',
+                $row->corpus,
+                $row->category,
+                $row->operation,
+                $row->memoryBytes / 1_048_576,
+            );
+        }
+
+        $lines[] = '';
 
         return implode(PHP_EOL, $lines) . PHP_EOL;
     }
@@ -94,6 +113,15 @@ final class BenchmarkComparisonReport
             $deltaPercent >= 3.0 => 'regression',
             default => 'noise',
         };
+    }
+
+    private function spread(BenchmarkResult $result): string
+    {
+        if ($result->durationMinMs === null || $result->durationMaxMs === null || $result->sampleCount === null) {
+            return 'n/a';
+        }
+
+        return sprintf('%.2f..%.2fms / %d', $result->durationMinMs, $result->durationMaxMs, $result->sampleCount);
     }
 
     /**
@@ -128,6 +156,7 @@ final class BenchmarkComparisonReport
      */
     private function groupHeadRows(array $results): array
     {
+        /** @var array<string, array{corpus: string, category: string, operation: string, phgrep?: BenchmarkResult, external?: BenchmarkResult}> $grouped */
         $grouped = [];
 
         foreach ($results as $result) {
@@ -150,6 +179,7 @@ final class BenchmarkComparisonReport
             }
         }
 
+        /** @var list<array{corpus: string, category: string, operation: string, phgrep: BenchmarkResult, external: BenchmarkResult}> $rows */
         $rows = [];
 
         foreach ($grouped as $group) {
@@ -181,6 +211,33 @@ final class BenchmarkComparisonReport
                 $right['corpus'],
                 $right['category'],
                 $right['operation'],
+            ],
+        );
+
+        return $rows;
+    }
+
+    /**
+     * @param list<BenchmarkResult> $results
+     * @return list<BenchmarkResult>
+     */
+    private function headMemoryRows(array $results): array
+    {
+        $rows = array_values(array_filter(
+            $results,
+            static fn (BenchmarkResult $result): bool => !$result->skipped && $result->tool === 'phgrep',
+        ));
+
+        usort(
+            $rows,
+            static fn (BenchmarkResult $left, BenchmarkResult $right): int => [
+                $left->corpus,
+                $left->category,
+                $left->operation,
+            ] <=> [
+                $right->corpus,
+                $right->category,
+                $right->operation,
             ],
         );
 

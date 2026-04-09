@@ -25,6 +25,9 @@ final class BenchmarkAggregatorTest extends TestCase
 
         $this->assertCount(1, $aggregated);
         $this->assertSame(120.0, $aggregated[0]->durationMs);
+        $this->assertSame(100.0, $aggregated[0]->durationMinMs);
+        $this->assertSame(140.0, $aggregated[0]->durationMaxMs);
+        $this->assertSame(3, $aggregated[0]->sampleCount);
         $this->assertSame(20_000, $aggregated[0]->memoryBytes);
     }
 
@@ -41,6 +44,7 @@ final class BenchmarkAggregatorTest extends TestCase
 
         $this->assertTrue($aggregated[0]->skipped);
         $this->assertSame('tool missing', $aggregated[0]->skipReason);
+        $this->assertSame(0, $aggregated[0]->sampleCount);
     }
 
     private function benchmarkResult(float $durationMs, int $memoryBytes, bool $skipped = false, ?string $skipReason = null): BenchmarkResult

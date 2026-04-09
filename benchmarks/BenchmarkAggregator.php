@@ -65,10 +65,14 @@ final class BenchmarkAggregator
                     matchCount: 0,
                     skipped: true,
                     skipReason: implode('; ', array_keys($entry['skip_reasons'])),
+                    sampleCount: 0,
                 );
 
                 continue;
             }
+
+            /** @var non-empty-list<float> $durations */
+            $durations = $entry['durations'];
 
             $aggregated[] = new BenchmarkResult(
                 category: $prototype->category,
@@ -76,10 +80,13 @@ final class BenchmarkAggregator
                 operation: $prototype->operation,
                 corpus: $prototype->corpus,
                 tool: $prototype->tool,
-                durationMs: $this->medianFloat($entry['durations']),
+                durationMs: $this->medianFloat($durations),
+                durationMinMs: $this->minFloat($durations),
+                durationMaxMs: $this->maxFloat($durations),
                 memoryBytes: $this->medianInt($entry['memory']),
                 fileCount: $this->medianInt($entry['files']),
                 matchCount: $this->medianInt($entry['matches']),
+                sampleCount: count($durations),
             );
         }
 
@@ -127,6 +134,26 @@ final class BenchmarkAggregator
         }
 
         return ($values[$middle - 1] + $values[$middle]) / 2;
+    }
+
+    /**
+     * @param non-empty-list<float> $values
+     */
+    private function minFloat(array $values): float
+    {
+        sort($values, SORT_NUMERIC);
+
+        return $values[0];
+    }
+
+    /**
+     * @param non-empty-list<float> $values
+     */
+    private function maxFloat(array $values): float
+    {
+        rsort($values, SORT_NUMERIC);
+
+        return $values[0];
     }
 
     /**

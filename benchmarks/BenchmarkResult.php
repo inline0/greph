@@ -18,6 +18,9 @@ final readonly class BenchmarkResult
         public int $matchCount,
         public bool $skipped = false,
         public ?string $skipReason = null,
+        public ?float $durationMinMs = null,
+        public ?float $durationMaxMs = null,
+        public ?int $sampleCount = null,
     ) {
     }
 
@@ -38,6 +41,9 @@ final readonly class BenchmarkResult
             'match_count' => $this->matchCount,
             'skipped' => $this->skipped,
             'skip_reason' => $this->skipReason,
+            'duration_min_ms' => $this->durationMinMs,
+            'duration_max_ms' => $this->durationMaxMs,
+            'sample_count' => $this->sampleCount,
         ];
     }
 
@@ -58,6 +64,9 @@ final readonly class BenchmarkResult
             matchCount: (int) $data['match_count'],
             skipped: (bool) $data['skipped'],
             skipReason: isset($data['skip_reason']) ? (string) $data['skip_reason'] : null,
+            durationMinMs: isset($data['duration_min_ms']) ? (float) $data['duration_min_ms'] : null,
+            durationMaxMs: isset($data['duration_max_ms']) ? (float) $data['duration_max_ms'] : null,
+            sampleCount: isset($data['sample_count']) ? (int) $data['sample_count'] : null,
         );
     }
 }
