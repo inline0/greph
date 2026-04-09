@@ -148,7 +148,7 @@ jobs:
           if [[ -n "${{ steps.settings.outputs.category }}" ]]; then
             args+=(--category "${{ steps.settings.outputs.category }}")
           fi
-          php "${{ steps.paths.outputs.base_worktree }}/bin/bench-series" "${args[@]}"
+          PHGREP_ROOT="${{ steps.paths.outputs.base_worktree }}" php bin/bench-series "${args[@]}"
 
       - name: Compare benchmark series
         shell: bash
