@@ -72,10 +72,8 @@ final class AstRewriter
 
             $matches = [];
 
-            foreach ($this->candidateFinder->find($statements, $search) as $candidate) {
-                $captures = $this->rootMatcher->mayMatch($search->root, $candidate)
-                    ? $this->patternMatcher->match($search->root, $candidate)
-                    : null;
+            foreach ($this->candidateFinder->iterate($statements, $search, $this->rootMatcher) as $candidate) {
+                $captures = $this->patternMatcher->match($search->root, $candidate);
 
                 if ($captures === null) {
                     continue;

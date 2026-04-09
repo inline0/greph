@@ -74,10 +74,8 @@ final class AstSearcher
                 throw $exception;
             }
 
-            foreach ($this->candidateFinder->find($statements, $parsedPattern) as $candidate) {
-                $captures = $this->rootMatcher->mayMatch($parsedPattern->root, $candidate)
-                    ? $this->patternMatcher->match($parsedPattern->root, $candidate)
-                    : null;
+            foreach ($this->candidateFinder->iterate($statements, $parsedPattern, $this->rootMatcher) as $candidate) {
+                $captures = $this->patternMatcher->match($parsedPattern->root, $candidate);
 
                 if ($captures === null) {
                     continue;
