@@ -50,7 +50,7 @@ gh workflow run Benchmark \
 
 ## Current State
 
-Current benchmark baseline commit: `693f5ec`
+Current benchmark baseline commit: `6057d44`
 
 ### Accepted Wins
 
@@ -72,6 +72,10 @@ Current benchmark baseline commit: `693f5ec`
   - `new $CLASS()`: `-6.47%`
   - `array($$$ITEMS)`: `+0.53%`
   - kept because the target operation moved materially and the sibling op stayed within noise
+- `6057d44` `Prefilter zero-argument constructor searches`
+  - `new $CLASS()`: `-39.44%`
+  - `array($$$ITEMS)`: `+1.37%`
+  - kept because the target operation moved massively and the sibling op stayed within noise
 
 ### Accepted Benchmark Infrastructure
 
@@ -98,10 +102,10 @@ Current benchmark baseline commit: `693f5ec`
 
 ### In Flight
 
-- AST token-aware zero-argument `new` prefilter
-  - scan PHP tokens for `new` expressions that actually reach an empty `(...)` call before the full AST parse runs
-  - only apply this prefilter when the pattern root is `new ...()` with zero constructor args
-  - validate on CI against `693f5ec` with the `ast` category before keeping
+- AST token-aware long-array prefilter
+  - scan PHP tokens for long `array(...)` syntax before the full AST parse runs
+  - only apply this prefilter when the pattern root is long-form `array(...)`
+  - validate on CI against `6057d44` with the `ast` category before keeping
 
 ## Ordered Queue
 
@@ -148,7 +152,7 @@ Current benchmark baseline commit: `693f5ec`
 
 ## Immediate Next Steps
 
-1. Finish the AST token-aware zero-argument `new` prefilter pass and benchmark it against `693f5ec`.
+1. Finish the AST token-aware long-array prefilter pass and benchmark it against `6057d44`.
 2. If the AST pass wins, stay in AST pruning and prefilter work until that surface flattens.
 3. If the AST pass is flat or negative, pivot back to text-path work or parser-cost isolation.
 4. Keep every pass isolated and CI-verified.
