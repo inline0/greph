@@ -12,7 +12,7 @@ final class Filesystem
             return;
         }
 
-        if (!is_dir($path) && !mkdir($path, 0777, true) && !is_dir($path)) {
+        if (!is_dir($path) && !@mkdir($path, 0777, true) && !is_dir($path)) {
             throw new \RuntimeException(sprintf('Failed to create directory: %s', $path));
         }
     }
@@ -23,10 +23,7 @@ final class Filesystem
         $iterator = new \FilesystemIterator($source, \FilesystemIterator::CURRENT_AS_FILEINFO | \FilesystemIterator::SKIP_DOTS);
 
         foreach ($iterator as $entry) {
-            if (!$entry instanceof \SplFileInfo) {
-                continue;
-            }
-
+            /** @var \SplFileInfo $entry */
             $targetPath = $destination . '/' . $entry->getFilename();
 
             if ($entry->isDir() && !$entry->isLink()) {
@@ -37,14 +34,14 @@ final class Filesystem
             if ($entry->isLink()) {
                 $linkTarget = readlink($entry->getPathname());
 
-                if ($linkTarget === false || !symlink($linkTarget, $targetPath)) {
+                if ($linkTarget === false || !@symlink($linkTarget, $targetPath)) {
                     throw new \RuntimeException(sprintf('Failed to copy symlink: %s', $entry->getPathname()));
                 }
 
                 continue;
             }
 
-            if (!copy($entry->getPathname(), $targetPath)) {
+            if (!@copy($entry->getPathname(), $targetPath)) {
                 throw new \RuntimeException(sprintf('Failed to copy file: %s', $entry->getPathname()));
             }
         }

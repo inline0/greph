@@ -8,10 +8,17 @@ use Phgrep\Walker\FileList;
 
 final class Worker
 {
+    /** @var callable(int): never */
+    private $terminator;
+
     public function __construct(
         private readonly int $index,
         private readonly FileList $files,
+        ?callable $terminator = null,
     ) {
+        /** @var callable(int): never $resolvedTerminator */
+        $resolvedTerminator = $terminator ?? self::terminateProcess(...);
+        $this->terminator = $resolvedTerminator;
     }
 
     /**
@@ -35,6 +42,12 @@ final class Worker
 
         fwrite($socket, serialize($payload));
         fclose($socket);
+        ($this->terminator)($exitCode);
+    }
+
+    /** @codeCoverageIgnore */
+    private static function terminateProcess(int $exitCode): never
+    {
         exit($exitCode);
     }
 }

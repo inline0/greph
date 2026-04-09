@@ -6,6 +6,27 @@ namespace Phgrep\Support;
 
 final class ToolResolver
 {
+    /** @var callable(string): ?string */
+    private $binaryLocator;
+
+    /**
+     * @param callable(string): ?string|null $binaryLocator
+     */
+    public function __construct(?callable $binaryLocator = null)
+    {
+        $this->binaryLocator = $binaryLocator ?? static function (string $candidate): ?string {
+            $path = shell_exec(sprintf('command -v %s 2>/dev/null', escapeshellarg($candidate)));
+
+            if (!is_string($path)) {
+                return null;
+            }
+
+            $path = trim($path);
+
+            return $path === '' ? null : $path;
+        };
+    }
+
     /**
      * @return list<string>
      */
@@ -89,14 +110,10 @@ final class ToolResolver
     private function findBinary(array $candidates): ?string
     {
         foreach ($candidates as $candidate) {
-            $path = shell_exec(sprintf('command -v %s 2>/dev/null', escapeshellarg($candidate)));
+            $path = ($this->binaryLocator)($candidate);
 
-            if (is_string($path)) {
-                $path = trim($path);
-
-                if ($path !== '') {
-                    return $path;
-                }
+            if ($path !== null) {
+                return $path;
             }
         }
 

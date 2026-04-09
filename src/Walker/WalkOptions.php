@@ -6,6 +6,9 @@ namespace Phgrep\Walker;
 
 final readonly class WalkOptions
 {
+    /**
+     * @param list<string> $globPatterns
+     */
     public function __construct(
         public bool $respectIgnore = true,
         public bool $includeHidden = false,
@@ -14,6 +17,7 @@ final readonly class WalkOptions
         public bool $includeGitDirectory = false,
         public ?FileTypeFilter $fileTypeFilter = null,
         public int $maxFileSizeBytes = 10485760,
+        public array $globPatterns = [],
     ) {
     }
 }

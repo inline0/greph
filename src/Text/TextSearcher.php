@@ -73,6 +73,10 @@ final class TextSearcher
         LiteralSearcher|RegexSearcher $matcher,
         TextSearchOptions $options,
     ): TextFileResult {
+        if ($options->beforeContext === 0 && $options->afterContext === 0) {
+            return $this->searchFileWithoutContext($file, $matcher, $options);
+        }
+
         /** @var list<array{line: int, content: string}> $previousLines */
         $previousLines = [];
         /** @var list<array{line: int, content: string, column: int, matchedText: string, captures: array<int|string, string>, beforeContext: list<array{line: int, content: string}>, afterContext: list<array{line: int, content: string}>}> $matches */
@@ -168,6 +172,63 @@ final class TextSearcher
             );
         }
 
-        return new TextFileResult($file, $materializedMatches);
+        return new TextFileResult($file, $materializedMatches, $foundCount);
+    }
+
+    private function searchFileWithoutContext(
+        string $file,
+        LiteralSearcher|RegexSearcher $matcher,
+        TextSearchOptions $options,
+    ): TextFileResult {
+        $matches = [];
+        $foundCount = 0;
+        $handle = @fopen($file, 'rb');
+
+        if ($handle === false) {
+            return new TextFileResult($file, $matches, $foundCount);
+        }
+        $lineNumber = 0;
+
+        while (($rawLine = fgets($handle)) !== false) {
+            $lineNumber++;
+            $lineContent = rtrim($rawLine, "\r\n");
+            $lineMatch = $matcher->match($lineContent);
+            $isSelected = $options->invertMatch ? $lineMatch === null : $lineMatch !== null;
+
+            if (!$isSelected) {
+                continue;
+            }
+
+            $foundCount++;
+
+            if ($options->countOnly || $options->filesWithMatches || $options->filesWithoutMatches) {
+                if ($options->filesWithMatches || $options->filesWithoutMatches) {
+                    break;
+                }
+
+                if ($options->maxCount !== null && $foundCount >= $options->maxCount) {
+                    break;
+                }
+
+                continue;
+            }
+
+            $matches[] = new TextMatch(
+                file: $file,
+                line: $lineNumber,
+                column: $lineMatch !== null ? $lineMatch->column : 1,
+                content: $lineContent,
+                matchedText: $lineMatch !== null ? $lineMatch->matchedText : '',
+                captures: $lineMatch !== null ? $lineMatch->captures : [],
+            );
+
+            if ($options->maxCount !== null && $foundCount >= $options->maxCount) {
+                break;
+            }
+        }
+
+        fclose($handle);
+
+        return new TextFileResult($file, $matches, $foundCount);
     }
 }

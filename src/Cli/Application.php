@@ -7,6 +7,9 @@ namespace Phgrep\Cli;
 use Phgrep\Ast\AstSearchOptions;
 use Phgrep\Output\GrepFormatter;
 use Phgrep\Phgrep;
+use Phgrep\Support\Filesystem;
+use Phgrep\Text\TextFileResult;
+use Phgrep\Text\TextMatch;
 use Phgrep\Text\TextSearchOptions;
 use Phgrep\Walker\FileTypeFilter;
 
@@ -14,9 +17,36 @@ final class Application
 {
     private GrepFormatter $grepFormatter;
 
-    public function __construct(?GrepFormatter $grepFormatter = null)
-    {
+    /**
+     * @var resource
+     */
+    private $input;
+
+    /**
+     * @var resource
+     */
+    private $output;
+
+    /**
+     * @var resource
+     */
+    private $errorOutput;
+
+    /**
+     * @param resource|null $input
+     * @param resource|null $output
+     * @param resource|null $errorOutput
+     */
+    public function __construct(
+        ?GrepFormatter $grepFormatter = null,
+        $input = null,
+        $output = null,
+        $errorOutput = null,
+    ) {
         $this->grepFormatter = $grepFormatter ?? new GrepFormatter();
+        $this->input = $input ?? STDIN;
+        $this->output = $output ?? STDOUT;
+        $this->errorOutput = $errorOutput ?? STDERR;
     }
 
     /**
@@ -27,7 +57,7 @@ final class Application
         $arguments = $this->parseArguments($argv);
 
         if ($arguments['help']) {
-            fwrite(STDOUT, $this->usage());
+            $this->writeOutput($this->usage());
 
             return 0;
         }
@@ -52,8 +82,11 @@ final class Application
      *   json: bool,
      *   noIgnore: bool,
      *   hidden: bool,
+     *   glob: list<string>,
      *   dryRun: bool,
      *   interactive: bool,
+     *   showFileNames: ?bool,
+     *   showLineNumbers: bool,
      *   jobs: int,
      *   maxCount: ?int,
      *   beforeContext: int,
@@ -71,7 +104,7 @@ final class Application
     private function runText(array $arguments): int
     {
         if ($arguments['pattern'] === null) {
-            fwrite(STDERR, "Missing search pattern.\n");
+            $this->writeError("Missing search pattern.\n");
 
             return 2;
         }
@@ -95,9 +128,13 @@ final class Application
             respectIgnore: !$arguments['noIgnore'],
             includeHidden: $arguments['hidden'],
             fileTypeFilter: $fileTypeFilter,
+            globPatterns: $arguments['glob'],
+            showLineNumbers: $arguments['showLineNumbers'],
+            showFileNames: $this->shouldDisplayFileNames($arguments),
         );
 
         $results = Phgrep::searchText($arguments['pattern'], $arguments['paths'], $options);
+        $displayResults = $this->displayTextResults($results);
 
         if ($arguments['json']) {
             $payload = array_map(
@@ -114,12 +151,12 @@ final class Application
                         $result->matches,
                     ),
                 ],
-                $results,
+                $displayResults,
             );
 
-            fwrite(STDOUT, json_encode($payload, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES) . PHP_EOL);
+            $this->writeOutput(json_encode($payload, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES) . PHP_EOL);
         } else {
-            fwrite(STDOUT, $this->grepFormatter->format($results, $options));
+            $this->writeOutput($this->grepFormatter->format($displayResults, $options));
         }
 
         foreach ($results as $result) {
@@ -152,8 +189,11 @@ final class Application
      *   json: bool,
      *   noIgnore: bool,
      *   hidden: bool,
+     *   glob: list<string>,
      *   dryRun: bool,
      *   interactive: bool,
+     *   showFileNames: ?bool,
+     *   showLineNumbers: bool,
      *   jobs: int,
      *   maxCount: ?int,
      *   beforeContext: int,
@@ -171,7 +211,7 @@ final class Application
     private function runAst(array $arguments): int
     {
         if ($arguments['astPattern'] === null) {
-            fwrite(STDERR, "Missing AST pattern.\n");
+            $this->writeError("Missing AST pattern.\n");
 
             return 2;
         }
@@ -184,6 +224,7 @@ final class Application
             respectIgnore: !$arguments['noIgnore'],
             includeHidden: $arguments['hidden'],
             fileTypeFilter: $fileTypeFilter,
+            globPatterns: $arguments['glob'],
             dryRun: $arguments['dryRun'],
             interactive: $arguments['interactive'],
             jsonOutput: $arguments['json'],
@@ -201,19 +242,19 @@ final class Application
                 $changed = true;
 
                 if ($arguments['dryRun']) {
-                    fwrite(STDOUT, "=== {$result->file} ===\n");
-                    fwrite(STDOUT, $result->rewrittenContents);
+                    $this->writeOutput("=== {$this->displayPath($result->file)} ===\n");
+                    $this->writeOutput($result->rewrittenContents);
 
                     if (!str_ends_with($result->rewrittenContents, "\n")) {
-                        fwrite(STDOUT, PHP_EOL);
+                        $this->writeOutput(PHP_EOL);
                     }
 
                     continue;
                 }
 
                 if ($arguments['interactive']) {
-                    fwrite(STDOUT, sprintf("Rewrite %s? [y/N] ", $result->file));
-                    $answer = trim((string) fgets(STDIN));
+                    $this->writeOutput(sprintf("Rewrite %s? [y/N] ", $result->file));
+                    $answer = trim((string) fgets($this->input));
 
                     if (!in_array(strtolower($answer), ['y', 'yes'], true)) {
                         continue;
@@ -221,7 +262,7 @@ final class Application
                 }
 
                 file_put_contents($result->file, $result->rewrittenContents);
-                fwrite(STDOUT, $result->file . PHP_EOL);
+                $this->writeOutput($this->displayPath($result->file) . PHP_EOL);
             }
 
             return $changed ? 0 : 1;
@@ -232,7 +273,7 @@ final class Application
         if ($arguments['json']) {
             $payload = array_map(
                 static fn ($match): array => [
-                    'file' => $match->file,
+                    'file' => Filesystem::relativePath(getcwd() ?: '.', $match->file),
                     'start_line' => $match->startLine,
                     'end_line' => $match->endLine,
                     'start_file_pos' => $match->startFilePos,
@@ -242,11 +283,11 @@ final class Application
                 $matches,
             );
 
-            fwrite(STDOUT, json_encode($payload, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES) . PHP_EOL);
+            $this->writeOutput(json_encode($payload, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES) . PHP_EOL);
         } else {
             foreach ($matches as $match) {
                 $code = trim(preg_replace('/\s+/', ' ', $match->code) ?? $match->code);
-                fwrite(STDOUT, sprintf('%s:%d:%s', $match->file, $match->startLine, $code) . PHP_EOL);
+                $this->writeOutput(sprintf('%s:%d:%s', $this->displayPath($match->file), $match->startLine, $code) . PHP_EOL);
             }
         }
 
@@ -267,8 +308,11 @@ final class Application
      *   json: bool,
      *   noIgnore: bool,
      *   hidden: bool,
+     *   glob: list<string>,
      *   dryRun: bool,
      *   interactive: bool,
+     *   showFileNames: ?bool,
+     *   showLineNumbers: bool,
      *   jobs: int,
      *   maxCount: ?int,
      *   beforeContext: int,
@@ -298,8 +342,11 @@ final class Application
             'json' => false,
             'noIgnore' => false,
             'hidden' => false,
+            'glob' => [],
             'dryRun' => false,
             'interactive' => false,
+            'showFileNames' => null,
+            'showLineNumbers' => true,
             'jobs' => 1,
             'maxCount' => null,
             'beforeContext' => 0,
@@ -322,7 +369,7 @@ final class Application
                 break;
             }
 
-            if ($argument === '-h' || $argument === '--help') {
+            if ($argument === '--help') {
                 $parsed['help'] = true;
                 break;
             }
@@ -378,11 +425,23 @@ final class Application
                 case '--hidden':
                     $parsed['hidden'] = true;
                     break;
+                case '--glob':
+                    $parsed['glob'][] = $value();
+                    break;
                 case '--dry-run':
                     $parsed['dryRun'] = true;
                     break;
                 case '--interactive':
                     $parsed['interactive'] = true;
+                    break;
+                case '-h':
+                    $parsed['showFileNames'] = false;
+                    break;
+                case '-H':
+                    $parsed['showFileNames'] = true;
+                    break;
+                case '-n':
+                    $parsed['showLineNumbers'] = true;
                     break;
                 case '-p':
                     $parsed['astPattern'] = $value();
@@ -463,6 +522,9 @@ Options:
   -c              Count matches per file.
   -l              List matching files.
   -L              List non-matching files.
+  -h              Suppress filename prefixes in text mode.
+  -H              Always print filename prefixes in text mode.
+  -n              Show line numbers in text mode. Default: on.
   -A N            Show N lines after each match.
   -B N            Show N lines before each match.
   -C N            Show N lines of context before and after each match.
@@ -470,6 +532,7 @@ Options:
   -j N            Use N workers.
   -p PATTERN      AST search pattern.
   -r TEMPLATE     AST rewrite template when -p is active.
+  --glob GLOB     Include only files whose paths match GLOB.
   --type NAME     Include a file type.
   --type-not NAME Exclude a file type.
   --lang NAME     AST language. Default: php.
@@ -478,8 +541,79 @@ Options:
   --hidden        Include hidden files.
   --dry-run       Print rewrites without writing files.
   --interactive   Confirm each rewritten file.
-  -h, --help      Show this help.
+  --help          Show this help.
 
 TEXT;
+    }
+
+    /**
+     * @param array{
+     *   paths: list<string>,
+     *   showFileNames: ?bool
+     * } $arguments
+     */
+    private function shouldDisplayFileNames(array $arguments): bool
+    {
+        if ($arguments['showFileNames'] !== null) {
+            return $arguments['showFileNames'];
+        }
+
+        if (count($arguments['paths']) > 1) {
+            return true;
+        }
+
+        foreach ($arguments['paths'] as $path) {
+            if (is_dir($path)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * @param list<TextFileResult> $results
+     * @return list<TextFileResult>
+     */
+    private function displayTextResults(array $results): array
+    {
+        $displayResults = [];
+
+        foreach ($results as $result) {
+            $displayFile = $this->displayPath($result->file);
+            $displayMatches = [];
+
+            foreach ($result->matches as $match) {
+                $displayMatches[] = new TextMatch(
+                    file: $displayFile,
+                    line: $match->line,
+                    column: $match->column,
+                    content: $match->content,
+                    matchedText: $match->matchedText,
+                    captures: $match->captures,
+                    beforeContext: $match->beforeContext,
+                    afterContext: $match->afterContext,
+                );
+            }
+
+            $displayResults[] = new TextFileResult($displayFile, $displayMatches);
+        }
+
+        return $displayResults;
+    }
+
+    private function displayPath(string $path): string
+    {
+        return Filesystem::relativePath(getcwd() ?: '.', $path);
+    }
+
+    private function writeOutput(string $contents): void
+    {
+        fwrite($this->output, $contents);
+    }
+
+    private function writeError(string $contents): void
+    {
+        fwrite($this->errorOutput, $contents);
     }
 }

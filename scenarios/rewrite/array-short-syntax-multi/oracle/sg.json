@@ -1,0 +1,6 @@
+[
+    {
+        "file": "setup/source.php",
+        "content": "<?php\n\n$first = [1, 2];\n$second = [3, 4];\n"
+    }
+]

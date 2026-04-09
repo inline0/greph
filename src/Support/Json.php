@@ -22,7 +22,7 @@ final class Json
      */
     public static function decodeFile(string $path): array
     {
-        $contents = file_get_contents($path);
+        $contents = @file_get_contents($path);
 
         if ($contents === false) {
             throw new \RuntimeException(sprintf('Failed to read JSON file: %s', $path));
@@ -39,7 +39,7 @@ final class Json
         Filesystem::ensureDirectory(dirname($path));
         $encoded = json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR);
 
-        if (file_put_contents($path, $encoded . PHP_EOL) === false) {
+        if (@file_put_contents($path, $encoded . PHP_EOL) === false) {
             throw new \RuntimeException(sprintf('Failed to write JSON file: %s', $path));
         }
     }

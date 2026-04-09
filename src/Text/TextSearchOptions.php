@@ -9,6 +9,9 @@ use Phgrep\Walker\WalkOptions;
 
 final readonly class TextSearchOptions
 {
+    /**
+     * @param list<string> $globPatterns
+     */
     public function __construct(
         public bool $fixedString = false,
         public bool $caseInsensitive = false,
@@ -29,6 +32,9 @@ final readonly class TextSearchOptions
         public bool $includeGitDirectory = false,
         public ?FileTypeFilter $fileTypeFilter = null,
         public int $maxFileSizeBytes = 10485760,
+        public array $globPatterns = [],
+        public bool $showLineNumbers = true,
+        public bool $showFileNames = true,
     ) {
         if ($this->jobs < 1) {
             throw new \InvalidArgumentException('Job count must be greater than zero.');
@@ -53,6 +59,7 @@ final readonly class TextSearchOptions
             includeGitDirectory: $this->includeGitDirectory,
             fileTypeFilter: $this->fileTypeFilter,
             maxFileSizeBytes: $this->maxFileSizeBytes,
+            globPatterns: $this->globPatterns,
         );
     }
 }

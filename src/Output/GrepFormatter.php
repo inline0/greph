@@ -15,7 +15,7 @@ final class GrepFormatter
     public function format(array $results, TextSearchOptions $options): string
     {
         if ($options->countOnly) {
-            return $this->formatCounts($results);
+            return $this->formatCounts($results, $options);
         }
 
         if ($options->filesWithMatches) {
@@ -35,13 +35,13 @@ final class GrepFormatter
         foreach ($results as $result) {
             foreach ($result->matches as $match) {
                 foreach ($match->beforeContext as $context) {
-                    $lines[] = sprintf('%s-%d-%s', $match->file, $context['line'], $context['content']);
+                    $lines[] = $this->formatLine($match->file, $context['line'], $context['content'], $options, false);
                 }
 
-                $lines[] = sprintf('%s:%d:%s', $match->file, $match->line, $match->content);
+                $lines[] = $this->formatLine($match->file, $match->line, $match->content, $options, true);
 
                 foreach ($match->afterContext as $context) {
-                    $lines[] = sprintf('%s-%d-%s', $match->file, $context['line'], $context['content']);
+                    $lines[] = $this->formatLine($match->file, $context['line'], $context['content'], $options, false);
                 }
             }
         }
@@ -52,12 +52,14 @@ final class GrepFormatter
     /**
      * @param list<TextFileResult> $results
      */
-    private function formatCounts(array $results): string
+    private function formatCounts(array $results, TextSearchOptions $options): string
     {
         $lines = [];
 
         foreach ($results as $result) {
-            $lines[] = sprintf('%s:%d', $result->file, $result->matchCount());
+            $lines[] = $options->showFileNames
+                ? sprintf('%s:%d', $result->file, $result->matchCount())
+                : (string) $result->matchCount();
         }
 
         return $lines === [] ? '' : implode(PHP_EOL, $lines) . PHP_EOL;
@@ -71,5 +73,30 @@ final class GrepFormatter
         $lines = array_map(static fn (TextFileResult $result): string => $result->file, $results);
 
         return $lines === [] ? '' : implode(PHP_EOL, $lines) . PHP_EOL;
+    }
+
+    private function formatLine(
+        string $file,
+        int $line,
+        string $content,
+        TextSearchOptions $options,
+        bool $isMatch,
+    ): string {
+        $separator = $isMatch ? ':' : '-';
+        $prefix = [];
+
+        if ($options->showFileNames) {
+            $prefix[] = $file;
+        }
+
+        if ($options->showLineNumbers) {
+            $prefix[] = (string) $line;
+        }
+
+        if ($prefix === []) {
+            return $content;
+        }
+
+        return implode($separator, $prefix) . $separator . $content;
     }
 }

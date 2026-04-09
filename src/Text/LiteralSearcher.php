@@ -19,13 +19,19 @@ final class LiteralSearcher
             return new LineMatch(1, '');
         }
 
-        if ($this->caseInsensitive || $this->wholeWord) {
-            $pattern = preg_quote($this->needle, '#');
+        if ($this->caseInsensitive && !$this->wholeWord) {
+            $position = stripos($line, $this->needle);
 
-            if ($this->wholeWord) {
-                $pattern = '(?<![\pL\pN_])' . $pattern . '(?![\pL\pN_])';
+            if ($position === false) {
+                return null;
             }
 
+            return new LineMatch($position + 1, substr($line, $position, strlen($this->needle)));
+        }
+
+        if ($this->wholeWord) {
+            $pattern = preg_quote($this->needle, '#');
+            $pattern = '(?<![\pL\pN_])' . $pattern . '(?![\pL\pN_])';
             $modifiers = $this->caseInsensitive ? 'iu' : 'u';
             $regex = '#' . $pattern . '#' . $modifiers;
             $matches = [];

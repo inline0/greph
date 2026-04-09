@@ -1,0 +1,9 @@
+{
+    "name": "array-short-syntax-multi",
+    "category": "rewrite",
+    "description": "Rewrite multiple array() calls in a single file",
+    "mode": "rewrite",
+    "pattern": "array($$$ITEMS)",
+    "rewrite": "[$$$ITEMS]",
+    "path": "setup"
+}

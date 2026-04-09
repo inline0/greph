@@ -1,0 +1,9 @@
+{
+    "name": "no-op",
+    "category": "rewrite",
+    "description": "Rewrite mode reports no changes when nothing matches",
+    "mode": "rewrite",
+    "pattern": "array($$$ITEMS)",
+    "rewrite": "[$$$ITEMS]",
+    "path": "setup"
+}

@@ -23,9 +23,18 @@ final class FileTypeFilterTest extends TestCase
     #[Test]
     public function itTreatsUnknownTypesAsExtensions(): void
     {
-        $filter = new FileTypeFilter(['blade.php', 'stub']);
+        $filter = new FileTypeFilter(['blade.php', 'stub', ' ', ' PHP ']);
 
         $this->assertTrue($filter->matches('/tmp/views/index.stub'));
-        $this->assertFalse($filter->matches('/tmp/views/index.php'));
+        $this->assertTrue($filter->matches('/tmp/src/index.php'));
+        $this->assertFalse($filter->matches('/tmp/views/index.md'));
+    }
+
+    #[Test]
+    public function itAllowsExtensionlessFilesWhenNoIncludeFilterIsConfigured(): void
+    {
+        $filter = new FileTypeFilter();
+
+        $this->assertTrue($filter->matches('/tmp/Makefile'));
     }
 }

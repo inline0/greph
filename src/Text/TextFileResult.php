@@ -12,12 +12,13 @@ final readonly class TextFileResult
     public function __construct(
         public string $file,
         public array $matches,
+        private ?int $explicitMatchCount = null,
     ) {
     }
 
     public function matchCount(): int
     {
-        return count($this->matches);
+        return $this->explicitMatchCount ?? count($this->matches);
     }
 
     public function hasMatches(): bool

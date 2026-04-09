@@ -1,0 +1,1 @@
+setup/app.php:3:function visible(): void

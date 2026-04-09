@@ -34,6 +34,7 @@ final class FlagParser
      *   json: bool,
      *   noIgnore: bool,
      *   hidden: bool,
+     *   glob: list<string>,
      *   dryRun: bool,
      *   interactive: bool,
      *   jobs: int,
@@ -60,6 +61,7 @@ final class FlagParser
             'json' => false,
             'noIgnore' => false,
             'hidden' => false,
+            'glob' => [],
             'dryRun' => false,
             'interactive' => false,
             'jobs' => 1,
@@ -116,6 +118,9 @@ final class FlagParser
                     break;
                 case '--hidden':
                     $parsed['hidden'] = true;
+                    break;
+                case '--glob':
+                    $parsed['glob'][] = $value();
                     break;
                 case '--dry-run':
                     $parsed['dryRun'] = true;
@@ -174,6 +179,7 @@ final class FlagParser
             respectIgnore: !$flags['noIgnore'],
             includeHidden: $flags['hidden'],
             fileTypeFilter: $this->fileTypeFilter($flags['type'], $flags['typeNot']),
+            globPatterns: $flags['glob'],
         );
     }
 
@@ -187,6 +193,7 @@ final class FlagParser
             respectIgnore: !$flags['noIgnore'],
             includeHidden: $flags['hidden'],
             fileTypeFilter: $this->fileTypeFilter($flags['type'], $flags['typeNot']),
+            globPatterns: $flags['glob'],
             dryRun: $flags['dryRun'],
             interactive: $flags['interactive'],
             jsonOutput: $flags['json'],

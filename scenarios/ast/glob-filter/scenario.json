@@ -1,0 +1,11 @@
+{
+    "name": "glob-filter",
+    "category": "ast",
+    "description": "Restrict AST search to files matching a glob",
+    "pattern": "new $CLASS()",
+    "flags": [
+        "--glob",
+        "*.php"
+    ],
+    "path": "setup"
+}

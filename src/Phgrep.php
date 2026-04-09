@@ -38,7 +38,7 @@ final class Phgrep
         $files = self::walk($paths, $options->walkOptions());
         $searcher = new TextSearcher();
 
-        if ($options->jobs === 1 || count($files) <= 1) {
+        if (!self::shouldUseWorkers($options->jobs, count($files))) {
             return $searcher->searchFiles($files, $pattern, $options);
         }
 
@@ -69,7 +69,7 @@ final class Phgrep
         $files = self::walk($paths, $options->walkOptions());
         $searcher = new AstSearcher();
 
-        if ($options->jobs === 1 || count($files) <= 1) {
+        if (!self::shouldUseWorkers($options->jobs, count($files))) {
             return $searcher->searchFiles($files, $pattern, $options);
         }
 
@@ -109,7 +109,7 @@ final class Phgrep
         $files = self::walk($paths, $options->walkOptions());
         $rewriter = new AstRewriter();
 
-        if ($options->jobs === 1 || count($files) <= 1) {
+        if (!self::shouldUseWorkers($options->jobs, count($files))) {
             return $rewriter->rewriteFiles($files, $searchPattern, $rewritePattern, $options);
         }
 
@@ -133,5 +133,10 @@ final class Phgrep
         );
 
         return $flattened;
+    }
+
+    private static function shouldUseWorkers(int $jobs, int $fileCount): bool
+    {
+        return $jobs > 1 && $fileCount > ($jobs * 750);
     }
 }

@@ -34,4 +34,19 @@ final class BinaryDetectorTest extends TestCase
         $this->assertTrue($detector->isBinaryFile($binaryPath));
         $this->assertFalse($detector->isBinaryFile($textPath));
     }
+
+    #[Test]
+    public function itHandlesMissingFilesAndInvalidSampleSizes(): void
+    {
+        $emptyPath = Workspace::writeFile($this->workspace, 'fixtures/empty.dat', '');
+        $suspiciousPath = Workspace::writeFile($this->workspace, 'fixtures/control.dat', "\x7F\x01ok");
+
+        $this->assertFalse((new BinaryDetector())->isBinaryFile($this->workspace . '/missing.dat'));
+        $this->assertFalse((new BinaryDetector())->isBinaryFile($emptyPath));
+        $this->assertTrue((new BinaryDetector(4, 0.25))->isBinaryFile($suspiciousPath));
+
+        $this->expectException(\InvalidArgumentException::class);
+
+        new BinaryDetector(0);
+    }
 }

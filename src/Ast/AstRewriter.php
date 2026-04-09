@@ -46,7 +46,7 @@ final class AstRewriter
         $results = [];
 
         foreach ($files as $file) {
-            $source = file_get_contents($file);
+            $source = @file_get_contents($file);
 
             if ($source === false) {
                 continue;

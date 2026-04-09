@@ -1,0 +1,9 @@
+[
+    {
+        "file": "setup/app.php",
+        "line": 3,
+        "column": 1,
+        "content": "function visible(): void",
+        "matched_text": "function"
+    }
+]

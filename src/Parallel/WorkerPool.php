@@ -10,9 +10,36 @@ final class WorkerPool
 {
     private ResultCollector $resultCollector;
 
-    public function __construct(?ResultCollector $resultCollector = null)
-    {
+    /** @var \Closure(): (array{0: resource, 1: resource}|false) */
+    private \Closure $socketPairFactory;
+
+    /** @var \Closure(): int */
+    private \Closure $fork;
+
+    /** @var \Closure(int, FileList): Worker */
+    private \Closure $workerFactory;
+
+    /**
+     * @param \Closure(): (array{0: resource, 1: resource}|false)|null $socketPairFactory
+     * @param \Closure(): int|null $fork
+     * @param \Closure(int, FileList): Worker|null $workerFactory
+     */
+    public function __construct(
+        ?ResultCollector $resultCollector = null,
+        ?\Closure $socketPairFactory = null,
+        ?\Closure $fork = null,
+        ?\Closure $workerFactory = null,
+    ) {
         $this->resultCollector = $resultCollector ?? new ResultCollector();
+        /** @var \Closure(): (array{0: resource, 1: resource}|false) $resolvedSocketPairFactory */
+        $resolvedSocketPairFactory = $socketPairFactory ?? static fn (): array|false => stream_socket_pair(STREAM_PF_UNIX, STREAM_SOCK_STREAM, STREAM_IPPROTO_IP);
+        $this->socketPairFactory = $resolvedSocketPairFactory;
+        /** @var \Closure(): int $resolvedFork */
+        $resolvedFork = $fork ?? static fn (): int => pcntl_fork();
+        $this->fork = $resolvedFork;
+        /** @var \Closure(int, FileList): Worker $resolvedWorkerFactory */
+        $resolvedWorkerFactory = $workerFactory ?? static fn (int $index, FileList $chunk): Worker => new Worker($index, $chunk);
+        $this->workerFactory = $resolvedWorkerFactory;
     }
 
     /**
@@ -33,13 +60,13 @@ final class WorkerPool
         $workers = [];
 
         foreach ($chunks as $index => $chunk) {
-            $sockets = stream_socket_pair(STREAM_PF_UNIX, STREAM_SOCK_STREAM, STREAM_IPPROTO_IP);
+            $sockets = ($this->socketPairFactory)();
 
             if ($sockets === false) {
                 throw new \RuntimeException('Failed to create worker pipe.');
             }
 
-            $pid = pcntl_fork();
+            $pid = ($this->fork)();
 
             if ($pid === -1) {
                 throw new \RuntimeException('Failed to fork worker process.');
@@ -47,7 +74,7 @@ final class WorkerPool
 
             if ($pid === 0) {
                 fclose($sockets[0]);
-                (new Worker($index, $chunk))->run($task, $sockets[1]);
+                ($this->workerFactory)($index, $chunk)->run($task, $sockets[1]);
             }
 
             fclose($sockets[1]);

@@ -5,8 +5,6 @@ declare(strict_types=1);
 namespace Phgrep\Ast;
 
 use PhpParser\Node;
-use PhpParser\Node\Identifier;
-use PhpParser\Node\Name;
 
 final class PatternMatcher
 {
@@ -56,14 +54,6 @@ final class PatternMatcher
 
         if (is_array($pattern) && is_array($candidate)) {
             return $this->matchArray(array_values($pattern), array_values($candidate), $captures);
-        }
-
-        if ($pattern instanceof Identifier && $candidate instanceof Identifier) {
-            return $pattern->toString() === $candidate->toString();
-        }
-
-        if ($pattern instanceof Name && $candidate instanceof Name) {
-            return $pattern->toString() === $candidate->toString();
         }
 
         return $pattern === $candidate;

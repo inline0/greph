@@ -20,7 +20,9 @@ final class TextSearchTest extends TestCase
         $this->workspace = Workspace::createDirectory('text-search');
         Workspace::writeFile($this->workspace, 'src/App.php', "<?php\nfunction saveThing(): void {}\n\$foo = new Foo();\n");
         Workspace::writeFile($this->workspace, 'src/Util.php', "<?php\nfunction helper(): void {}\n\$bar = new Bar();\n");
+        Workspace::writeFile($this->workspace, 'src/Multi.php', "<?php\nfunction one(): void {}\nfunction two(): void {}\n");
         Workspace::writeFile($this->workspace, 'README.md', "function in markdown\n");
+        Workspace::writeFile($this->workspace, 'notes.txt', "plain text\n");
     }
 
     protected function tearDown(): void
@@ -50,6 +52,8 @@ final class TextSearchTest extends TestCase
         $this->assertSame(
             [
                 [$this->workspace . '/src/App.php', 2, 'function saveThing(): void {}'],
+                [$this->workspace . '/src/Multi.php', 2, 'function one(): void {}'],
+                [$this->workspace . '/src/Multi.php', 3, 'function two(): void {}'],
                 [$this->workspace . '/src/Util.php', 2, 'function helper(): void {}'],
             ],
             $matchedLines,
@@ -72,5 +76,73 @@ final class TextSearchTest extends TestCase
         }
 
         $this->assertSame(2, $matchCount);
+    }
+
+    #[Test]
+    public function itSupportsCountAndFileListingModes(): void
+    {
+        $countResults = Phgrep::searchText(
+            'function',
+            $this->workspace,
+            new TextSearchOptions(fixedString: true, countOnly: true),
+        );
+        $filesWithMatches = Phgrep::searchText(
+            'function',
+            $this->workspace,
+            new TextSearchOptions(fixedString: true, filesWithMatches: true),
+        );
+        $filesWithoutMatches = Phgrep::searchText(
+            'function',
+            $this->workspace,
+            new TextSearchOptions(fixedString: true, filesWithoutMatches: true),
+        );
+
+        $countMap = [];
+        $filesWithMatchesMap = [];
+        $filesWithoutMatchesMap = [];
+
+        foreach ($countResults as $result) {
+            $countMap[basename($result->file)] = $result->matchCount();
+        }
+
+        foreach ($filesWithMatches as $result) {
+            $filesWithMatchesMap[basename($result->file)] = $result->hasMatches();
+        }
+
+        foreach ($filesWithoutMatches as $result) {
+            $filesWithoutMatchesMap[basename($result->file)] = $result->hasMatches();
+        }
+
+        $this->assertSame(1, $countMap['App.php']);
+        $this->assertSame(2, $countMap['Multi.php']);
+        $this->assertTrue($filesWithMatchesMap['App.php']);
+        $this->assertTrue($filesWithMatchesMap['Multi.php']);
+        $this->assertFalse($filesWithoutMatchesMap['notes.txt']);
+    }
+
+    #[Test]
+    public function itSupportsContextInvertMatchAndMaxCount(): void
+    {
+        $contextResults = Phgrep::searchText(
+            'function',
+            $this->workspace . '/src/Multi.php',
+            new TextSearchOptions(fixedString: true, beforeContext: 1, afterContext: 1),
+        );
+        $invertResults = Phgrep::searchText(
+            'function',
+            $this->workspace . '/notes.txt',
+            new TextSearchOptions(fixedString: true, invertMatch: true),
+        );
+        $maxCountResults = Phgrep::searchText(
+            'function',
+            $this->workspace . '/src/Multi.php',
+            new TextSearchOptions(fixedString: true, maxCount: 1),
+        );
+
+        $this->assertSame('<?php', $contextResults[0]->matches[0]->beforeContext[0]['content']);
+        $this->assertSame('function two(): void {}', $contextResults[0]->matches[0]->afterContext[0]['content']);
+        $this->assertSame(1, $invertResults[0]->matches[0]->column);
+        $this->assertSame('', $invertResults[0]->matches[0]->matchedText);
+        $this->assertSame(1, $maxCountResults[0]->matchCount());
     }
 }

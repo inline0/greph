@@ -1,0 +1,12 @@
+{
+    "name": "glob-filter",
+    "category": "text",
+    "description": "Restrict text search to files matching a glob",
+    "pattern": "function",
+    "flags": [
+        "-F",
+        "--glob",
+        "*.php"
+    ],
+    "path": "setup"
+}

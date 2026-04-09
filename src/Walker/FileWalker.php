@@ -39,14 +39,14 @@ final class FileWalker
                 : null;
 
             if (is_file($resolvedPath)) {
-                if ($this->shouldIncludeFile($resolvedPath, $options, true)) {
+                if ($this->shouldIncludeFile($resolvedPath, $options, true, dirname($resolvedPath))) {
                     $files[] = $resolvedPath;
                 }
 
                 continue;
             }
 
-            $this->walkDirectory($resolvedPath, $options, $ignoreFilter, $files, $visitedDirectories);
+            $this->walkDirectory($resolvedPath, $resolvedPath, $options, $ignoreFilter, $files, $visitedDirectories);
         }
 
         return new FileList($files);
@@ -58,6 +58,7 @@ final class FileWalker
      */
     private function walkDirectory(
         string $directory,
+        string $rootPath,
         WalkOptions $options,
         ?GitignoreFilter $ignoreFilter,
         array &$files,
@@ -111,17 +112,17 @@ final class FileWalker
             }
 
             if ($isDirectory) {
-                $this->walkDirectory($path, $options, $ignoreFilter, $files, $visitedDirectories);
+                $this->walkDirectory($path, $rootPath, $options, $ignoreFilter, $files, $visitedDirectories);
                 continue;
             }
 
-            if ($this->shouldIncludeFile($path, $options, false)) {
+            if ($this->shouldIncludeFile($path, $options, false, $rootPath)) {
                 $files[] = $path;
             }
         }
     }
 
-    private function shouldIncludeFile(string $path, WalkOptions $options, bool $isRootInput): bool
+    private function shouldIncludeFile(string $path, WalkOptions $options, bool $isRootInput, string $rootPath): bool
     {
         $name = basename($path);
 
@@ -140,6 +141,10 @@ final class FileWalker
         }
 
         if ($options->fileTypeFilter !== null && !$options->fileTypeFilter->matches($path)) {
+            return false;
+        }
+
+        if (!$this->matchesGlobPatterns($path, $rootPath, $options->globPatterns)) {
             return false;
         }
 
@@ -164,5 +169,40 @@ final class FileWalker
         }
 
         return $path;
+    }
+
+    /**
+     * @param list<string> $globPatterns
+     */
+    private function matchesGlobPatterns(string $path, string $rootPath, array $globPatterns): bool
+    {
+        if ($globPatterns === []) {
+            return true;
+        }
+
+        $path = $this->normalizePath($path);
+        $rootPath = $this->normalizePath($rootPath);
+        $relativePath = $path;
+
+        if (str_starts_with($path, $rootPath . '/')) {
+            $relativePath = substr($path, strlen($rootPath) + 1);
+        } elseif ($path === $rootPath) {
+            $relativePath = basename($path);
+        }
+
+        $basename = basename($path);
+
+        foreach ($globPatterns as $pattern) {
+            $pattern = str_replace('\\', '/', $pattern);
+
+            if (
+                fnmatch($pattern, $basename)
+                || fnmatch($pattern, $relativePath, FNM_PATHNAME)
+            ) {
+                return true;
+            }
+        }
+
+        return false;
     }
 }

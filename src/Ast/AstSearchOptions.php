@@ -9,6 +9,9 @@ use Phgrep\Walker\WalkOptions;
 
 final readonly class AstSearchOptions
 {
+    /**
+     * @param list<string> $globPatterns
+     */
     public function __construct(
         public string $language = 'php',
         public int $jobs = 1,
@@ -19,6 +22,7 @@ final readonly class AstSearchOptions
         public bool $includeGitDirectory = false,
         public ?FileTypeFilter $fileTypeFilter = null,
         public int $maxFileSizeBytes = 10485760,
+        public array $globPatterns = [],
         public bool $skipParseErrors = true,
         public bool $dryRun = false,
         public bool $interactive = false,
@@ -41,6 +45,7 @@ final readonly class AstSearchOptions
             includeGitDirectory: $this->includeGitDirectory,
             fileTypeFilter: $fileTypeFilter,
             maxFileSizeBytes: $this->maxFileSizeBytes,
+            globPatterns: $this->globPatterns,
         );
     }
 }

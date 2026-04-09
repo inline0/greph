@@ -129,6 +129,10 @@ final class OracleCapture
             $grepCommand[] = (string) $flags['context'];
         }
 
+        foreach ($flags['glob'] as $glob) {
+            $grepCommand[] = sprintf('--include=%s', $glob);
+        }
+
         $grepCommand = array_merge(
             $grepCommand,
             $this->flagParser->grepTypeGlobs($flags['type'], $flags['typeNot']),
@@ -196,6 +200,11 @@ final class OracleCapture
             $rgCommand[] = $type;
         }
 
+        foreach ($flags['glob'] as $glob) {
+            $rgCommand[] = '-g';
+            $rgCommand[] = $glob;
+        }
+
         if ($flags['noIgnore']) {
             $rgCommand[] = '--no-ignore';
         }
@@ -241,6 +250,11 @@ final class OracleCapture
             }
         }
 
+        foreach ($flags['glob'] as $glob) {
+            $command[] = '--globs';
+            $command[] = $glob;
+        }
+
         $command = array_merge($command, $scenario->paths());
         $jsonResult = $this->commandRunner->run($command, $workspaceRoot);
         $canonicalJson = $this->normalizer->parseAstGrepJson($jsonResult->stdout);
@@ -282,6 +296,11 @@ final class OracleCapture
                 $command[] = '--no-ignore';
                 $command[] = $ignoreFlag;
             }
+        }
+
+        foreach ($flags['glob'] as $glob) {
+            $command[] = '--globs';
+            $command[] = $glob;
         }
 
         $command = array_merge($command, $scenario->paths());

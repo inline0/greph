@@ -1,0 +1,3 @@
+<?php
+
+$visible = new Visible();
