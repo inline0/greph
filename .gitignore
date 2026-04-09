@@ -1,6 +1,7 @@
 /vendor/
 /.phpunit.cache/
 /.phpunit.result.cache
+/.phpstan/
 /.phpstan.cache/
 /build/
 /benchmarks/corpora/synthetic/1k-files/
