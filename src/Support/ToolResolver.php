@@ -74,6 +74,14 @@ final class ToolResolver
     /**
      * @return list<string>
      */
+    public function githubCli(): array
+    {
+        return [$this->requireBinary(['gh'])];
+    }
+
+    /**
+     * @return list<string>
+     */
     public function phgrep(string $rootPath): array
     {
         return [PHP_BINARY, $rootPath . '/bin/phgrep'];

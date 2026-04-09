@@ -1,0 +1,77 @@
+#!/usr/bin/env php
+<?php
+
+declare(strict_types=1);
+
+require __DIR__ . '/_bootstrap.php';
+
+use Phgrep\Benchmarks\BenchmarkArtifactLocator;
+use Phgrep\Support\CommandRunner;
+use Phgrep\Support\Filesystem;
+use Phgrep\Support\ToolResolver;
+
+$arguments = array_slice($argv, 1);
+$repo = 'inline0/phgrep';
+$outputDirectory = null;
+$runId = null;
+
+while ($arguments !== []) {
+    /** @var string $argument */
+    $argument = array_shift($arguments);
+
+    switch ($argument) {
+        case '--repo':
+            $repo = array_shift($arguments) ?: $repo;
+            break;
+        case '--output-dir':
+            $outputDirectory = array_shift($arguments) ?: null;
+            break;
+        default:
+            $runId = $argument;
+            break;
+    }
+}
+
+if (!is_string($runId) || $runId === '') {
+    throw new RuntimeException('Usage: bin/bench-run [--repo owner/name] [--output-dir path] <run-id>');
+}
+
+$outputDirectory ??= $phgrepRoot . '/build/benchmarks/runs/' . $runId;
+Filesystem::remove($outputDirectory);
+Filesystem::ensureDirectory($outputDirectory);
+
+$runner = new CommandRunner();
+$toolResolver = new ToolResolver();
+$download = $runner->run([
+    ...$toolResolver->githubCli(),
+    'run',
+    'download',
+    $runId,
+    '--repo',
+    $repo,
+    '-n',
+    'benchmark-' . $runId,
+    '-D',
+    $outputDirectory,
+], $phgrepRoot);
+
+if (!$download->successful()) {
+    throw new RuntimeException(trim($download->output()) !== '' ? trim($download->output()) : 'Failed to download benchmark artifact.');
+}
+
+$locator = new BenchmarkArtifactLocator();
+$comparisonPath = $locator->findComparisonReport($outputDirectory);
+$headSeriesPath = $locator->findHeadSeries($outputDirectory);
+$baseSeriesPath = $locator->findBaseSeries($outputDirectory);
+$comparison = file_get_contents($comparisonPath);
+
+if ($comparison === false) {
+    throw new RuntimeException(sprintf('Failed to read benchmark comparison report: %s', $comparisonPath));
+}
+
+fwrite(STDOUT, sprintf("Run: %s\n", $runId));
+fwrite(STDOUT, sprintf("Artifact: %s\n", $outputDirectory));
+fwrite(STDOUT, sprintf("Comparison: %s\n", Filesystem::relativePath($phgrepRoot, $comparisonPath)));
+fwrite(STDOUT, sprintf("Head series: %s\n", Filesystem::relativePath($phgrepRoot, $headSeriesPath)));
+fwrite(STDOUT, sprintf("Base series: %s\n\n", Filesystem::relativePath($phgrepRoot, $baseSeriesPath)));
+fwrite(STDOUT, $comparison);

@@ -17,6 +17,7 @@ final class ToolResolverTest extends TestCase
 
         $this->assertNotSame([], $resolver->grep());
         $this->assertNotSame([], $resolver->ripgrep());
+        $this->assertNotSame([], $resolver->githubCli());
         $this->assertSame([PHP_BINARY], $resolver->phpBinary());
         $this->assertSame([PHP_BINARY, '/tmp/project/bin/phgrep'], $resolver->phgrep('/tmp/project'));
         $this->assertNotSame([], $resolver->astGrep());
@@ -41,6 +42,12 @@ final class ToolResolverTest extends TestCase
         $missing = new ToolResolver(static fn (string $candidate): ?string => null);
 
         $this->assertSame(['/mock/sg'], $resolver->astGrep());
+        $this->assertSame(['/mock/gh'], (new ToolResolver(
+            static fn (string $candidate): ?string => match ($candidate) {
+                'gh' => '/mock/gh',
+                default => null,
+            },
+        ))->githubCli());
         $this->assertSame(['/mock/npm', 'exec', '--yes', '--package=@ast-grep/cli', 'sg', '--'], $npmFallback->astGrep());
         $this->assertFalse($missing->hasAstGrep());
 
