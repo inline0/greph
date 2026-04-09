@@ -147,4 +147,67 @@ final class IndexedTextSearchTest extends TestCase
         $this->assertNotContains('App.php', $matchedFiles);
         $this->assertContains('New.php', $matchedFiles);
     }
+
+    #[Test]
+    public function itCachesRootLiteralQueriesAndInvalidatesThemOnRefresh(): void
+    {
+        $initialResults = Phgrep::searchTextIndexed(
+            'function',
+            $this->workspace,
+            new TextSearchOptions(fixedString: true),
+        );
+
+        $cacheFiles = glob($this->workspace . '/.phgrep-index/queries/*.phpbin.gz') ?: [];
+        $initialMatchedFiles = array_values(array_map(
+            static fn ($result): string => basename($result->file),
+            array_filter($initialResults, static fn ($result): bool => $result->hasMatches()),
+        ));
+
+        $this->assertNotSame([], $cacheFiles);
+        $this->assertContains('App.php', $initialMatchedFiles);
+
+        sleep(1);
+        Workspace::writeFile($this->workspace, 'src/App.php', "<?php\n\$value = 1;\n");
+        Phgrep::refreshTextIndex($this->workspace);
+
+        $refreshedResults = Phgrep::searchTextIndexed(
+            'function',
+            $this->workspace,
+            new TextSearchOptions(fixedString: true),
+        );
+
+        $refreshedCacheFiles = glob($this->workspace . '/.phgrep-index/queries/*.phpbin.gz') ?: [];
+        $refreshedMatchedFiles = array_values(array_map(
+            static fn ($result): string => basename($result->file),
+            array_filter($refreshedResults, static fn ($result): bool => $result->hasMatches()),
+        ));
+
+        $this->assertNotSame([], $refreshedCacheFiles);
+        $this->assertNotContains('App.php', $refreshedMatchedFiles);
+    }
+
+    #[Test]
+    public function itKeepsSummaryCachesSeparateFromNormalMatchResults(): void
+    {
+        Phgrep::searchTextIndexed(
+            'function',
+            $this->workspace,
+            new TextSearchOptions(fixedString: true, filesWithMatches: true),
+        );
+
+        $normalResults = Phgrep::searchTextIndexed(
+            'function',
+            $this->workspace,
+            new TextSearchOptions(fixedString: true),
+        );
+
+        $matchMap = [];
+
+        foreach ($normalResults as $result) {
+            $matchMap[basename($result->file)] = count($result->matches);
+        }
+
+        $this->assertSame(1, $matchMap['App.php']);
+        $this->assertSame(1, $matchMap['Util.php']);
+    }
 }

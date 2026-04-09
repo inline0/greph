@@ -185,6 +185,8 @@ final class AstCoverageTest extends TestCase
         $this->assertInstanceOf(Expr\Variable::class, $materialized[1]);
 
         $parser = new PhpParser();
+        $this->assertCount(2, $parser->parseStatements("  \n<?php echo 1;"));
+        $this->assertNotSame([], $parser->parseStatements('echo 1;'));
         $reflection = new \ReflectionProperty($parser, 'parser');
         $reflection->setAccessible(true);
         $reflection->setValue($parser, new class implements \PhpParser\Parser {

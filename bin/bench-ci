@@ -1,0 +1,153 @@
+#!/usr/bin/env php
+<?php
+
+declare(strict_types=1);
+
+require __DIR__ . '/_bootstrap.php';
+
+use Phgrep\Support\CommandRunner;
+use Phgrep\Support\ToolResolver;
+
+$arguments = array_slice($argv, 1);
+$repo = 'inline0/phgrep';
+$ref = trim((string) shell_exec('git rev-parse --abbrev-ref HEAD')) ?: 'main';
+$headSha = trim((string) shell_exec('git rev-parse HEAD')) ?: '';
+$corpus = 'wordpress';
+$category = '';
+$repeat = '5';
+$warmup = '1';
+$compareRef = 'main';
+$launchedAt = gmdate('Y-m-d\\TH:i:s\\Z');
+
+while ($arguments !== []) {
+    /** @var string $argument */
+    $argument = array_shift($arguments);
+
+    switch ($argument) {
+        case '--repo':
+            $repo = array_shift($arguments) ?: $repo;
+            break;
+        case '--ref':
+            $ref = array_shift($arguments) ?: $ref;
+            break;
+        case '--corpus':
+            $corpus = array_shift($arguments) ?: $corpus;
+            break;
+        case '--category':
+            $category = array_shift($arguments) ?: '';
+            break;
+        case '--repeat':
+            $repeat = array_shift($arguments) ?: $repeat;
+            break;
+        case '--warmup':
+            $warmup = array_shift($arguments) ?: $warmup;
+            break;
+        case '--compare-ref':
+            $compareRef = array_shift($arguments) ?: $compareRef;
+            break;
+        default:
+            throw new RuntimeException(sprintf('Unknown argument: %s', $argument));
+    }
+}
+
+$runner = new CommandRunner();
+$toolResolver = new ToolResolver();
+$command = [
+    ...$toolResolver->githubCli(),
+    'workflow',
+    'run',
+    'benchmark.yml',
+    '--repo',
+    $repo,
+    '--ref',
+    $ref,
+    '-f',
+    'corpus=' . $corpus,
+    '-f',
+    'repeat=' . $repeat,
+    '-f',
+    'warmup=' . $warmup,
+    '-f',
+    'compare_ref=' . $compareRef,
+];
+
+if ($category !== '') {
+    $command[] = '-f';
+    $command[] = 'category=' . $category;
+}
+
+$launch = $runner->run($command, $phgrepRoot);
+
+if (!$launch->successful()) {
+    throw new RuntimeException(trim($launch->output()) !== '' ? trim($launch->output()) : 'Failed to trigger benchmark workflow.');
+}
+
+$run = null;
+
+for ($attempt = 0; $attempt < 10; $attempt++) {
+    if ($attempt > 0) {
+        usleep(500_000);
+    }
+
+    $list = $runner->run([
+        ...$toolResolver->githubCli(),
+        'run',
+        'list',
+        '--repo',
+        $repo,
+        '--workflow',
+        'benchmark.yml',
+        '--branch',
+        $ref,
+        '--limit',
+        '20',
+        '--json',
+        'databaseId,url,status,headSha,createdAt',
+    ], $phgrepRoot);
+
+    if (!$list->successful()) {
+        throw new RuntimeException(trim($list->output()) !== '' ? trim($list->output()) : 'Failed to resolve launched benchmark run.');
+    }
+
+    $decoded = json_decode($list->stdout, true, 512, JSON_THROW_ON_ERROR);
+
+    if (!is_array($decoded)) {
+        throw new RuntimeException('Failed to parse launched benchmark run metadata.');
+    }
+
+    foreach ($decoded as $candidate) {
+        if (!is_array($candidate)) {
+            continue;
+        }
+
+        if (($candidate['headSha'] ?? '') !== $headSha) {
+            continue;
+        }
+
+        if (($candidate['createdAt'] ?? '') < $launchedAt) {
+            continue;
+        }
+
+        $run = $candidate;
+        break;
+    }
+
+    if ($run !== null) {
+        break;
+    }
+}
+
+if (!is_array($run)) {
+    throw new RuntimeException('Failed to locate the launched benchmark run.');
+}
+
+fwrite(STDOUT, sprintf("Triggered benchmark workflow.\n"));
+fwrite(STDOUT, sprintf("Repo: %s\n", $repo));
+fwrite(STDOUT, sprintf("Ref: %s\n", $ref));
+fwrite(STDOUT, sprintf("Compare ref: %s\n", $compareRef));
+fwrite(STDOUT, sprintf("Corpus: %s\n", $corpus));
+fwrite(STDOUT, sprintf("Category: %s\n", $category !== '' ? $category : '(all)'));
+fwrite(STDOUT, sprintf("Repeat/Warmup: %s/%s\n", $repeat, $warmup));
+fwrite(STDOUT, sprintf("Run: %s\n", (string) ($run['databaseId'] ?? '?')));
+fwrite(STDOUT, sprintf("Status: %s\n", (string) ($run['status'] ?? 'unknown')));
+fwrite(STDOUT, sprintf("URL: %s\n", (string) ($run['url'] ?? '')));

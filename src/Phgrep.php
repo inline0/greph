@@ -8,7 +8,13 @@ use Phgrep\Ast\AstMatch;
 use Phgrep\Ast\AstRewriter;
 use Phgrep\Ast\AstSearchOptions;
 use Phgrep\Ast\AstSearcher;
+use Phgrep\Index\AstCacheBuildResult;
+use Phgrep\Index\AstCacheBuilder;
+use Phgrep\Index\AstIndexBuildResult;
+use Phgrep\Index\AstIndexBuilder;
+use Phgrep\Index\CachedAstSearcher;
 use Phgrep\Index\IndexBuildResult;
+use Phgrep\Index\IndexedAstSearcher;
 use Phgrep\Index\IndexedTextSearcher;
 use Phgrep\Index\TextIndexBuilder;
 use Phgrep\Ast\RewriteResult;
@@ -43,7 +49,7 @@ final class Phgrep
         $searcher = new TextSearcher();
         $codec = new TextResultCodec();
 
-        if (!self::shouldUseWorkers($options->jobs, count($files))) {
+        if (!self::shouldUseTextWorkers($pattern, $options, count($files))) {
             return $searcher->searchFiles($files, $pattern, $options);
         }
 
@@ -84,6 +90,26 @@ final class Phgrep
         return (new TextIndexBuilder())->refresh($rootPath, $indexPath);
     }
 
+    public static function buildAstIndex(string $rootPath = '.', ?string $indexPath = null): AstIndexBuildResult
+    {
+        return (new AstIndexBuilder())->build($rootPath, $indexPath);
+    }
+
+    public static function refreshAstIndex(string $rootPath = '.', ?string $indexPath = null): AstIndexBuildResult
+    {
+        return (new AstIndexBuilder())->refresh($rootPath, $indexPath);
+    }
+
+    public static function buildAstCache(string $rootPath = '.', ?string $indexPath = null): AstCacheBuildResult
+    {
+        return (new AstCacheBuilder())->build($rootPath, $indexPath);
+    }
+
+    public static function refreshAstCache(string $rootPath = '.', ?string $indexPath = null): AstCacheBuildResult
+    {
+        return (new AstCacheBuilder())->refresh($rootPath, $indexPath);
+    }
+
     /**
      * @param string|list<string> $paths
      * @return list<TextFileResult>
@@ -109,7 +135,7 @@ final class Phgrep
         $files = self::walk($paths, $options->walkOptions());
         $searcher = new AstSearcher();
 
-        if (!self::shouldUseWorkers($options->jobs, count($files))) {
+        if (!self::shouldUseAstWorkers($options->jobs, count($files))) {
             return $searcher->searchFiles($files, $pattern, $options);
         }
 
@@ -138,6 +164,36 @@ final class Phgrep
 
     /**
      * @param string|list<string> $paths
+     * @return list<AstMatch>
+     */
+    public static function searchAstIndexed(
+        string $pattern,
+        string|array $paths,
+        ?AstSearchOptions $options = null,
+        ?string $indexPath = null,
+    ): array {
+        $options ??= new AstSearchOptions();
+
+        return (new IndexedAstSearcher())->search($pattern, $paths, $options, $indexPath);
+    }
+
+    /**
+     * @param string|list<string> $paths
+     * @return list<AstMatch>
+     */
+    public static function searchAstCached(
+        string $pattern,
+        string|array $paths,
+        ?AstSearchOptions $options = null,
+        ?string $indexPath = null,
+    ): array {
+        $options ??= new AstSearchOptions();
+
+        return (new CachedAstSearcher())->search($pattern, $paths, $options, $indexPath);
+    }
+
+    /**
+     * @param string|list<string> $paths
      * @return list<RewriteResult>
      */
     public static function rewriteAst(
@@ -150,7 +206,7 @@ final class Phgrep
         $files = self::walk($paths, $options->walkOptions());
         $rewriter = new AstRewriter();
 
-        if (!self::shouldUseWorkers($options->jobs, count($files))) {
+        if (!self::shouldUseRewriteWorkers($options->jobs, count($files))) {
             return $rewriter->rewriteFiles($files, $searchPattern, $rewritePattern, $options);
         }
 
@@ -177,7 +233,41 @@ final class Phgrep
         return $flattened;
     }
 
-    private static function shouldUseWorkers(int $jobs, int $fileCount): bool
+    private static function shouldUseTextWorkers(string $pattern, TextSearchOptions $options, int $fileCount): bool
+    {
+        if ($options->jobs <= 1) {
+            return false;
+        }
+
+        $threshold = $options->jobs * 750;
+
+        if (!$options->countOnly && !$options->filesWithMatches && !$options->filesWithoutMatches) {
+            $threshold = $options->jobs * 2_000;
+        }
+
+        if (
+            $options->fixedString
+            && !$options->caseInsensitive
+            && !$options->wholeWord
+            && !$options->invertMatch
+            && $options->beforeContext === 0
+            && $options->afterContext === 0
+            && $options->maxCount === null
+            && strlen($pattern) <= 8
+            && preg_match('/^[A-Za-z0-9_]+$/', $pattern) === 1
+        ) {
+            $threshold = $options->jobs * 4_000;
+        }
+
+        return $fileCount > $threshold;
+    }
+
+    private static function shouldUseAstWorkers(int $jobs, int $fileCount): bool
+    {
+        return $jobs > 1 && $fileCount > ($jobs * 750);
+    }
+
+    private static function shouldUseRewriteWorkers(int $jobs, int $fileCount): bool
     {
         return $jobs > 1 && $fileCount > ($jobs * 750);
     }

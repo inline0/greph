@@ -26,8 +26,7 @@ final class PhpParser implements ParserInterface
     public function parseStatements(string $code): array
     {
         try {
-            $trimmed = ltrim($code);
-            $source = str_starts_with($trimmed, '<?php') || str_starts_with($trimmed, '<?=')
+            $source = $this->hasPhpOpenTag($code)
                 ? $code
                 : '<?php ' . $code;
 
@@ -52,5 +51,28 @@ final class PhpParser implements ParserInterface
         }
 
         return $statements[0]->expr;
+    }
+
+    private function hasPhpOpenTag(string $code): bool
+    {
+        $length = strlen($code);
+        $offset = 0;
+
+        while ($offset < $length) {
+            $byte = $code[$offset];
+
+            if ($byte !== ' ' && $byte !== "\t" && $byte !== "\n" && $byte !== "\r" && $byte !== "\f" && $byte !== "\v") {
+                break;
+            }
+
+            $offset++;
+        }
+
+        if ($offset >= $length || $code[$offset] !== '<') {
+            return false;
+        }
+
+        return strncmp(substr($code, $offset, 5), '<?php', 5) === 0
+            || strncmp(substr($code, $offset, 3), '<?=', 3) === 0;
     }
 }
