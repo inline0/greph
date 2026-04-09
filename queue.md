@@ -113,6 +113,38 @@ These are not queue items anymore; they are the current floor:
 - [ ] Make sure the workflow summary always links raw JSON artifacts for base and head.
 - [ ] Keep `README.md` unchanged until the last pass is finished, then update it once with final tables.
 
+## Performance Log
+
+- `bc9af40` keep
+  - CI run: `24198078791`
+  - compare: `origin/main` -> `bc9af40`
+  - headline:
+    - `Indexed literal "function"` `-26.76%`
+    - `Indexed literal case insensitive` `-21.17%`
+    - `Indexed regex new instance` `-22.62%`
+    - `Indexed regex array call` `-27.88%`
+    - `Parallel 2 workers` `-4.22%`
+  - note: scan text, walker, and AST were flat to slightly positive noise
+
+- `645a27d` keep
+  - CI run: `24198605044`
+  - compare: `645a27d` self-compare baseline on `ast-indexed`
+  - headline:
+    - `Indexed new $CLASS()` `2382.09ms`
+    - `Indexed array($$$ITEMS)` `5718.73ms`
+  - note:
+    - `Indexed array($$$ITEMS)` showed a `-3.13%` win even under same-commit interleaved noise
+    - both ops remained well ahead of `sg`
+
+- `087f13f` pending
+  - CI run: `24199029070`
+  - compare: `645a27d` -> `087f13f` on `ast-cached`
+  - local directional snapshot:
+    - `Cached new $CLASS()` about `1248.46ms`
+    - `Cached array($$$ITEMS)` about `2637.02ms`
+    - cache build about `11041.35ms`
+    - cache size on WordPress about `55MB`
+
 ## Phase 1: Scan-Mode Text Search
 
 The goal here is to finish the remaining one-shot grep-style optimizations before moving deeper into index-only work.
