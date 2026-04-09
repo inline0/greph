@@ -7,14 +7,12 @@ namespace Phgrep\Index;
 use Phgrep\Ast\AstMatch;
 use Phgrep\Ast\AstSearchOptions;
 use Phgrep\Ast\AstSearcher;
-use Phgrep\Ast\Pattern;
 use Phgrep\Ast\PatternParser;
 use Phgrep\Support\Filesystem;
-use Phgrep\Walker\FileList;
 
-final class IndexedAstSearcher
+final class CachedAstSearcher
 {
-    private AstIndexStore $store;
+    private AstCacheStore $store;
 
     private AstSearcher $astSearcher;
 
@@ -23,12 +21,12 @@ final class IndexedAstSearcher
     private AstFactQuery $factQuery;
 
     public function __construct(
-        ?AstIndexStore $store = null,
+        ?AstCacheStore $store = null,
         ?AstSearcher $astSearcher = null,
         ?PatternParser $patternParser = null,
         ?AstFactQuery $factQuery = null,
     ) {
-        $this->store = $store ?? new AstIndexStore();
+        $this->store = $store ?? new AstCacheStore();
         $this->astSearcher = $astSearcher ?? new AstSearcher();
         $this->patternParser = $patternParser ?? new PatternParser();
         $this->factQuery = $factQuery ?? new AstFactQuery();
@@ -45,78 +43,62 @@ final class IndexedAstSearcher
         $indexPath = $this->resolveIndexPath($resolvedPaths, $indexPath);
 
         if ($indexPath === null) {
-            throw new \RuntimeException('No AST index found for the requested paths. Build one first.');
+            throw new \RuntimeException('No AST cache found for the requested paths. Build one first.');
         }
 
-        $index = $this->store->load($indexPath);
-        $parsedPattern = $this->patternParser->parse($pattern, $options->language);
-        $selection = $this->buildSelection($resolvedPaths, $index->rootPath);
+        $cache = $this->store->load($indexPath);
+        $patternObject = $this->patternParser->parse($pattern, $options->language);
+        $selection = $this->buildSelection($resolvedPaths, $cache->rootPath);
         $selectedPaths = [];
-        $selectedPathSet = [];
-        $fallbackPaths = [];
-        $explicitSelections = [];
+        $selectedFileIds = [];
 
-        foreach ($resolvedPaths as $path) {
-            if ($this->isWithinRoot($path, $index->rootPath)) {
-                if (is_file($path)) {
-                    $explicitSelections[$path] = true;
-                }
-
-                continue;
-            }
-
-            $fallbackPaths[] = $path;
-        }
-
-        foreach ($index->files as $file) {
-            $absolutePath = $index->rootPath . '/' . $file['p'];
-
-            if (!$this->matchesSelection($absolutePath, $selection)) {
-                continue;
-            }
+        foreach ($cache->files as $file) {
+            $absolutePath = $cache->rootPath . '/' . $file['p'];
 
             if (
-                !isset($explicitSelections[$absolutePath])
-                && !$this->matchesQueryFilters($file, $absolutePath, $index->rootPath, $options)
+                !$this->matchesSelection($absolutePath, $selection)
+                || !$this->matchesQueryFilters($file, $absolutePath, $cache->rootPath, $options)
             ) {
                 continue;
             }
 
-            $selectedPaths[] = $absolutePath;
-            $selectedPathSet[$absolutePath] = true;
+            $selectedPaths[$file['id']] = $absolutePath;
+            $selectedFileIds[$file['id']] = true;
         }
 
-        foreach (array_keys($explicitSelections) as $explicitPath) {
-            if (!isset($selectedPathSet[$explicitPath])) {
-                $fallbackPaths[] = $explicitPath;
-            }
-        }
-
-        $candidateIds = $this->candidateIds($index, $parsedPattern);
-        $candidatePaths = [];
-
-        if ($candidateIds === null) {
-            $candidatePaths = $selectedPaths;
-        } else {
-            foreach ($index->files as $file) {
-                $absolutePath = $index->rootPath . '/' . $file['p'];
-
-                if (!isset($selectedPathSet[$absolutePath]) || !isset($candidateIds[$file['id']])) {
-                    continue;
-                }
-
-                $candidatePaths[] = $absolutePath;
-            }
-        }
-
+        $candidateIds = $this->factQuery->candidateIds($cache->facts, $patternObject);
         $matches = [];
 
-        foreach ($this->astSearcher->searchFiles(new FileList($candidatePaths), $pattern, $options) as $match) {
-            $matches[] = $match;
-        }
+        foreach ($cache->files as $file) {
+            $fileId = $file['id'];
 
-        if ($fallbackPaths !== []) {
-            foreach ($this->astSearcher->searchFiles(new FileList($fallbackPaths), $pattern, $options) as $match) {
+            if (!isset($selectedFileIds[$fileId])) {
+                continue;
+            }
+
+            if ($candidateIds !== null && !isset($candidateIds[$fileId])) {
+                continue;
+            }
+
+            $absolutePath = $selectedPaths[$fileId];
+            $statements = $this->store->loadTree($cache->indexPath, $fileId);
+
+            if ($statements === null) {
+                foreach ($this->astSearcher->searchFiles(new \Phgrep\Walker\FileList([$absolutePath]), $pattern, $options) as $match) {
+                    $matches[] = $match;
+                }
+
+                continue;
+            }
+
+            foreach (
+                $this->astSearcher->searchParsedStatements(
+                    $absolutePath,
+                    $statements,
+                    $patternObject,
+                    static fn (): string => (string) (@file_get_contents($absolutePath) ?: ''),
+                ) as $match
+            ) {
                 $matches[] = $match;
             }
         }
@@ -171,24 +153,6 @@ final class IndexedAstSearcher
     }
 
     /**
-     * @param array{files: array<string, true>, directories: list<string>} $selection
-     */
-    private function matchesSelection(string $absolutePath, array $selection): bool
-    {
-        if (isset($selection['files'][$absolutePath])) {
-            return true;
-        }
-
-        foreach ($selection['directories'] as $path) {
-            if ($absolutePath === $path || str_starts_with($absolutePath, $path . '/')) {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
-    /**
      * @param list<string> $resolvedPaths
      * @return array{files: array<string, true>, directories: list<string>}
      */
@@ -213,6 +177,24 @@ final class IndexedAstSearcher
         }
 
         return $selection;
+    }
+
+    /**
+     * @param array{files: array<string, true>, directories: list<string>} $selection
+     */
+    private function matchesSelection(string $absolutePath, array $selection): bool
+    {
+        if (isset($selection['files'][$absolutePath])) {
+            return true;
+        }
+
+        foreach ($selection['directories'] as $path) {
+            if ($absolutePath === $path || str_starts_with($absolutePath, $path . '/')) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private function isWithinRoot(string $path, string $rootPath): bool
@@ -277,13 +259,5 @@ final class IndexedAstSearcher
         }
 
         return false;
-    }
-
-    /**
-     * @return array<int, true>|null
-     */
-    private function candidateIds(AstIndex $index, Pattern $pattern): ?array
-    {
-        return $this->factQuery->candidateIds($index->facts, $pattern);
     }
 }

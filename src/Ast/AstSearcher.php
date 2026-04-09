@@ -49,10 +49,11 @@ final class AstSearcher
     public function searchFiles(FileList $files, string $pattern, AstSearchOptions $options): array
     {
         $matches = [];
+        $parsedPattern = $this->compilePattern($pattern, $options);
 
         $this->scanFiles(
             $files,
-            $pattern,
+            $parsedPattern,
             $options,
             function (Node $candidate, array $captures, string $source, string $file) use (&$matches): void {
                 $matches[] = $this->createMatch($candidate, $captures, $source, $file);
@@ -70,10 +71,11 @@ final class AstSearcher
     public function countFiles(FileList $files, string $pattern, AstSearchOptions $options): int
     {
         $count = 0;
+        $parsedPattern = $this->compilePattern($pattern, $options);
 
         $this->scanFiles(
             $files,
-            $pattern,
+            $parsedPattern,
             $options,
             static function () use (&$count): void {
                 $count++;
@@ -85,7 +87,7 @@ final class AstSearcher
 
     public function countParsedFiles(FileList $files, string $pattern, AstSearchOptions $options): int
     {
-        $parsedPattern = $this->patternParser->parse($pattern, $options->language);
+        $parsedPattern = $this->compilePattern($pattern, $options);
         $prefilterTokens = $this->patternPrefilter->extract($parsedPattern->root);
         $parser = $this->parserFactory->forLanguage($options->language);
         $count = 0;
@@ -120,12 +122,49 @@ final class AstSearcher
         return $count;
     }
 
+    public function compilePattern(string $pattern, AstSearchOptions $options): Pattern
+    {
+        return $this->patternParser->parse($pattern, $options->language);
+    }
+
+    /**
+     * @param list<Node> $statements
+     * @param callable(): string|string|null $source
+     * @return list<AstMatch>
+     */
+    public function searchParsedStatements(
+        string $file,
+        array $statements,
+        Pattern $pattern,
+        string|callable|null $source = null,
+    ): array {
+        $matches = [];
+        $loadedSource = null;
+
+        foreach ($this->candidateFinder->iterate($statements, $pattern, $this->rootMatcher) as $candidate) {
+            $captures = $this->patternMatcher->match($pattern->root, $candidate);
+
+            if ($captures === null) {
+                continue;
+            }
+
+            if ($loadedSource === null) {
+                $loadedSource = is_callable($source)
+                    ? (string) $source()
+                    : (string) ($source ?? '');
+            }
+
+            $matches[] = $this->createMatch($candidate, $captures, $loadedSource, $file);
+        }
+
+        return $matches;
+    }
+
     /**
      * @param callable(Node, array<string, mixed>, string, string): void $onMatch
      */
-    private function scanFiles(FileList $files, string $pattern, AstSearchOptions $options, callable $onMatch): void
+    private function scanFiles(FileList $files, Pattern $parsedPattern, AstSearchOptions $options, callable $onMatch): void
     {
-        $parsedPattern = $this->patternParser->parse($pattern, $options->language);
         $prefilterTokens = $this->patternPrefilter->extract($parsedPattern->root);
         $parser = $this->parserFactory->forLanguage($options->language);
 

@@ -8,8 +8,11 @@ use Phgrep\Ast\AstMatch;
 use Phgrep\Ast\AstRewriter;
 use Phgrep\Ast\AstSearchOptions;
 use Phgrep\Ast\AstSearcher;
+use Phgrep\Index\AstCacheBuildResult;
+use Phgrep\Index\AstCacheBuilder;
 use Phgrep\Index\AstIndexBuildResult;
 use Phgrep\Index\AstIndexBuilder;
+use Phgrep\Index\CachedAstSearcher;
 use Phgrep\Index\IndexBuildResult;
 use Phgrep\Index\IndexedAstSearcher;
 use Phgrep\Index\IndexedTextSearcher;
@@ -97,6 +100,16 @@ final class Phgrep
         return (new AstIndexBuilder())->refresh($rootPath, $indexPath);
     }
 
+    public static function buildAstCache(string $rootPath = '.', ?string $indexPath = null): AstCacheBuildResult
+    {
+        return (new AstCacheBuilder())->build($rootPath, $indexPath);
+    }
+
+    public static function refreshAstCache(string $rootPath = '.', ?string $indexPath = null): AstCacheBuildResult
+    {
+        return (new AstCacheBuilder())->refresh($rootPath, $indexPath);
+    }
+
     /**
      * @param string|list<string> $paths
      * @return list<TextFileResult>
@@ -162,6 +175,21 @@ final class Phgrep
         $options ??= new AstSearchOptions();
 
         return (new IndexedAstSearcher())->search($pattern, $paths, $options, $indexPath);
+    }
+
+    /**
+     * @param string|list<string> $paths
+     * @return list<AstMatch>
+     */
+    public static function searchAstCached(
+        string $pattern,
+        string|array $paths,
+        ?AstSearchOptions $options = null,
+        ?string $indexPath = null,
+    ): array {
+        $options ??= new AstSearchOptions();
+
+        return (new CachedAstSearcher())->search($pattern, $paths, $options, $indexPath);
     }
 
     /**

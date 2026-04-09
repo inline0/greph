@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace Phgrep\Benchmarks;
 
 use Phgrep\Ast\AstSearchOptions;
+use Phgrep\Index\AstCacheBuilder;
+use Phgrep\Index\AstCacheStore;
 use Phgrep\Index\AstIndexBuilder;
 use Phgrep\Index\AstIndexStore;
 use Phgrep\Index\TextIndexBuilder;
@@ -76,6 +78,7 @@ final class BenchmarkRunner
         $fileCount = iterator_count(Phgrep::walk($corpusPath));
         $indexPath = $this->rootPath . '/build/benchmarks/indexes/' . $corpusName;
         $astIndexPath = $this->rootPath . '/build/benchmarks/ast-indexes/' . $corpusName;
+        $astCachePath = $this->rootPath . '/build/benchmarks/ast-caches/' . $corpusName;
 
         if (in_array($suite['category'], ['indexed-text', 'indexed-load', 'indexed-summary'], true)) {
             if (!(new TextIndexStore())->exists($indexPath)) {
@@ -86,6 +89,12 @@ final class BenchmarkRunner
         if (in_array($suite['category'], ['ast-indexed', 'ast-indexed-build'], true)) {
             if (!(new AstIndexStore())->exists($astIndexPath) && $suite['category'] !== 'ast-indexed-build') {
                 (new AstIndexBuilder())->build($corpusPath, $astIndexPath);
+            }
+        }
+
+        if (in_array($suite['category'], ['ast-cached', 'ast-cached-build'], true)) {
+            if (!(new AstCacheStore())->exists($astCachePath) && $suite['category'] !== 'ast-cached-build') {
+                (new AstCacheBuilder())->build($corpusPath, $astCachePath);
             }
         }
 
@@ -153,6 +162,25 @@ final class BenchmarkRunner
                 Filesystem::remove($astIndexPath);
                 $result = (new AstIndexBuilder())->build($corpusPath, $astIndexPath);
                 $matchCount = $result->fileCount;
+                break;
+
+            case 'ast-cached':
+                $results = Phgrep::searchAstCached(
+                    (string) $suite['pattern'],
+                    $corpusPath,
+                    new AstSearchOptions(
+                        jobs: (int) ($suite['jobs'] ?? 1),
+                        language: (string) ($suite['lang'] ?? 'php'),
+                    ),
+                    $astCachePath,
+                );
+                $matchCount = count($results);
+                break;
+
+            case 'ast-cached-build':
+                Filesystem::remove($astCachePath);
+                $result = (new AstCacheBuilder())->build($corpusPath, $astCachePath);
+                $matchCount = $result->cachedTreeCount;
                 break;
 
             case 'walker':
@@ -395,7 +423,7 @@ final class BenchmarkRunner
      */
     private function externalAstGrepCommand(array $suite, string $corpusPath): ?array
     {
-        if (!in_array($suite['category'], ['ast', 'ast-indexed'], true)) {
+        if (!in_array($suite['category'], ['ast', 'ast-indexed', 'ast-cached'], true)) {
             return null;
         }
 
