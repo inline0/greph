@@ -10,6 +10,8 @@ use PhpParser\Node\Stmt;
 
 final class AstPatternPrefilter
 {
+    private const COMMENT_AWARE_GAP_PATTERN = '(?:(?:\s+)|(?:\/\*.*?\*\/)|(?:\/\/[^\n]*(?:\n|$))|(?:#[^\n]*(?:\n|$)))*';
+
     /**
      * @return list<string>
      */
@@ -124,6 +126,10 @@ final class AstPatternPrefilter
 
     private function hasLongArraySyntax(string $contents): bool
     {
+        if (preg_match('/\barray' . self::COMMENT_AWARE_GAP_PATTERN . '\(/is', $contents) !== 1) {
+            return false;
+        }
+
         $tokens = token_get_all($contents);
         $tokenCount = count($tokens);
 
@@ -146,6 +152,15 @@ final class AstPatternPrefilter
 
     private function hasZeroArgumentNewExpression(string $contents): bool
     {
+        if (
+            preg_match(
+                '/\bnew\b(?:(?![;{]).)*?(?:\(\s*\)|(?=' . self::COMMENT_AWARE_GAP_PATTERN . '[;{]))/is',
+                $contents,
+            ) !== 1
+        ) {
+            return false;
+        }
+
         $tokens = token_get_all($contents);
         $tokenCount = count($tokens);
 
