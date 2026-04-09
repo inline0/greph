@@ -122,10 +122,6 @@ final class PatternMatcher
             return true;
         }
 
-        if ($captures[$name] === $value) {
-            return true;
-        }
-
         return $this->fingerprint($captures[$name]) === $this->fingerprint($value);
     }
 
