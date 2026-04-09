@@ -49,8 +49,6 @@ jobs:
       HEAD_OUTPUT: build/benchmarks/head-series.json
       BASE_OUTPUT: build/benchmarks/base-series.json
       COMPARE_OUTPUT: build/benchmarks/comparison.md
-      CORPUS_ROOT: ${{ runner.temp }}/phgrep-corpora
-      BASE_WORKTREE: ${{ runner.temp }}/phgrep-base
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -105,27 +103,34 @@ jobs:
             echo "category=${{ inputs.category }}" >> "$GITHUB_OUTPUT"
           fi
 
+      - name: Resolve benchmark paths
+        id: paths
+        shell: bash
+        run: |
+          echo "corpus_root=$RUNNER_TEMP/phgrep-corpora" >> "$GITHUB_OUTPUT"
+          echo "base_worktree=$RUNNER_TEMP/phgrep-base" >> "$GITHUB_OUTPUT"
+
       - name: Prepare WordPress corpus
         shell: bash
         run: |
-          mkdir -p "$CORPUS_ROOT"
-          if [[ ! -d "$CORPUS_ROOT/wordpress/.git" ]]; then
-            git clone --depth=1 https://github.com/WordPress/WordPress.git "$CORPUS_ROOT/wordpress"
+          mkdir -p "${{ steps.paths.outputs.corpus_root }}"
+          if [[ ! -d "${{ steps.paths.outputs.corpus_root }}/wordpress/.git" ]]; then
+            git clone --depth=1 https://github.com/WordPress/WordPress.git "${{ steps.paths.outputs.corpus_root }}/wordpress"
           else
-            git -C "$CORPUS_ROOT/wordpress" fetch --depth=1 origin HEAD
-            git -C "$CORPUS_ROOT/wordpress" reset --hard FETCH_HEAD
+            git -C "${{ steps.paths.outputs.corpus_root }}/wordpress" fetch --depth=1 origin HEAD
+            git -C "${{ steps.paths.outputs.corpus_root }}/wordpress" reset --hard FETCH_HEAD
           fi
           mkdir -p benchmarks/corpora
-          ln -sfn "$CORPUS_ROOT/wordpress" benchmarks/corpora/wordpress
+          ln -sfn "${{ steps.paths.outputs.corpus_root }}/wordpress" benchmarks/corpora/wordpress
 
       - name: Prepare base worktree
         shell: bash
         run: |
-          rm -rf "$BASE_WORKTREE"
-          git worktree add --detach "$BASE_WORKTREE" "${{ steps.settings.outputs.compare_ref }}"
-          mkdir -p "$BASE_WORKTREE/benchmarks/corpora"
-          ln -sfn "$CORPUS_ROOT/wordpress" "$BASE_WORKTREE/benchmarks/corpora/wordpress"
-          composer install --working-dir "$BASE_WORKTREE" --no-interaction --no-progress --prefer-dist
+          rm -rf "${{ steps.paths.outputs.base_worktree }}"
+          git worktree add --detach "${{ steps.paths.outputs.base_worktree }}" "${{ steps.settings.outputs.compare_ref }}"
+          mkdir -p "${{ steps.paths.outputs.base_worktree }}/benchmarks/corpora"
+          ln -sfn "${{ steps.paths.outputs.corpus_root }}/wordpress" "${{ steps.paths.outputs.base_worktree }}/benchmarks/corpora/wordpress"
+          composer install --working-dir "${{ steps.paths.outputs.base_worktree }}" --no-interaction --no-progress --prefer-dist
 
       - name: Run head benchmark series
         shell: bash
@@ -139,11 +144,11 @@ jobs:
       - name: Run base benchmark series
         shell: bash
         run: |
-          args=(--corpus "${{ steps.settings.outputs.corpus }}" --repeat "${{ steps.settings.outputs.repeat }}" --warmup "${{ steps.settings.outputs.warmup }}" --compare "rg,grep,sg" --output "$BASE_WORKTREE/$BASE_OUTPUT")
+          args=(--corpus "${{ steps.settings.outputs.corpus }}" --repeat "${{ steps.settings.outputs.repeat }}" --warmup "${{ steps.settings.outputs.warmup }}" --compare "rg,grep,sg" --output "${{ steps.paths.outputs.base_worktree }}/$BASE_OUTPUT")
           if [[ -n "${{ steps.settings.outputs.category }}" ]]; then
             args+=(--category "${{ steps.settings.outputs.category }}")
           fi
-          php "$BASE_WORKTREE/bin/bench-series" "${args[@]}"
+          php "${{ steps.paths.outputs.base_worktree }}/bin/bench-series" "${args[@]}"
 
       - name: Compare benchmark series
         shell: bash
@@ -152,7 +157,7 @@ jobs:
             --base-label "${{ steps.settings.outputs.compare_ref }}" \
             --head-label "${GITHUB_SHA}" \
             --output "$COMPARE_OUTPUT" \
-            "$BASE_WORKTREE/$BASE_OUTPUT" \
+            "${{ steps.paths.outputs.base_worktree }}/$BASE_OUTPUT" \
             "$HEAD_OUTPUT"
           cat "$COMPARE_OUTPUT" >> "$GITHUB_STEP_SUMMARY"
 
@@ -162,4 +167,4 @@ jobs:
           name: benchmark-${{ github.run_id }}
           path: |
             build/benchmarks
-            ${{ env.BASE_WORKTREE }}/${{ env.BASE_OUTPUT }}
+            ${{ steps.paths.outputs.base_worktree }}/${{ env.BASE_OUTPUT }}
