@@ -114,10 +114,10 @@ Current benchmark baseline commit: `e542ee4`
 
 ### In Flight
 
-- Fast-path whole-array variadic captures in `PatternMatcher::matchArray`
-  - target the `array($$$ITEMS)` shape without reintroducing the broader trailing-variadic regression
-  - skip generic variadic backtracking when the remaining pattern is exactly one variadic capture
-  - validate on CI against `e542ee4` with the `ast` category before keeping
+- Add a line-level suffix literal check for regex seed matches
+  - keep the existing whole-file seed scan, but skip `preg_match` when the candidate line is missing a second required literal
+  - target regex-heavy WordPress paths like `array(...)` that often span lines and fail cheaply
+  - validate on CI against the queue-only commit with the `text` category before keeping
 
 ## Ordered Queue
 
@@ -165,7 +165,7 @@ Current benchmark baseline commit: `e542ee4`
 
 ## Immediate Next Steps
 
-1. Finish the whole-array variadic AST fast path and benchmark it against `e542ee4`.
-2. If the AST pass wins, stay in AST matcher-cost work until that surface flattens.
-3. If the AST pass is flat or negative, pivot back to text-path work or parser-cost isolation.
+1. Finish the regex line-literal prefilter pass and benchmark it against the queue-only commit.
+2. If the text pass wins, stay in regex-heavy text work until that surface flattens.
+3. If the text pass is flat or negative, pivot back to parser-cost isolation or benchmark-support work.
 4. Keep every pass isolated and CI-verified.
