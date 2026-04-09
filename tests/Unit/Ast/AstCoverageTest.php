@@ -61,7 +61,9 @@ final class AstCoverageTest extends TestCase
 
         $variable = new Expr\Variable('cached');
         $fingerprint = $this->invokePrivate($matcher, 'fingerprint', $variable);
+        $sameCapture = ['NODE' => $variable];
 
+        $this->assertTrue($this->invokePrivateWithArgs($matcher, 'bindCapture', ['NODE', $variable, &$sameCapture]));
         $this->assertSame($fingerprint, $this->invokePrivate($matcher, 'fingerprint', $variable));
     }
 
