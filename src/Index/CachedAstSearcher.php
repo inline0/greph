@@ -12,8 +12,6 @@ use Phgrep\Support\Filesystem;
 
 final class CachedAstSearcher
 {
-    private const MAX_CACHED_QUERY_MATCHES = 1000;
-
     private AstCacheStore $store;
 
     private AstSearcher $astSearcher;
@@ -122,10 +120,7 @@ final class CachedAstSearcher
             static fn (AstMatch $left, AstMatch $right): int => [$left->file, $left->startFilePos] <=> [$right->file, $right->startFilePos]
         );
 
-        if (
-            $this->canPopulateQueryCache($resolvedPaths, $cache->rootPath, $options)
-            && count($matches) <= self::MAX_CACHED_QUERY_MATCHES
-        ) {
+        if ($this->canPopulateQueryCache($resolvedPaths, $cache->rootPath, $options)) {
             $this->queryCacheStore->save($cache->indexPath, $cache->builtAt, $pattern, $options, $matches);
         }
 
