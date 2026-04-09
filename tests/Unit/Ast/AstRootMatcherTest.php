@@ -50,10 +50,12 @@ final class AstRootMatcherTest extends TestCase
         $literalCandidate = $this->parser->parse('dispatch($event)');
         $newPattern = $this->parser->parse('new Foo()');
         $newMismatch = $this->parser->parse('new Bar()');
+        $newWithArgs = $this->parser->parse('new Foo($value)');
 
         $this->assertTrue($this->matcher->mayMatch($metaPattern->root, $literalCandidate->root));
         $this->assertTrue($this->matcher->mayMatch($literalPattern->root, $literalCandidate->root));
         $this->assertFalse($this->matcher->mayMatch($newPattern->root, $newMismatch->root));
+        $this->assertFalse($this->matcher->mayMatch($newPattern->root, $newWithArgs->root));
     }
 
     #[Test]

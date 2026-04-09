@@ -23,7 +23,8 @@ final class AstRootMatcher
         return match (true) {
             $patternRoot instanceof Expr\Array_ && $candidate instanceof Expr\Array_ => $this->matchesArrayKind($patternRoot, $candidate),
             $patternRoot instanceof Expr\FuncCall && $candidate instanceof Expr\FuncCall => $this->matchesNameNode($patternRoot->name, $candidate->name),
-            $patternRoot instanceof Expr\New_ && $candidate instanceof Expr\New_ => $this->matchesNameNode($patternRoot->class, $candidate->class),
+            $patternRoot instanceof Expr\New_ && $candidate instanceof Expr\New_ => $this->matchesNameNode($patternRoot->class, $candidate->class)
+                && $this->matchesEmptyArgumentList($patternRoot->args, $candidate->args),
             $patternRoot instanceof Expr\MethodCall && $candidate instanceof Expr\MethodCall => $this->matchesIdentifierNode($patternRoot->name, $candidate->name),
             $patternRoot instanceof Expr\StaticCall && $candidate instanceof Expr\StaticCall => $this->matchesIdentifierNode($patternRoot->name, $candidate->name),
             $patternRoot instanceof Expr\PropertyFetch && $candidate instanceof Expr\PropertyFetch => $this->matchesIdentifierNode($patternRoot->name, $candidate->name),
@@ -69,6 +70,19 @@ final class AstRootMatcher
         }
 
         return $patternKind === $candidateKind;
+    }
+
+    /**
+     * @param array<Node\Arg|Node\VariadicPlaceholder> $patternArgs
+     * @param array<Node\Arg|Node\VariadicPlaceholder> $candidateArgs
+     */
+    private function matchesEmptyArgumentList(array $patternArgs, array $candidateArgs): bool
+    {
+        if ($patternArgs !== []) {
+            return true;
+        }
+
+        return $candidateArgs === [];
     }
 
     private function arrayKind(Expr\Array_ $node): ?int
