@@ -28,7 +28,8 @@ final class BenchmarkComparisonReportTest extends TestCase
         );
 
         $this->assertStringContainsString('Comparing `main` to `feature`', $report);
-        $this->assertStringContainsString('| wordpress | text | literal | 120.00ms | 90.00ms | -30.00ms | -25.00% |', $report);
+        $this->assertStringContainsString('`win` <= -3.00%', $report);
+        $this->assertStringContainsString('| win | wordpress | text | literal | 120.00ms | 90.00ms | -30.00ms | -25.00% |', $report);
         $this->assertStringContainsString('| wordpress | text | literal | 90.00ms | 35.00ms (rg) | +157.14% |', $report);
     }
 

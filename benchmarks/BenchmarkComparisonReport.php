@@ -17,10 +17,15 @@ final class BenchmarkComparisonReport
             '',
             sprintf('Comparing `%s` to `%s` using median benchmark durations.', $baseLabel, $headLabel),
             '',
+            'Thresholds:',
+            '- `win` <= -3.00%',
+            '- `regression` >= +3.00%',
+            '- otherwise `noise`',
+            '',
             '## phgrep delta',
             '',
-            '| Corpus | Category | Operation | Base | Head | Delta | Change |',
-            '| --- | --- | --- | ---: | ---: | ---: | ---: |',
+            '| Signal | Corpus | Category | Operation | Base | Head | Delta | Change |',
+            '| --- | --- | --- | --- | ---: | ---: | ---: | ---: |',
         ];
 
         $baseMap = $this->index($base);
@@ -46,7 +51,8 @@ final class BenchmarkComparisonReport
                 : 0.0;
 
             $lines[] = sprintf(
-                '| %s | %s | %s | %.2fms | %.2fms | %+.2fms | %+.2f%% |',
+                '| %s | %s | %s | %s | %.2fms | %.2fms | %+.2fms | %+.2f%% |',
+                $this->signal($deltaPercent),
                 $headResult->corpus,
                 $headResult->category,
                 $headResult->operation,
@@ -79,6 +85,15 @@ final class BenchmarkComparisonReport
         $lines[] = '';
 
         return implode(PHP_EOL, $lines) . PHP_EOL;
+    }
+
+    private function signal(float $deltaPercent): string
+    {
+        return match (true) {
+            $deltaPercent <= -3.0 => 'win',
+            $deltaPercent >= 3.0 => 'regression',
+            default => 'noise',
+        };
     }
 
     /**
