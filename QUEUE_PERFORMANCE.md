@@ -50,7 +50,7 @@ gh workflow run Benchmark \
 
 ## Current State
 
-Current benchmark baseline commit: `ae1447d`
+Current benchmark baseline commit: `2fa6111`
 
 ### Accepted Wins
 
@@ -81,13 +81,19 @@ Current benchmark baseline commit: `ae1447d`
   - `array($$$ITEMS)`: small win
   - `new $CLASS()`: regressed about `+2.42%`
   - reverted by `ae1447d`
+- `49180e9` `Strengthen regex literal prefilters`
+  - `Literal "function"`: `+0.08%`
+  - `Literal case insensitive`: `-0.60%`
+  - `Regex array call`: `+0.56%`
+  - `Regex new instance`: `+1.20%`
+  - reverted by `2fa6111`
 
 ### In Flight
 
-- Regex literal planning and multi-literal prefiltering
-  - extract up to 3 required literals from a regex
-  - short-circuit files and lines when any required literal is missing
-  - validate on CI against `ae1447d` with the `text` category before keeping
+- Regex seed-literal occurrence scanning
+  - use the existing required regex literal to jump straight to candidate lines in file contents
+  - run PCRE only on those candidate lines instead of on every line in the file
+  - validate on CI against `2fa6111` with the `text` category before keeping
 
 ## Ordered Queue
 
@@ -105,8 +111,7 @@ Current benchmark baseline commit: `ae1447d`
 ### Text Search
 
 - [ ] Keep fixed-string work focused on literal and case-insensitive paths until they flatten on CI.
-- [ ] Improve `RegexSearcher` literal planning to extract the strongest required literal, not just any literal.
-- [ ] Support multiple required literals for regex prefiltering and reject on first missing token.
+- [ ] Use regex seed literals to jump directly to candidate lines before running PCRE.
 - [ ] Add anchored-regex fast paths where a regex reduces to prefix, suffix, or full-line literal checks.
 - [ ] Detect regexes that collapse to exact literal matches and route them to literal search.
 - [ ] Revisit `BufferedReader` and text chunk handling to reduce string copying for regex-heavy scans.
@@ -136,7 +141,7 @@ Current benchmark baseline commit: `ae1447d`
 
 ## Immediate Next Steps
 
-1. Finish the regex literal-planning pass and benchmark it against `ae1447d`.
-2. If the regex pass wins, stay in text mode and keep tightening regex-heavy scans.
-3. If the regex pass is flat or negative, pivot back to AST fingerprint and capture-cost work.
+1. Finish the regex exact-literal collapse pass and benchmark it against `2fa6111`.
+2. If the text pass wins, stay in text mode and keep tightening regex-heavy scans.
+3. If the text pass is flat or negative, pivot back to AST fingerprint and capture-cost work.
 4. Keep every pass isolated and CI-verified.
