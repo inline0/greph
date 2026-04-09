@@ -18,6 +18,8 @@ final class AstSearcher
 
     private AstPatternPrefilter $patternPrefilter;
 
+    private AstCandidateFinder $candidateFinder;
+
     private AstRootMatcher $rootMatcher;
 
     private ParserFactory $parserFactory;
@@ -28,12 +30,14 @@ final class AstSearcher
         ?PatternParser $patternParser = null,
         ?PatternMatcher $patternMatcher = null,
         ?AstPatternPrefilter $patternPrefilter = null,
+        ?AstCandidateFinder $candidateFinder = null,
         ?AstRootMatcher $rootMatcher = null,
         ?ParserFactory $parserFactory = null,
     ) {
         $this->patternParser = $patternParser ?? new PatternParser();
         $this->patternMatcher = $patternMatcher ?? new PatternMatcher();
         $this->patternPrefilter = $patternPrefilter ?? new AstPatternPrefilter();
+        $this->candidateFinder = $candidateFinder ?? new AstCandidateFinder();
         $this->rootMatcher = $rootMatcher ?? new AstRootMatcher();
         $this->parserFactory = $parserFactory ?? new ParserFactory();
         $this->printer = new Standard();
@@ -70,7 +74,17 @@ final class AstSearcher
                 throw $exception;
             }
 
-            $this->visitStatements($statements, $parsedPattern, $source, $file, $matches);
+            foreach ($this->candidateFinder->find($statements, $parsedPattern) as $candidate) {
+                $captures = $this->rootMatcher->mayMatch($parsedPattern->root, $candidate)
+                    ? $this->patternMatcher->match($parsedPattern->root, $candidate)
+                    : null;
+
+                if ($captures === null) {
+                    continue;
+                }
+
+                $matches[] = $this->createMatch($candidate, $captures, $source, $file);
+            }
         }
 
         usort(
@@ -82,58 +96,26 @@ final class AstSearcher
     }
 
     /**
-     * @param list<Node> $nodes
-     * @param list<AstMatch> $matches
+     * @param array<string, mixed> $captures
      */
-    private function visitStatements(array $nodes, Pattern $pattern, string $source, string $file, array &$matches): void
+    private function createMatch(Node $node, array $captures, string $source, string $file): AstMatch
     {
-        foreach ($nodes as $node) {
-            $this->visitNode($node, $pattern, $source, $file, $matches);
-        }
-    }
+        $startFilePos = $node->getStartFilePos();
+        $endFilePos = $node->getEndFilePos();
+        $code = $endFilePos >= $startFilePos
+            ? substr($source, $startFilePos, ($endFilePos - $startFilePos) + 1)
+            : $this->renderNode($node);
 
-    /**
-     * @param list<AstMatch> $matches
-     */
-    private function visitNode(Node $node, Pattern $pattern, string $source, string $file, array &$matches): void
-    {
-        $captures = $this->rootMatcher->mayMatch($pattern->root, $node)
-            ? $this->patternMatcher->match($pattern->root, $node)
-            : null;
-
-        if ($captures !== null) {
-            $startFilePos = $node->getStartFilePos();
-            $endFilePos = $node->getEndFilePos();
-            $code = $endFilePos >= $startFilePos
-                ? substr($source, $startFilePos, ($endFilePos - $startFilePos) + 1)
-                : $this->renderNode($node);
-
-            $matches[] = new AstMatch(
-                file: $file,
-                node: $node,
-                captures: $captures,
-                startLine: $node->getStartLine(),
-                endLine: $node->getEndLine(),
-                startFilePos: $startFilePos,
-                endFilePos: $endFilePos,
-                code: $code,
-            );
-        }
-
-        foreach ($node->getSubNodeNames() as $subNodeName) {
-            /** @var mixed $subNode */
-            $subNode = $node->$subNodeName;
-
-            if ($subNode instanceof Node) {
-                $this->visitNode($subNode, $pattern, $source, $file, $matches);
-            } elseif (is_array($subNode)) {
-                foreach ($subNode as $childNode) {
-                    if ($childNode instanceof Node) {
-                        $this->visitNode($childNode, $pattern, $source, $file, $matches);
-                    }
-                }
-            }
-        }
+        return new AstMatch(
+            file: $file,
+            node: $node,
+            captures: $captures,
+            startLine: $node->getStartLine(),
+            endLine: $node->getEndLine(),
+            startFilePos: $startFilePos,
+            endFilePos: $endFilePos,
+            code: $code,
+        );
     }
 
     private function renderNode(Node $node): string

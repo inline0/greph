@@ -37,7 +37,9 @@
         "bin/test-scenario",
         "bin/test-regression",
         "bin/verify-compliance",
-        "bin/bench"
+        "bin/bench",
+        "bin/bench-series",
+        "bin/bench-compare"
     ],
     "scripts": {
         "test": "phpunit",

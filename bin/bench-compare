@@ -1,0 +1,62 @@
+#!/usr/bin/env php
+<?php
+
+declare(strict_types=1);
+
+require __DIR__ . '/_bootstrap.php';
+
+use Phgrep\Benchmarks\BenchmarkComparisonReport;
+use Phgrep\Benchmarks\BenchmarkResult;
+use Phgrep\Support\Filesystem;
+use Phgrep\Support\Json;
+
+$arguments = array_slice($argv, 1);
+$outputPath = null;
+$baseLabel = 'base';
+$headLabel = 'head';
+$paths = [];
+
+while ($arguments !== []) {
+    /** @var string $argument */
+    $argument = array_shift($arguments);
+
+    switch ($argument) {
+        case '--output':
+            $outputPath = array_shift($arguments) ?: null;
+            break;
+        case '--base-label':
+            $baseLabel = array_shift($arguments) ?: 'base';
+            break;
+        case '--head-label':
+            $headLabel = array_shift($arguments) ?: 'head';
+            break;
+        default:
+            $paths[] = $argument;
+            break;
+    }
+}
+
+if (count($paths) !== 2) {
+    throw new RuntimeException('Usage: bin/bench-compare [--output path] [--base-label label] [--head-label label] <base-series.json> <head-series.json>');
+}
+
+[$basePath, $headPath] = $paths;
+$baseData = Json::decodeFile($basePath);
+$headData = Json::decodeFile($headPath);
+
+/** @var list<BenchmarkResult> $baseResults */
+$baseResults = array_map(static fn (array $result): BenchmarkResult => BenchmarkResult::fromArray($result), $baseData['aggregate'] ?? []);
+/** @var list<BenchmarkResult> $headResults */
+$headResults = array_map(static fn (array $result): BenchmarkResult => BenchmarkResult::fromArray($result), $headData['aggregate'] ?? []);
+
+$report = (new BenchmarkComparisonReport())->render($baseResults, $headResults, $baseLabel, $headLabel);
+
+if (is_string($outputPath) && $outputPath !== '') {
+    Filesystem::ensureDirectory(dirname($outputPath));
+
+    if (@file_put_contents($outputPath, $report) === false) {
+        throw new RuntimeException(sprintf('Failed to write benchmark comparison report: %s', $outputPath));
+    }
+}
+
+fwrite(STDOUT, $report);

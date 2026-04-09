@@ -7,7 +7,7 @@ namespace Phgrep\Parallel;
 final class ResultCollector
 {
     /**
-     * @param list<array{pid: int, socket: mixed}> $workers
+     * @param list<array{pid: int, socket: mixed, tempPath?: string}> $workers
      * @return list<mixed>
      */
     public function collect(array $workers): array
@@ -15,9 +15,30 @@ final class ResultCollector
         $results = [];
 
         foreach ($workers as $worker) {
+            $results[] = $this->collectWorker($worker);
+        }
+
+        return $results;
+    }
+
+    /**
+     * @param array{pid: int, socket: mixed, tempPath?: string} $worker
+     */
+    public function collectWorker(array $worker, bool $waitForExit = true): mixed
+    {
+        try {
+            if ($waitForExit) {
+                pcntl_waitpid($worker['pid'], $status);
+            }
+
+            $metadata = stream_get_meta_data($worker['socket']);
+
+            if ($metadata['seekable'] === true) {
+                rewind($worker['socket']);
+            }
+
             $data = stream_get_contents($worker['socket']);
             fclose($worker['socket']);
-            pcntl_waitpid($worker['pid'], $status);
 
             if ($data === false || $data === '') {
                 throw new \RuntimeException(sprintf('Worker %d produced no output.', $worker['pid']));
@@ -38,9 +59,11 @@ final class ResultCollector
                 ));
             }
 
-            $results[] = $payload['result'] ?? null;
+            return $payload['result'] ?? null;
+        } finally {
+            if (isset($worker['tempPath'])) {
+                @unlink($worker['tempPath']);
+            }
         }
-
-        return $results;
     }
 }

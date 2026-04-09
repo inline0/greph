@@ -8,7 +8,6 @@ use Phgrep\Ast\AstRewriter;
 use Phgrep\Ast\AstSearchOptions;
 use Phgrep\Ast\AstSearcher;
 use Phgrep\Ast\MetaVariable;
-use Phgrep\Ast\Pattern;
 use Phgrep\Ast\PatternMatcher;
 use Phgrep\Ast\Parsers\PhpParser;
 use Phgrep\Exceptions\ParseException;
@@ -79,25 +78,10 @@ final class AstCoverageTest extends TestCase
         $searcher = new AstSearcher();
         $expr = new Expr\ConstFetch(new Name('true'), ['startLine' => 1, 'endLine' => 1, 'startFilePos' => 5, 'endFilePos' => 1]);
         $statement = new Node\Stmt\Echo_([new Expr\Variable('value')]);
-        $matches = [];
+        /** @var \Phgrep\Ast\AstMatch $match */
+        $match = $this->invokePrivate($searcher, 'createMatch', $expr, [], '', $this->workspace . '/expr.php');
 
-        $this->invokePrivateWithArgs(
-            $searcher,
-            'visitNode',
-            [
-                $expr,
-                new Pattern($expr, true),
-                '',
-                $this->workspace . '/expr.php',
-                &$matches,
-            ],
-        );
-
-        /** @var list<\Phgrep\Ast\AstMatch> $matches */
-        $this->assertCount(1, $matches);
-        $firstMatch = $matches[0];
-
-        $this->assertSame('true', $firstMatch->code);
+        $this->assertSame('true', $match->code);
         $this->assertSame('true', $this->invokePrivate($searcher, 'renderNode', $expr));
         $this->assertStringContainsString('echo', $this->invokePrivate($searcher, 'renderNode', $statement));
     }

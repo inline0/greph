@@ -1,0 +1,165 @@
+name: Benchmark
+
+on:
+  workflow_dispatch:
+    inputs:
+      corpus:
+        description: Corpus to benchmark
+        required: false
+        default: wordpress
+        type: string
+      category:
+        description: Optional benchmark category filter
+        required: false
+        default: ""
+        type: string
+      repeat:
+        description: Number of measured runs
+        required: false
+        default: "5"
+        type: string
+      warmup:
+        description: Number of warmup runs
+        required: false
+        default: "1"
+        type: string
+      compare_ref:
+        description: Git ref to compare against
+        required: false
+        default: main
+        type: string
+  pull_request:
+    paths:
+      - "src/**"
+      - "benchmarks/**"
+      - "bin/**"
+      - "composer.json"
+      - "composer.lock"
+      - ".github/workflows/benchmark.yml"
+
+concurrency:
+  group: benchmark-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  benchmark:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    env:
+      HEAD_OUTPUT: build/benchmarks/head-series.json
+      BASE_OUTPUT: build/benchmarks/base-series.json
+      COMPARE_OUTPUT: build/benchmarks/comparison.md
+      CORPUS_ROOT: ${{ runner.temp }}/phgrep-corpora
+      BASE_WORKTREE: ${{ runner.temp }}/phgrep-base
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.4"
+          coverage: none
+          tools: composer:v2
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Install ripgrep
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes ripgrep
+
+      - name: Install ast-grep
+        run: npm install --global @ast-grep/cli
+
+      - name: Install dependencies
+        run: composer install --no-interaction --no-progress --prefer-dist
+
+      - name: Resolve benchmark settings
+        id: settings
+        shell: bash
+        run: |
+          if [[ "${GITHUB_EVENT_NAME}" == "pull_request" ]]; then
+            echo "compare_ref=${{ github.event.pull_request.base.sha }}" >> "$GITHUB_OUTPUT"
+            echo "repeat=3" >> "$GITHUB_OUTPUT"
+            echo "warmup=1" >> "$GITHUB_OUTPUT"
+            echo "corpus=wordpress" >> "$GITHUB_OUTPUT"
+            echo "category=" >> "$GITHUB_OUTPUT"
+          else
+            compare_ref="${{ inputs.compare_ref }}"
+            if [[ -z "$compare_ref" ]]; then
+              compare_ref="main"
+            fi
+            if [[ "$compare_ref" == "main" ]]; then
+              compare_ref="origin/main"
+            fi
+            echo "compare_ref=$compare_ref" >> "$GITHUB_OUTPUT"
+            echo "repeat=${{ inputs.repeat }}" >> "$GITHUB_OUTPUT"
+            echo "warmup=${{ inputs.warmup }}" >> "$GITHUB_OUTPUT"
+            echo "corpus=${{ inputs.corpus }}" >> "$GITHUB_OUTPUT"
+            echo "category=${{ inputs.category }}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Prepare WordPress corpus
+        shell: bash
+        run: |
+          mkdir -p "$CORPUS_ROOT"
+          if [[ ! -d "$CORPUS_ROOT/wordpress/.git" ]]; then
+            git clone --depth=1 https://github.com/WordPress/WordPress.git "$CORPUS_ROOT/wordpress"
+          else
+            git -C "$CORPUS_ROOT/wordpress" fetch --depth=1 origin HEAD
+            git -C "$CORPUS_ROOT/wordpress" reset --hard FETCH_HEAD
+          fi
+          mkdir -p benchmarks/corpora
+          ln -sfn "$CORPUS_ROOT/wordpress" benchmarks/corpora/wordpress
+
+      - name: Prepare base worktree
+        shell: bash
+        run: |
+          rm -rf "$BASE_WORKTREE"
+          git worktree add --detach "$BASE_WORKTREE" "${{ steps.settings.outputs.compare_ref }}"
+          mkdir -p "$BASE_WORKTREE/benchmarks/corpora"
+          ln -sfn "$CORPUS_ROOT/wordpress" "$BASE_WORKTREE/benchmarks/corpora/wordpress"
+          composer install --working-dir "$BASE_WORKTREE" --no-interaction --no-progress --prefer-dist
+
+      - name: Run head benchmark series
+        shell: bash
+        run: |
+          args=(--corpus "${{ steps.settings.outputs.corpus }}" --repeat "${{ steps.settings.outputs.repeat }}" --warmup "${{ steps.settings.outputs.warmup }}" --compare "rg,grep,sg" --output "$HEAD_OUTPUT")
+          if [[ -n "${{ steps.settings.outputs.category }}" ]]; then
+            args+=(--category "${{ steps.settings.outputs.category }}")
+          fi
+          php bin/bench-series "${args[@]}"
+
+      - name: Run base benchmark series
+        shell: bash
+        run: |
+          args=(--corpus "${{ steps.settings.outputs.corpus }}" --repeat "${{ steps.settings.outputs.repeat }}" --warmup "${{ steps.settings.outputs.warmup }}" --compare "rg,grep,sg" --output "$BASE_WORKTREE/$BASE_OUTPUT")
+          if [[ -n "${{ steps.settings.outputs.category }}" ]]; then
+            args+=(--category "${{ steps.settings.outputs.category }}")
+          fi
+          php "$BASE_WORKTREE/bin/bench-series" "${args[@]}"
+
+      - name: Compare benchmark series
+        shell: bash
+        run: |
+          php bin/bench-compare \
+            --base-label "${{ steps.settings.outputs.compare_ref }}" \
+            --head-label "${GITHUB_SHA}" \
+            --output "$COMPARE_OUTPUT" \
+            "$BASE_WORKTREE/$BASE_OUTPUT" \
+            "$HEAD_OUTPUT"
+          cat "$COMPARE_OUTPUT" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload benchmark artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: benchmark-${{ github.run_id }}
+          path: |
+            build/benchmarks
+            ${{ env.BASE_WORKTREE }}/${{ env.BASE_OUTPUT }}

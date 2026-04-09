@@ -1,0 +1,55 @@
+#!/usr/bin/env php
+<?php
+
+declare(strict_types=1);
+
+require __DIR__ . '/_bootstrap.php';
+
+use Phgrep\Benchmarks\BenchmarkReport;
+use Phgrep\Benchmarks\BenchmarkResult;
+use Phgrep\Benchmarks\BenchmarkSeriesRunner;
+use Phgrep\Support\Json;
+
+$category = null;
+$corpus = null;
+$outputPath = null;
+$repeat = 3;
+$warmup = 1;
+$compareTools = [];
+$arguments = array_slice($argv, 1);
+
+while ($arguments !== []) {
+    /** @var string $argument */
+    $argument = array_shift($arguments);
+
+    switch ($argument) {
+        case '--category':
+            $category = array_shift($arguments) ?: null;
+            break;
+        case '--corpus':
+            $corpus = array_shift($arguments) ?: null;
+            break;
+        case '--compare':
+            $compareTools = array_values(array_filter(explode(',', (string) (array_shift($arguments) ?: ''))));
+            break;
+        case '--repeat':
+            $repeat = max(1, (int) (array_shift($arguments) ?: 1));
+            break;
+        case '--warmup':
+            $warmup = max(0, (int) (array_shift($arguments) ?: 0));
+            break;
+        case '--output':
+            $outputPath = array_shift($arguments) ?: null;
+            break;
+    }
+}
+
+$series = (new BenchmarkSeriesRunner($phgrepRoot))->run($repeat, $warmup, $category, $corpus, $compareTools);
+
+if (is_string($outputPath) && $outputPath !== '') {
+    Json::encodeFile($outputPath, $series);
+}
+
+/** @var list<BenchmarkResult> $aggregate */
+$aggregate = array_map(static fn (array $result): BenchmarkResult => BenchmarkResult::fromArray($result), $series['aggregate']);
+fwrite(STDOUT, (new BenchmarkReport())->render($aggregate));

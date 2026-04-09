@@ -60,6 +60,39 @@ final class WorkerPoolTest extends TestCase
     }
 
     #[Test]
+    public function itPreservesChunkOrderAcrossQueuedWorkers(): void
+    {
+        if (!function_exists('pcntl_fork')) {
+            $this->markTestSkipped('pcntl is required for this test.');
+        }
+
+        $paths = [];
+
+        for ($index = 0; $index < 4; $index++) {
+            $paths[] = Workspace::writeFile($this->workspace, sprintf('queued-%d.txt', $index), (string) $index);
+        }
+
+        $chunks = array_map(static fn (string $path): FileList => new FileList([$path]), $paths);
+        $results = (new WorkerPool())->map(
+            $chunks,
+            static function (FileList $chunk): string {
+                $path = $chunk->paths()[0];
+                $index = (int) preg_replace('/\D+/', '', basename($path));
+
+                usleep((4 - $index) * 20_000);
+
+                return basename($path);
+            },
+            2,
+        );
+
+        $this->assertSame(
+            array_map(static fn (string $path): string => basename($path), $paths),
+            $results,
+        );
+    }
+
+    #[Test]
     public function itThrowsWhenSocketCreationFails(): void
     {
         $pool = new WorkerPool(
@@ -121,6 +154,6 @@ final class WorkerPoolTest extends TestCase
 
         $this->expectException(WorkerTermination::class);
 
-        $pool->map([new FileList(['/tmp/one.php']), new FileList(['/tmp/two.php'])], static fn (): int => 1);
+        $pool->map([new FileList(['/tmp/one.php']), new FileList(['/tmp/two.php'])], static fn (): int => 1, 2);
     }
 }

@@ -46,6 +46,7 @@ final class Phgrep
         $results = (new WorkerPool())->map(
             $chunks,
             static fn (FileList $chunk): array => $searcher->searchFiles($chunk, $pattern, $options),
+            $options->jobs,
         );
 
         $flattened = [];
@@ -77,6 +78,7 @@ final class Phgrep
         $results = (new WorkerPool())->map(
             $chunks,
             static fn (FileList $chunk): array => $searcher->searchFiles($chunk, $pattern, $options),
+            $options->jobs,
         );
 
         $flattened = [];
@@ -117,6 +119,7 @@ final class Phgrep
         $results = (new WorkerPool())->map(
             $chunks,
             static fn (FileList $chunk): array => $rewriter->rewriteFiles($chunk, $searchPattern, $rewritePattern, $options),
+            $options->jobs,
         );
 
         $flattened = [];

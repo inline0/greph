@@ -40,4 +40,24 @@ final readonly class BenchmarkResult
             'skip_reason' => $this->skipReason,
         ];
     }
+
+    /**
+     * @param array<string, mixed> $data
+     */
+    public static function fromArray(array $data): self
+    {
+        return new self(
+            category: (string) $data['category'],
+            suite: (string) $data['suite'],
+            operation: (string) $data['operation'],
+            corpus: (string) $data['corpus'],
+            tool: (string) $data['tool'],
+            durationMs: (float) $data['duration_ms'],
+            memoryBytes: (int) $data['memory_bytes'],
+            fileCount: (int) $data['file_count'],
+            matchCount: (int) $data['match_count'],
+            skipped: (bool) $data['skipped'],
+            skipReason: isset($data['skip_reason']) ? (string) $data['skip_reason'] : null,
+        );
+    }
 }
