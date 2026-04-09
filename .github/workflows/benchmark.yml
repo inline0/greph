@@ -38,7 +38,7 @@ on:
       - ".github/workflows/benchmark.yml"
 
 concurrency:
-  group: benchmark-${{ github.workflow }}-${{ github.ref }}
+  group: benchmark-${{ github.workflow }}-${{ github.ref }}-${{ github.event_name }}-${{ github.event.inputs.category || 'all' }}-${{ github.event.inputs.compare_ref || 'base' }}
   cancel-in-progress: true
 
 jobs:
