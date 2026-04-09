@@ -17,6 +17,7 @@ final class RegexSearcher implements TextMatcher
         private readonly bool $caseInsensitive = false,
         bool $wholeWord = false,
         private readonly ?string $literalPrefilter = null,
+        private readonly ?string $lineLiteralPrefilter = null,
     ) {
         if ($wholeWord) {
             $pattern = '(?<![\pL\pN_])(?:' . $pattern . ')(?![\pL\pN_])';
@@ -67,6 +68,13 @@ final class RegexSearcher implements TextMatcher
 
     public function matchPrefilteredLine(string $line): ?LineMatch
     {
+        if (
+            $this->lineLiteralPrefilter !== null
+            && $this->findLinePrefilterInContents($line) === false
+        ) {
+            return null;
+        }
+
         $matches = [];
         $matched = @preg_match($this->regex, $line, $matches, PREG_OFFSET_CAPTURE);
 
@@ -88,6 +96,17 @@ final class RegexSearcher implements TextMatcher
         }
 
         return new LineMatch($firstMatch[1] + 1, $firstMatch[0], $captures);
+    }
+
+    public function findLinePrefilterInContents(string $contents): int|false
+    {
+        if ($this->lineLiteralPrefilter === null || $this->lineLiteralPrefilter === '') {
+            return false;
+        }
+
+        return $this->caseInsensitive
+            ? stripos($contents, $this->lineLiteralPrefilter)
+            : strpos($contents, $this->lineLiteralPrefilter);
     }
 
     private function wrapPattern(string $pattern, string $modifiers): string

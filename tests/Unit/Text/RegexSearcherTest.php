@@ -57,12 +57,19 @@ final class RegexSearcherTest extends TestCase
     #[Test]
     public function itExposesOccurrenceScanningHelpersForLiteralPrefilters(): void
     {
-        $searcher = new RegexSearcher('\$[A-Za-z_][A-Za-z0-9_]* = new [A-Za-z_][A-Za-z0-9_]*\(\)', literalPrefilter: ' = new ');
+        $searcher = new RegexSearcher(
+            '\$[A-Za-z_][A-Za-z0-9_]* = new [A-Za-z_][A-Za-z0-9_]*\(\)',
+            literalPrefilter: ' = new ',
+            lineLiteralPrefilter: '()',
+        );
 
         $this->assertTrue($searcher->supportsOccurrenceScan());
         $this->assertSame(3, $searcher->findPrefilterInContents("abc = new Foo()\n"));
         $this->assertFalse($searcher->findPrefilterInContents("abc = old Foo()\n"));
+        $this->assertSame(14, $searcher->findLinePrefilterInContents('$foo = new Bar()'));
+        $this->assertFalse($searcher->findLinePrefilterInContents('$foo = new Bar('));
         $this->assertNotNull($searcher->matchPrefilteredLine('$foo = new Bar()'));
+        $this->assertNull($searcher->matchPrefilteredLine('$foo = new Bar('));
         $this->assertNull($searcher->matchPrefilteredLine('$foo = old Bar()'));
         $this->assertFalse((new RegexSearcher('^save$'))->supportsOccurrenceScan());
     }
