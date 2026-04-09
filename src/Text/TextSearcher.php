@@ -60,51 +60,12 @@ final class TextSearcher
             return new LiteralSearcher($pattern, $options->caseInsensitive, $options->wholeWord);
         }
 
-        $segments = $this->literalExtractor->extractSegments($pattern);
-        $literalPrefilter = $this->selectSeedLiteral($segments);
-
         return new RegexSearcher(
             $pattern,
             $options->caseInsensitive,
             $options->wholeWord,
-            $literalPrefilter,
-            $this->selectLineLiteral($segments, $literalPrefilter),
+            $this->literalExtractor->extract($pattern),
         );
-    }
-
-    /**
-     * @param list<string> $segments
-     */
-    private function selectSeedLiteral(array $segments): ?string
-    {
-        if ($segments === []) {
-            return null;
-        }
-
-        usort(
-            $segments,
-            static fn (string $left, string $right): int => strlen($right) <=> strlen($left)
-        );
-
-        return $segments[0];
-    }
-
-    /**
-     * @param list<string> $segments
-     */
-    private function selectLineLiteral(array $segments, ?string $seedLiteral): ?string
-    {
-        if ($seedLiteral === null) {
-            return null;
-        }
-
-        for ($index = count($segments) - 1; $index >= 0; $index--) {
-            if ($segments[$index] !== $seedLiteral) {
-                return $segments[$index];
-            }
-        }
-
-        return null;
     }
 
     private function searchFile(

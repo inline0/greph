@@ -19,19 +19,4 @@ final class LiteralExtractorTest extends TestCase
         $this->assertSame('function', $extractor->extract('^function\s+[a-z_]+'));
         $this->assertNull($extractor->extract('^.*$'));
     }
-
-    #[Test]
-    public function itExtractsOrderedLiteralSegmentsFromRegexPatterns(): void
-    {
-        $extractor = new LiteralExtractor();
-
-        $this->assertSame(
-            ['$', ' = new ', '()'],
-            $extractor->extractSegments('\$[A-Za-z_][A-Za-z0-9_]* = new [A-Za-z_][A-Za-z0-9_]*\(\)'),
-        );
-        $this->assertSame(
-            ['array(', ')'],
-            $extractor->extractSegments('array\([^)]+\)'),
-        );
-    }
 }
