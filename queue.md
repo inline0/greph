@@ -136,14 +136,34 @@ These are not queue items anymore; they are the current floor:
     - `Indexed array($$$ITEMS)` showed a `-3.13%` win even under same-commit interleaved noise
     - both ops remained well ahead of `sg`
 
-- `087f13f` pending
+- `087f13f` keep
   - CI run: `24199029070`
   - compare: `645a27d` -> `087f13f` on `ast-cached`
-  - local directional snapshot:
-    - `Cached new $CLASS()` about `1248.46ms`
-    - `Cached array($$$ITEMS)` about `2637.02ms`
-    - cache build about `11041.35ms`
-    - cache size on WordPress about `55MB`
+  - headline:
+    - `Cached new $CLASS()` `1449.60ms`
+    - `Cached array($$$ITEMS)` `3038.64ms`
+  - note:
+    - dedicated build baseline from `24199230519`: `Build cached AST store` `8921.49ms`
+    - cached AST remained materially faster than fact-indexed AST on both benchmark families
+
+- `ecb7d8a` reject
+  - CI run: `24200238795`
+  - compare: `f470b37` -> `ecb7d8a` on `parallel`
+  - headline:
+    - `1 worker` `+0.84%`
+    - `2 workers` `-0.42%`
+    - `4 workers` `-1.73%`
+  - note: sparse worker payloads looked better locally but did not clear the CI noise threshold
+
+- `303d9ae` keep
+  - CI run: `24200489866`
+  - compare: `3e991a4` -> `303d9ae` on `parallel`
+  - headline:
+    - `2 workers` `-49.83%`
+    - `4 workers` `-53.79%`
+  - note:
+    - broad short fixed-string text searches now fall back to the faster single-process path
+    - `1 worker` stayed flat at `-0.88%`
 
 ## Phase 1: Scan-Mode Text Search
 
@@ -157,9 +177,9 @@ The goal here is to finish the remaining one-shot grep-style optimizations befor
 - [ ] Add a short-query strategy for 1-2 byte literals instead of pretending current fixed-string heuristics are enough.
 - [ ] Benchmark larger buffered reads for regex-heavy scans only.
 - [ ] Reduce string splitting and copying in the no-context regex path.
-- [ ] Add a count-only fast path for scan mode that avoids full match payload materialization when possible.
-- [ ] Add a files-with-matches fast path for scan mode that exits per file after the first proof.
-- [ ] Add a files-without-matches fast path for scan mode that exits per file after the first proof.
+- [x] Add a count-only fast path for scan mode that avoids full match payload materialization when possible.
+- [x] Add a files-with-matches fast path for scan mode that exits per file after the first proof.
+- [x] Add a files-without-matches fast path for scan mode that exits per file after the first proof.
 - [ ] Add a pure-existence fast path so exit-code-only calls do not pay formatting costs.
 - [ ] Re-measure formatting cost after search-path wins land so output generation is not hiding as the next bottleneck.
 
@@ -217,21 +237,21 @@ The current trigram mode still behaves mostly like "candidate filter plus verifi
 
 AST is already in a good place relative to `sg`, but parser cost still dominates. The goal here is to finish the remaining cold-scan AST wins before building AST indexing.
 
-- [ ] Compile a root-node strategy per AST pattern so matching starts from the narrowest legal node class.
-- [ ] Add root-name filters for common call-style patterns:
+- [x] Compile a root-node strategy per AST pattern so matching starts from the narrowest legal node class.
+- [x] Add root-name filters for common call-style patterns:
   - function calls
   - method calls
   - static calls
   - constructors
-- [ ] Add stronger lexical prefilters for common benchmark families before parse:
+- [x] Add stronger lexical prefilters for common benchmark families before parse:
   - `new`
   - `array(...)`
   - `[]`
   - method call tokens
   - function call tokens
-- [ ] Add cheaper scalar and literal-subnode root checks before the full structural matcher runs.
-- [ ] Delay expensive capture or code materialization until output actually needs it.
-- [ ] Add a count-only / existence-focused AST internal path where full match objects are unnecessary.
+- [x] Add cheaper scalar and literal-subnode root checks before the full structural matcher runs.
+- [x] Delay expensive capture or code materialization until output actually needs it.
+- [x] Add a count-only / existence-focused AST internal path where full match objects are unnecessary.
 - [ ] Test parser reuse or pooled parser state if the parser library allows it without correctness risk.
 - [ ] Re-run `ast`, `ast-internal`, and `ast-parse` together after every accepted AST scan win so parser and matcher effects stay separated.
 
@@ -245,13 +265,13 @@ This is the AST equivalent of indexed text mode. It should remain a separate pro
   - separate command or flag
   - explicit refresh behavior
   - explicit fallback behavior
-- [ ] Keep cached/indexed AST benchmark tables separate from scan-mode AST tables.
-- [ ] Decide whether cached/indexed AST lives under the same root index directory or a sibling AST-specific index.
+- [x] Keep cached/indexed AST benchmark tables separate from scan-mode AST tables.
+- [x] Decide whether cached/indexed AST lives under the same root index directory or a sibling AST-specific index.
 
 ### Cache And Fact Store
 
-- [ ] Add per-file AST cache records keyed by path plus freshness metadata.
-- [ ] Decide whether freshness uses:
+- [x] Add per-file AST cache records keyed by path plus freshness metadata.
+- [x] Decide whether freshness uses:
   - `size + mtime`
   - optional content hash
   - both
@@ -275,15 +295,15 @@ This is the AST equivalent of indexed text mode. It should remain a separate pro
   - cached parse reuse
   - fact-table candidate pruning plus parse
 - [ ] Add a cold-fallback rule when the cache is stale or missing.
-- [ ] Add candidate-file pruning from AST facts before parse.
+- [x] Add candidate-file pruning from AST facts before parse.
 - [ ] Add candidate-node pruning from AST facts before full structural match where possible.
 
 ### Incremental Refresh
 
-- [ ] Add cached-AST build benchmarks.
-- [ ] Add cached-AST warm-query benchmarks.
+- [x] Add cached-AST build benchmarks.
+- [x] Add cached-AST warm-query benchmarks.
 - [ ] Add cached-AST dirty-refresh benchmarks.
-- [ ] Add add/change/delete/rename refresh handling for AST cache records.
+- [x] Add add/change/delete/rename refresh handling for AST cache records.
 - [ ] Add compaction and corruption handling for AST cache state.
 - [ ] Add locking and atomic swap rules matching the text index guarantees.
 
@@ -327,7 +347,7 @@ Parallel work should only survive if it produces real CI wins after scan and ind
 - [ ] Add explicit spread reporting to CI summaries so small deltas can be interpreted faster.
 - [ ] Add a quick helper or convention for comparing the current branch against the last accepted performance commit.
 - [ ] Make sure every new benchmark category has both local smoke support and CI support.
-- [ ] Add cached/indexed AST categories to the workflow as soon as the first implementation slice exists.
+- [x] Add cached/indexed AST categories to the workflow as soon as the first implementation slice exists.
 - [ ] Keep a compact accepted / rejected experiment log in this file so the final pass is auditable.
 - [ ] When this queue is exhausted, update `README.md` once with final:
   - scan-mode table
