@@ -8,7 +8,10 @@ use Phgrep\Ast\AstMatch;
 use Phgrep\Ast\AstRewriter;
 use Phgrep\Ast\AstSearchOptions;
 use Phgrep\Ast\AstSearcher;
+use Phgrep\Index\AstIndexBuildResult;
+use Phgrep\Index\AstIndexBuilder;
 use Phgrep\Index\IndexBuildResult;
+use Phgrep\Index\IndexedAstSearcher;
 use Phgrep\Index\IndexedTextSearcher;
 use Phgrep\Index\TextIndexBuilder;
 use Phgrep\Ast\RewriteResult;
@@ -84,6 +87,16 @@ final class Phgrep
         return (new TextIndexBuilder())->refresh($rootPath, $indexPath);
     }
 
+    public static function buildAstIndex(string $rootPath = '.', ?string $indexPath = null): AstIndexBuildResult
+    {
+        return (new AstIndexBuilder())->build($rootPath, $indexPath);
+    }
+
+    public static function refreshAstIndex(string $rootPath = '.', ?string $indexPath = null): AstIndexBuildResult
+    {
+        return (new AstIndexBuilder())->refresh($rootPath, $indexPath);
+    }
+
     /**
      * @param string|list<string> $paths
      * @return list<TextFileResult>
@@ -134,6 +147,21 @@ final class Phgrep
         );
 
         return $flattened;
+    }
+
+    /**
+     * @param string|list<string> $paths
+     * @return list<AstMatch>
+     */
+    public static function searchAstIndexed(
+        string $pattern,
+        string|array $paths,
+        ?AstSearchOptions $options = null,
+        ?string $indexPath = null,
+    ): array {
+        $options ??= new AstSearchOptions();
+
+        return (new IndexedAstSearcher())->search($pattern, $paths, $options, $indexPath);
     }
 
     /**
