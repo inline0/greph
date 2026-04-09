@@ -84,7 +84,7 @@ final class Filesystem
     public static function relativePath(string $basePath, string $path): string
     {
         $basePath = self::normalizePath(realpath($basePath) ?: $basePath);
-        $path = self::normalizePath(realpath($path) ?: $path);
+        $path = self::normalizePath($path);
 
         if ($path === $basePath) {
             return '.';

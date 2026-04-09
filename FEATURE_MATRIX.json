@@ -1,5 +1,5 @@
 {
-    "generated_at": "2026-04-09T22:05:42+00:00",
+    "generated_at": "2026-04-09T22:25:28+00:00",
     "root_path": "/Users/dennis/Local Sites/fabrikat/inline0/phgrep",
     "sections": [
         {
@@ -229,7 +229,7 @@
                                 "."
                             ],
                             "exit_code": 0,
-                            "stdout": "./context.txt\n./words.txt\n./counts.txt\n./invert.txt\n./single.txt\n",
+                            "stdout": "./invert.txt\n./single.txt\n./counts.txt\n./context.txt\n./words.txt\n",
                             "stderr": "",
                             "note": ""
                         },
@@ -317,6 +317,80 @@
                             ],
                             "exit_code": 0,
                             "stdout": "before\nneedle\nafter\n",
+                            "stderr": "",
+                            "note": ""
+                        }
+                    }
+                },
+                {
+                    "feature": "Before-context alias",
+                    "notes": "Probe: `-F -B 1 needle context.txt`",
+                    "results": {
+                        "rg": {
+                            "status": "Pass",
+                            "command": [
+                                "/Users/dennis/.nvm/versions/node/v22.17.0/lib/node_modules/@openai/codex/node_modules/@openai/codex-darwin-arm64/vendor/aarch64-apple-darwin/path/rg",
+                                "-F",
+                                "-B",
+                                "1",
+                                "needle",
+                                "context.txt"
+                            ],
+                            "exit_code": 0,
+                            "stdout": "before\nneedle\n",
+                            "stderr": "",
+                            "note": ""
+                        },
+                        "bin/rg": {
+                            "status": "Pass",
+                            "command": [
+                                "/opt/homebrew/Cellar/php/8.4.5_1/bin/php",
+                                "/Users/dennis/Local Sites/fabrikat/inline0/phgrep/bin/rg",
+                                "-F",
+                                "-B",
+                                "1",
+                                "needle",
+                                "context.txt"
+                            ],
+                            "exit_code": 0,
+                            "stdout": "before\nneedle\n",
+                            "stderr": "",
+                            "note": ""
+                        }
+                    }
+                },
+                {
+                    "feature": "After-context alias",
+                    "notes": "Probe: `-F -A 1 needle context.txt`",
+                    "results": {
+                        "rg": {
+                            "status": "Pass",
+                            "command": [
+                                "/Users/dennis/.nvm/versions/node/v22.17.0/lib/node_modules/@openai/codex/node_modules/@openai/codex-darwin-arm64/vendor/aarch64-apple-darwin/path/rg",
+                                "-F",
+                                "-A",
+                                "1",
+                                "needle",
+                                "context.txt"
+                            ],
+                            "exit_code": 0,
+                            "stdout": "needle\nafter\n",
+                            "stderr": "",
+                            "note": ""
+                        },
+                        "bin/rg": {
+                            "status": "Pass",
+                            "command": [
+                                "/opt/homebrew/Cellar/php/8.4.5_1/bin/php",
+                                "/Users/dennis/Local Sites/fabrikat/inline0/phgrep/bin/rg",
+                                "-F",
+                                "-A",
+                                "1",
+                                "needle",
+                                "context.txt"
+                            ],
+                            "exit_code": 0,
+                            "stdout": "needle\nafter\n",
                             "stderr": "",
                             "note": ""
                         }
@@ -618,7 +692,7 @@
                                 "."
                             ],
                             "exit_code": 0,
-                            "stdout": "./src/Other.txt:function ignored\n./vendor/Ignored.php:dispatch($ignored);\n./vendor/ignored.txt:ignored needle\n",
+                            "stdout": "./src/Other.txt:function ignored\n./vendor/ignored.txt:ignored needle\n./vendor/Ignored.php:dispatch($ignored);\n",
                             "stderr": "",
                             "note": ""
                         },
@@ -634,6 +708,41 @@
                             ],
                             "exit_code": 0,
                             "stdout": "./vendor/Ignored.php:dispatch($ignored);\n./vendor/ignored.txt:ignored needle\n./src/Other.txt:function ignored\n",
+                            "stderr": "",
+                            "note": ""
+                        }
+                    }
+                },
+                {
+                    "feature": "Follow symlinks",
+                    "notes": "Probe: `-L -F needle .`",
+                    "results": {
+                        "rg": {
+                            "status": "Pass",
+                            "command": [
+                                "/Users/dennis/.nvm/versions/node/v22.17.0/lib/node_modules/@openai/codex/node_modules/@openai/codex-darwin-arm64/vendor/aarch64-apple-darwin/path/rg",
+                                "-L",
+                                "-F",
+                                "needle",
+                                "."
+                            ],
+                            "exit_code": 0,
+                            "stdout": "./context.txt:needle\n./words.txt:needle\n./words.txt:needles\n./counts.txt:needle\n./counts.txt:needle\n./invert.txt:needle\n./single.txt:needle\n./link-to-single.txt:needle\n",
+                            "stderr": "",
+                            "note": ""
+                        },
+                        "bin/rg": {
+                            "status": "Pass",
+                            "command": [
+                                "/opt/homebrew/Cellar/php/8.4.5_1/bin/php",
+                                "/Users/dennis/Local Sites/fabrikat/inline0/phgrep/bin/rg",
+                                "-L",
+                                "-F",
+                                "needle",
+                                "."
+                            ],
+                            "exit_code": 0,
+                            "stdout": "./link-to-single.txt:needle\n./single.txt:needle\n./invert.txt:needle\n./counts.txt:needle\n./counts.txt:needle\n./words.txt:needle\n./words.txt:needles\n./context.txt:needle\n",
                             "stderr": "",
                             "note": ""
                         }
@@ -671,6 +780,74 @@
                     }
                 },
                 {
+                    "feature": "--files hidden traversal",
+                    "notes": "Probe: `--files --hidden .`",
+                    "results": {
+                        "rg": {
+                            "status": "Pass",
+                            "command": [
+                                "/Users/dennis/.nvm/versions/node/v22.17.0/lib/node_modules/@openai/codex/node_modules/@openai/codex-darwin-arm64/vendor/aarch64-apple-darwin/path/rg",
+                                "--files",
+                                "--hidden",
+                                "."
+                            ],
+                            "exit_code": 0,
+                            "stdout": "./src/Other.txt\n./src/App.php\n./context.txt\n./words.txt\n./counts.txt\n./invert.txt\n./.gitignore\n./single.txt\n./unmatched.txt\n./notes.txt\n./.hidden/secret.txt\n./.hidden/Hidden.php\n",
+                            "stderr": "",
+                            "note": ""
+                        },
+                        "bin/rg": {
+                            "status": "Pass",
+                            "command": [
+                                "/opt/homebrew/Cellar/php/8.4.5_1/bin/php",
+                                "/Users/dennis/Local Sites/fabrikat/inline0/phgrep/bin/rg",
+                                "--files",
+                                "--hidden",
+                                "."
+                            ],
+                            "exit_code": 0,
+                            "stdout": "./.gitignore\n./.hidden/Hidden.php\n./.hidden/secret.txt\n./context.txt\n./counts.txt\n./invert.txt\n./notes.txt\n./single.txt\n./src/App.php\n./src/Other.txt\n./unmatched.txt\n./words.txt\n",
+                            "stderr": "",
+                            "note": ""
+                        }
+                    }
+                },
+                {
+                    "feature": "--files type filter",
+                    "notes": "Probe: `--files --type php .`",
+                    "results": {
+                        "rg": {
+                            "status": "Pass",
+                            "command": [
+                                "/Users/dennis/.nvm/versions/node/v22.17.0/lib/node_modules/@openai/codex/node_modules/@openai/codex-darwin-arm64/vendor/aarch64-apple-darwin/path/rg",
+                                "--files",
+                                "--type",
+                                "php",
+                                "."
+                            ],
+                            "exit_code": 0,
+                            "stdout": "./src/App.php\n",
+                            "stderr": "",
+                            "note": ""
+                        },
+                        "bin/rg": {
+                            "status": "Pass",
+                            "command": [
+                                "/opt/homebrew/Cellar/php/8.4.5_1/bin/php",
+                                "/Users/dennis/Local Sites/fabrikat/inline0/phgrep/bin/rg",
+                                "--files",
+                                "--type",
+                                "php",
+                                "."
+                            ],
+                            "exit_code": 0,
+                            "stdout": "./src/App.php\n",
+                            "stderr": "",
+                            "note": ""
+                        }
+                    }
+                },
+                {
                     "feature": "Structured JSON output",
                     "notes": "Probe: `--json -F needle single.txt` using ripgrep JSON-event semantics",
                     "results": {
@@ -684,7 +861,7 @@
                                 "single.txt"
                             ],
                             "exit_code": 0,
-                            "stdout": "{\"type\":\"begin\",\"data\":{\"path\":{\"text\":\"single.txt\"}}}\n{\"type\":\"match\",\"data\":{\"path\":{\"text\":\"single.txt\"},\"lines\":{\"text\":\"needle\\n\"},\"line_number\":2,\"absolute_offset\":6,\"submatches\":[{\"match\":{\"text\":\"needle\"},\"start\":0,\"end\":6}]}}\n{\"type\":\"end\",\"data\":{\"path\":{\"text\":\"single.txt\"},\"binary_offset\":null,\"stats\":{\"elapsed\":{\"secs\":0,\"nanos\":592542,\"human\":\"0.000593s\"},\"searches\":1,\"searches_with_match\":1,\"bytes_searched\":20,\"bytes_printed\":235,\"matched_lines\":1,\"matches\":1}}}\n{\"data\":{\"elapsed_total\":{\"human\":\"0.001290s\",\"nanos\":1290333,\"secs\":0},\"stats\":{\"bytes_printed\":235,\"bytes_searched\":\n...[truncated]\n",
+                            "stdout": "{\"type\":\"begin\",\"data\":{\"path\":{\"text\":\"single.txt\"}}}\n{\"type\":\"match\",\"data\":{\"path\":{\"text\":\"single.txt\"},\"lines\":{\"text\":\"needle\\n\"},\"line_number\":2,\"absolute_offset\":6,\"submatches\":[{\"match\":{\"text\":\"needle\"},\"start\":0,\"end\":6}]}}\n{\"type\":\"end\",\"data\":{\"path\":{\"text\":\"single.txt\"},\"binary_offset\":null,\"stats\":{\"elapsed\":{\"secs\":0,\"nanos\":64583,\"human\":\"0.000065s\"},\"searches\":1,\"searches_with_match\":1,\"bytes_searched\":20,\"bytes_printed\":235,\"matched_lines\":1,\"matches\":1}}}\n{\"data\":{\"elapsed_total\":{\"human\":\"0.000877s\",\"nanos\":876500,\"secs\":0},\"stats\":{\"bytes_printed\":235,\"bytes_searched\":20\n...[truncated]\n",
                             "stderr": "",
                             "note": ""
                         },
@@ -1093,6 +1270,50 @@
                     }
                 },
                 {
+                    "feature": "Thread flag",
+                    "notes": "Probe: `run --threads 2 --pattern $CLIENT->send($MESSAGE) src/App.php`",
+                    "results": {
+                        "sg": {
+                            "status": "Pass",
+                            "command": [
+                                "/Users/dennis/.nvm/versions/node/v22.17.0/bin/npm",
+                                "exec",
+                                "--yes",
+                                "--package=@ast-grep/cli",
+                                "sg",
+                                "--",
+                                "run",
+                                "--threads",
+                                "2",
+                                "--pattern",
+                                "$CLIENT->send($MESSAGE)",
+                                "src/App.php"
+                            ],
+                            "exit_code": 0,
+                            "stdout": "src/App.php:6:$client->send($message);\n",
+                            "stderr": "",
+                            "note": ""
+                        },
+                        "bin/sg": {
+                            "status": "Pass",
+                            "command": [
+                                "/opt/homebrew/Cellar/php/8.4.5_1/bin/php",
+                                "/Users/dennis/Local Sites/fabrikat/inline0/phgrep/bin/sg",
+                                "run",
+                                "--threads",
+                                "2",
+                                "--pattern",
+                                "$CLIENT->send($MESSAGE)",
+                                "src/App.php"
+                            ],
+                            "exit_code": 0,
+                            "stdout": "src/App.php:6:$client->send($message);\n",
+                            "stderr": "",
+                            "note": ""
+                        }
+                    }
+                },
+                {
                     "feature": "Rewrite dry-run",
                     "notes": "Probe: `run --pattern array($$$ITEMS) --rewrite [$$$ITEMS] src/App.php` without `--update-all`",
                     "results": {
@@ -1229,6 +1450,129 @@
             ]
         },
         {
+            "title": "sg Wrapper-only Surface (bin/sg only)",
+            "providers": [
+                "bin/sg"
+            ],
+            "rows": [
+                {
+                    "feature": "Hidden traversal",
+                    "notes": "Probe: `run --hidden --pattern dispatch($EVENT) .`",
+                    "results": {
+                        "bin/sg": {
+                            "status": "Pass",
+                            "command": [
+                                "/opt/homebrew/Cellar/php/8.4.5_1/bin/php",
+                                "/Users/dennis/Local Sites/fabrikat/inline0/phgrep/bin/sg",
+                                "run",
+                                "--hidden",
+                                "--pattern",
+                                "dispatch($EVENT)",
+                                "."
+                            ],
+                            "exit_code": 0,
+                            "stdout": ".hidden/Hidden.php:2:dispatch($hidden);\nsrc/App.php:7:dispatch($event);\n",
+                            "stderr": "",
+                            "note": ""
+                        }
+                    }
+                },
+                {
+                    "feature": "Scan alias",
+                    "notes": "Probe: `scan -p array($$$ITEMS) src/App.php`",
+                    "results": {
+                        "bin/sg": {
+                            "status": "Pass",
+                            "command": [
+                                "/opt/homebrew/Cellar/php/8.4.5_1/bin/php",
+                                "/Users/dennis/Local Sites/fabrikat/inline0/phgrep/bin/sg",
+                                "scan",
+                                "-p",
+                                "array($$$ITEMS)",
+                                "src/App.php"
+                            ],
+                            "exit_code": 0,
+                            "stdout": "src/App.php:5:$items = array(1, 2, 3);\n",
+                            "stderr": "",
+                            "note": ""
+                        }
+                    }
+                },
+                {
+                    "feature": "Rewrite alias dry preview",
+                    "notes": "Probe: `rewrite -p array($$$ITEMS) -r [$$$ITEMS] --dry-run src/App.php`",
+                    "results": {
+                        "bin/sg": {
+                            "status": "Pass",
+                            "command": [
+                                "/opt/homebrew/Cellar/php/8.4.5_1/bin/php",
+                                "/Users/dennis/Local Sites/fabrikat/inline0/phgrep/bin/sg",
+                                "rewrite",
+                                "-p",
+                                "array($$$ITEMS)",
+                                "-r",
+                                "[$$$ITEMS]",
+                                "--dry-run",
+                                "src/App.php"
+                            ],
+                            "exit_code": 0,
+                            "stdout": "src/App.php\n@@ -5,1 +5,1 @@\n-$items = array(1, 2, 3);\n+$items = [1, 2, 3];\n",
+                            "stderr": "",
+                            "note": ""
+                        }
+                    }
+                },
+                {
+                    "feature": "Rewrite alias interactive accept",
+                    "notes": "Probe: `rewrite -p array($$$ITEMS) -r [$$$ITEMS] --interactive src/App.php` with `y`",
+                    "results": {
+                        "bin/sg": {
+                            "status": "Pass",
+                            "command": [
+                                "/opt/homebrew/Cellar/php/8.4.5_1/bin/php",
+                                "/Users/dennis/Local Sites/fabrikat/inline0/phgrep/bin/sg",
+                                "rewrite",
+                                "-p",
+                                "array($$$ITEMS)",
+                                "-r",
+                                "[$$$ITEMS]",
+                                "--interactive",
+                                "src/App.php"
+                            ],
+                            "exit_code": 0,
+                            "stdout": "Rewrite /private<workspace>/src/App.php? [y/N] src/App.php\n",
+                            "stderr": "",
+                            "note": ""
+                        }
+                    }
+                },
+                {
+                    "feature": "Rewrite alias interactive decline",
+                    "notes": "Probe: `rewrite -p array($$$ITEMS) -r [$$$ITEMS] --interactive src/App.php` with `n`",
+                    "results": {
+                        "bin/sg": {
+                            "status": "Pass",
+                            "command": [
+                                "/opt/homebrew/Cellar/php/8.4.5_1/bin/php",
+                                "/Users/dennis/Local Sites/fabrikat/inline0/phgrep/bin/sg",
+                                "rewrite",
+                                "-p",
+                                "array($$$ITEMS)",
+                                "-r",
+                                "[$$$ITEMS]",
+                                "--interactive",
+                                "src/App.php"
+                            ],
+                            "exit_code": 0,
+                            "stdout": "Rewrite /private<workspace>/src/App.php? [y/N] ",
+                            "stderr": "",
+                            "note": ""
+                        }
+                    }
+                }
+            ]
+        },
+        {
             "title": "Native phgrep Surface",
             "providers": [
                 "bin/phgrep"
@@ -1256,6 +1600,176 @@
                     }
                 },
                 {
+                    "feature": "Native text count mode",
+                    "notes": "Probe: `-F -c needle counts.txt`",
+                    "results": {
+                        "bin/phgrep": {
+                            "status": "Pass",
+                            "command": [
+                                "/opt/homebrew/Cellar/php/8.4.5_1/bin/php",
+                                "/Users/dennis/Local Sites/fabrikat/inline0/phgrep/bin/phgrep",
+                                "-F",
+                                "-c",
+                                "needle",
+                                "counts.txt"
+                            ],
+                            "exit_code": 0,
+                            "stdout": "2\n",
+                            "stderr": "",
+                            "note": ""
+                        }
+                    }
+                },
+                {
+                    "feature": "Native files with matches",
+                    "notes": "Probe: `-F -l needle .`",
+                    "results": {
+                        "bin/phgrep": {
+                            "status": "Pass",
+                            "command": [
+                                "/opt/homebrew/Cellar/php/8.4.5_1/bin/php",
+                                "/Users/dennis/Local Sites/fabrikat/inline0/phgrep/bin/phgrep",
+                                "-F",
+                                "-l",
+                                "needle",
+                                "."
+                            ],
+                            "exit_code": 0,
+                            "stdout": "single.txt\ninvert.txt\ncounts.txt\nwords.txt\ncontext.txt\n",
+                            "stderr": "",
+                            "note": ""
+                        }
+                    }
+                },
+                {
+                    "feature": "Native text context lines",
+                    "notes": "Probe: `-F -C 1 needle context.txt`",
+                    "results": {
+                        "bin/phgrep": {
+                            "status": "Pass",
+                            "command": [
+                                "/opt/homebrew/Cellar/php/8.4.5_1/bin/php",
+                                "/Users/dennis/Local Sites/fabrikat/inline0/phgrep/bin/phgrep",
+                                "-F",
+                                "-C",
+                                "1",
+                                "needle",
+                                "context.txt"
+                            ],
+                            "exit_code": 0,
+                            "stdout": "1-before\n2:needle\n3-after\n",
+                            "stderr": "",
+                            "note": ""
+                        }
+                    }
+                },
+                {
+                    "feature": "Native text max count",
+                    "notes": "Probe: `-F -m 1 needle counts.txt`",
+                    "results": {
+                        "bin/phgrep": {
+                            "status": "Pass",
+                            "command": [
+                                "/opt/homebrew/Cellar/php/8.4.5_1/bin/php",
+                                "/Users/dennis/Local Sites/fabrikat/inline0/phgrep/bin/phgrep",
+                                "-F",
+                                "-m",
+                                "1",
+                                "needle",
+                                "counts.txt"
+                            ],
+                            "exit_code": 0,
+                            "stdout": "1:needle\n",
+                            "stderr": "",
+                            "note": ""
+                        }
+                    }
+                },
+                {
+                    "feature": "Native invert match",
+                    "notes": "Probe: `-F -v needle invert.txt`",
+                    "results": {
+                        "bin/phgrep": {
+                            "status": "Pass",
+                            "command": [
+                                "/opt/homebrew/Cellar/php/8.4.5_1/bin/php",
+                                "/Users/dennis/Local Sites/fabrikat/inline0/phgrep/bin/phgrep",
+                                "-F",
+                                "-v",
+                                "needle",
+                                "invert.txt"
+                            ],
+                            "exit_code": 0,
+                            "stdout": "2:hay\n",
+                            "stderr": "",
+                            "note": ""
+                        }
+                    }
+                },
+                {
+                    "feature": "Native glob filter",
+                    "notes": "Probe: `--glob *.php function .`",
+                    "results": {
+                        "bin/phgrep": {
+                            "status": "Pass",
+                            "command": [
+                                "/opt/homebrew/Cellar/php/8.4.5_1/bin/php",
+                                "/Users/dennis/Local Sites/fabrikat/inline0/phgrep/bin/phgrep",
+                                "--glob",
+                                "*.php",
+                                "function",
+                                "."
+                            ],
+                            "exit_code": 0,
+                            "stdout": "src/App.php:3:function visible(): void {}\n",
+                            "stderr": "",
+                            "note": ""
+                        }
+                    }
+                },
+                {
+                    "feature": "Native hidden files",
+                    "notes": "Probe: `--hidden -F secret .`",
+                    "results": {
+                        "bin/phgrep": {
+                            "status": "Pass",
+                            "command": [
+                                "/opt/homebrew/Cellar/php/8.4.5_1/bin/php",
+                                "/Users/dennis/Local Sites/fabrikat/inline0/phgrep/bin/phgrep",
+                                "--hidden",
+                                "-F",
+                                "secret",
+                                "."
+                            ],
+                            "exit_code": 0,
+                            "stdout": ".hidden/secret.txt:1:secret needle\n",
+                            "stderr": "",
+                            "note": ""
+                        }
+                    }
+                },
+                {
+                    "feature": "Native no ignore",
+                    "notes": "Probe: `--no-ignore -F ignored .`",
+                    "results": {
+                        "bin/phgrep": {
+                            "status": "Pass",
+                            "command": [
+                                "/opt/homebrew/Cellar/php/8.4.5_1/bin/php",
+                                "/Users/dennis/Local Sites/fabrikat/inline0/phgrep/bin/phgrep",
+                                "--no-ignore",
+                                "-F",
+                                "ignored",
+                                "."
+                            ],
+                            "exit_code": 0,
+                            "stdout": "vendor/Ignored.php:2:dispatch($ignored);\nvendor/ignored.txt:1:ignored needle\nsrc/Other.txt:1:function ignored\n",
+                            "stderr": "",
+                            "note": ""
+                        }
+                    }
+                },
+                {
                     "feature": "Native AST JSON output",
                     "notes": "Probe: `-p dispatch($EVENT) --json src/App.php`",
                     "results": {
@@ -1271,6 +1785,26 @@
                             ],
                             "exit_code": 0,
                             "stdout": "[\n    {\n        \"file\": \"src/App.php\",\n        \"start_line\": 7,\n        \"end_line\": 7,\n        \"start_file_pos\": 86,\n        \"end_file_pos\": 101,\n        \"code\": \"dispatch($event)\"\n    }\n]\n",
+                            "stderr": "",
+                            "note": ""
+                        }
+                    }
+                },
+                {
+                    "feature": "Native AST plain output",
+                    "notes": "Probe: `-p array($$$ITEMS) src/App.php`",
+                    "results": {
+                        "bin/phgrep": {
+                            "status": "Pass",
+                            "command": [
+                                "/opt/homebrew/Cellar/php/8.4.5_1/bin/php",
+                                "/Users/dennis/Local Sites/fabrikat/inline0/phgrep/bin/phgrep",
+                                "-p",
+                                "array($$$ITEMS)",
+                                "src/App.php"
+                            ],
+                            "exit_code": 0,
+                            "stdout": "src/App.php:5:array(1, 2, 3)\n",
                             "stderr": "",
                             "note": ""
                         }
@@ -1369,6 +1903,28 @@
                     }
                 },
                 {
+                    "feature": "Indexed case-insensitive fixed-string search",
+                    "notes": "Probe: `search -F -i needle .`",
+                    "results": {
+                        "bin/phgrep-index": {
+                            "status": "Pass",
+                            "command": [
+                                "/opt/homebrew/Cellar/php/8.4.5_1/bin/php",
+                                "/Users/dennis/Local Sites/fabrikat/inline0/phgrep/bin/phgrep-index",
+                                "search",
+                                "-F",
+                                "-i",
+                                "needle",
+                                "."
+                            ],
+                            "exit_code": 0,
+                            "stdout": "single.txt:2:needle\nsingle.txt:3:NEEDLE\ninvert.txt:1:needle\ncounts.txt:1:needle\ncounts.txt:2:needle\nwords.txt:1:needle\nwords.txt:2:needles\ncontext.txt:2:needle\n",
+                            "stderr": "",
+                            "note": "Built index for 14 files in .phgrep-index (175 trigrams, +14 ~0 -0 =0)"
+                        }
+                    }
+                },
+                {
                     "feature": "Indexed regex search",
                     "notes": "Probe: `search new\\s+instance .`",
                     "results": {
@@ -1405,6 +1961,29 @@
                             ],
                             "exit_code": 0,
                             "stdout": "2\n",
+                            "stderr": "",
+                            "note": "Built index for 14 files in .phgrep-index (175 trigrams, +14 ~0 -0 =0)"
+                        }
+                    }
+                },
+                {
+                    "feature": "Indexed max count",
+                    "notes": "Probe: `search -F -m 1 needle counts.txt`",
+                    "results": {
+                        "bin/phgrep-index": {
+                            "status": "Pass",
+                            "command": [
+                                "/opt/homebrew/Cellar/php/8.4.5_1/bin/php",
+                                "/Users/dennis/Local Sites/fabrikat/inline0/phgrep/bin/phgrep-index",
+                                "search",
+                                "-F",
+                                "-m",
+                                "1",
+                                "needle",
+                                "counts.txt"
+                            ],
+                            "exit_code": 0,
+                            "stdout": "1:needle\n",
                             "stderr": "",
                             "note": "Built index for 14 files in .phgrep-index (175 trigrams, +14 ~0 -0 =0)"
                         }
@@ -1473,6 +2052,167 @@
                             "stdout": "[\n    {\n        \"file\": \"notes.txt\",\n        \"matches\": []\n    },\n    {\n        \"file\": \"unmatched.txt\",\n        \"matches\": []\n    },\n    {\n        \"file\": \"single.txt\",\n        \"matches\": [\n            {\n                \"line\": 2,\n                \"column\": 1,\n                \"content\": \"needle\",\n                \"matched_text\": \"needle\",\n                \"captures\": []\n            }\n        ]\n    },\n    {\n        \"file\": \"invert.txt\",\n        \"matches\": [\n            {\n                \"line\": 1,\n                \"column\": 1,\n                \"content\": \"needle\",\n                \"matched_text\": \"n\n...[truncated]\n",
                             "stderr": "",
                             "note": "Built index for 14 files in .phgrep-index (175 trigrams, +14 ~0 -0 =0)"
+                        }
+                    }
+                },
+                {
+                    "feature": "Indexed glob filter",
+                    "notes": "Probe: `search -F --glob *.php function .`",
+                    "results": {
+                        "bin/phgrep-index": {
+                            "status": "Pass",
+                            "command": [
+                                "/opt/homebrew/Cellar/php/8.4.5_1/bin/php",
+                                "/Users/dennis/Local Sites/fabrikat/inline0/phgrep/bin/phgrep-index",
+                                "search",
+                                "-F",
+                                "--glob",
+                                "*.php",
+                                "function",
+                                "."
+                            ],
+                            "exit_code": 0,
+                            "stdout": "src/App.php:3:function visible(): void {}\n",
+                            "stderr": "",
+                            "note": "Built index for 14 files in .phgrep-index (175 trigrams, +14 ~0 -0 =0)"
+                        }
+                    }
+                },
+                {
+                    "feature": "Indexed type exclusion",
+                    "notes": "Probe: `search --type-not php function .`",
+                    "results": {
+                        "bin/phgrep-index": {
+                            "status": "Pass",
+                            "command": [
+                                "/opt/homebrew/Cellar/php/8.4.5_1/bin/php",
+                                "/Users/dennis/Local Sites/fabrikat/inline0/phgrep/bin/phgrep-index",
+                                "search",
+                                "--type-not",
+                                "php",
+                                "function",
+                                "."
+                            ],
+                            "exit_code": 0,
+                            "stdout": "src/Other.txt:1:function ignored\n",
+                            "stderr": "",
+                            "note": "Built index for 14 files in .phgrep-index (175 trigrams, +14 ~0 -0 =0)"
+                        }
+                    }
+                }
+            ]
+        },
+        {
+            "title": "Indexed AST Library Surface",
+            "providers": [
+                "php/lib"
+            ],
+            "rows": [
+                {
+                    "feature": "AST index build",
+                    "notes": "Probe: `Phgrep::buildAstIndex(.)`",
+                    "results": {
+                        "php/lib": {
+                            "status": "Pass",
+                            "command": [
+                                "/opt/homebrew/Cellar/php/8.4.5_1/bin/php",
+                                "-r",
+                                "require '/Users/dennis/Local Sites/fabrikat/inline0/phgrep/vendor/autoload.php';\n$result = Phgrep\\Phgrep::buildAstIndex('.');\necho json_encode(['file_count' => $result->fileCount, 'index_path' => $result->indexPath], JSON_UNESCAPED_SLASHES);"
+                            ],
+                            "exit_code": 0,
+                            "stdout": "{\"file_count\":3,\"index_path\":\"/private<workspace>/.phgrep-ast-index\"}",
+                            "stderr": "",
+                            "note": ""
+                        }
+                    }
+                },
+                {
+                    "feature": "Indexed AST search",
+                    "notes": "Probe: build index, then `Phgrep::searchAstIndexed(array($$$ITEMS), src/App.php)`",
+                    "results": {
+                        "php/lib": {
+                            "status": "Pass",
+                            "command": [
+                                "/opt/homebrew/Cellar/php/8.4.5_1/bin/php",
+                                "-r",
+                                "require '/Users/dennis/Local Sites/fabrikat/inline0/phgrep/vendor/autoload.php';\nPhgrep\\Phgrep::buildAstIndex('.');\n$matches = Phgrep\\Phgrep::searchAstIndexed('array($$$ITEMS)', ['src/App.php']);\necho json_encode(array_map(static fn ($match) => ['file' => $match->file, 'code' => $match->code], $matches), JSON_UNESCAPED_SLASHES);"
+                            ],
+                            "exit_code": 0,
+                            "stdout": "[{\"file\":\"/private<workspace>/src/App.php\",\"code\":\"array(1, 2, 3)\"}]",
+                            "stderr": "",
+                            "note": ""
+                        }
+                    }
+                },
+                {
+                    "feature": "AST index refresh",
+                    "notes": "Probe: build index, edit fixture, refresh, then re-run indexed AST search",
+                    "results": {
+                        "php/lib": {
+                            "status": "Pass",
+                            "command": [
+                                "/opt/homebrew/Cellar/php/8.4.5_1/bin/php",
+                                "-r",
+                                "require '/Users/dennis/Local Sites/fabrikat/inline0/phgrep/vendor/autoload.php';\nPhgrep\\Phgrep::buildAstIndex('.');\nfile_put_contents('src/App.php', file_get_contents('src/App.php') . \"\\ndispatch(\\$refreshed);\\n\");\nPhgrep\\Phgrep::refreshAstIndex('.');\n$matches = Phgrep\\Phgrep::searchAstIndexed('dispatch($EVENT)', ['src/App.php']);\necho json_encode(array_map(static fn ($match) => ['file' => $match->file, 'code' => $match->code], $matches), JSON_UNESCAPED_SLASHES);"
+                            ],
+                            "exit_code": 0,
+                            "stdout": "[{\"file\":\"/private<workspace>/src/App.php\",\"code\":\"dispatch($event)\"},{\"file\":\"/private<workspace>/src/App.php\",\"code\":\"dispatch($refreshed)\"}]",
+                            "stderr": "",
+                            "note": ""
+                        }
+                    }
+                },
+                {
+                    "feature": "AST cache build",
+                    "notes": "Probe: `Phgrep::buildAstCache(.)`",
+                    "results": {
+                        "php/lib": {
+                            "status": "Pass",
+                            "command": [
+                                "/opt/homebrew/Cellar/php/8.4.5_1/bin/php",
+                                "-r",
+                                "require '/Users/dennis/Local Sites/fabrikat/inline0/phgrep/vendor/autoload.php';\n$result = Phgrep\\Phgrep::buildAstCache('.');\necho json_encode(['file_count' => $result->fileCount, 'index_path' => $result->indexPath], JSON_UNESCAPED_SLASHES);"
+                            ],
+                            "exit_code": 0,
+                            "stdout": "{\"file_count\":3,\"index_path\":\"/private<workspace>/.phgrep-ast-cache\"}",
+                            "stderr": "",
+                            "note": ""
+                        }
+                    }
+                },
+                {
+                    "feature": "Cached AST search",
+                    "notes": "Probe: build cache, then `Phgrep::searchAstCached(array($$$ITEMS), src/App.php)`",
+                    "results": {
+                        "php/lib": {
+                            "status": "Pass",
+                            "command": [
+                                "/opt/homebrew/Cellar/php/8.4.5_1/bin/php",
+                                "-r",
+                                "require '/Users/dennis/Local Sites/fabrikat/inline0/phgrep/vendor/autoload.php';\nPhgrep\\Phgrep::buildAstCache('.');\n$matches = Phgrep\\Phgrep::searchAstCached('array($$$ITEMS)', ['src/App.php']);\necho json_encode(array_map(static fn ($match) => ['file' => $match->file, 'code' => $match->code], $matches), JSON_UNESCAPED_SLASHES);"
+                            ],
+                            "exit_code": 0,
+                            "stdout": "[{\"file\":\"/private<workspace>/src/App.php\",\"code\":\"array(1, 2, 3)\"}]",
+                            "stderr": "",
+                            "note": ""
+                        }
+                    }
+                },
+                {
+                    "feature": "AST cache refresh",
+                    "notes": "Probe: build cache, edit fixture, refresh, then re-run cached AST search",
+                    "results": {
+                        "php/lib": {
+                            "status": "Pass",
+                            "command": [
+                                "/opt/homebrew/Cellar/php/8.4.5_1/bin/php",
+                                "-r",
+                                "require '/Users/dennis/Local Sites/fabrikat/inline0/phgrep/vendor/autoload.php';\nPhgrep\\Phgrep::buildAstCache('.');\nfile_put_contents('src/App.php', file_get_contents('src/App.php') . \"\\ndispatch(\\$refreshed);\\n\");\nPhgrep\\Phgrep::refreshAstCache('.');\n$matches = Phgrep\\Phgrep::searchAstCached('dispatch($EVENT)', ['src/App.php']);\necho json_encode(array_map(static fn ($match) => ['file' => $match->file, 'code' => $match->code], $matches), JSON_UNESCAPED_SLASHES);"
+                            ],
+                            "exit_code": 0,
+                            "stdout": "[{\"file\":\"/private<workspace>/src/App.php\",\"code\":\"dispatch($event)\"},{\"file\":\"/private<workspace>/src/App.php\",\"code\":\"dispatch($refreshed)\"}]",
+                            "stderr": "",
+                            "note": ""
                         }
                     }
                 }

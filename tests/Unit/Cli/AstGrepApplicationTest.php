@@ -100,6 +100,48 @@ PHP);
     }
 
     #[Test]
+    public function itSupportsInteractiveRewriteAcceptAndDecline(): void
+    {
+        $acceptHarness = $this->newApplication("y\n");
+        $declineHarness = $this->newApplication("n\n");
+
+        $acceptExit = $acceptHarness['application']->run([
+            'sg',
+            'rewrite',
+            '--pattern',
+            'array($$$ITEMS)',
+            '--rewrite',
+            '[$$$ITEMS]',
+            '--interactive',
+            'src/App.php',
+        ]);
+
+        Workspace::writeFile($this->workspace, 'src/App.php', <<<'PHP'
+<?php
+
+$items = array(1, 2, 3);
+PHP);
+
+        $declineExit = $declineHarness['application']->run([
+            'sg',
+            'rewrite',
+            '--pattern',
+            'array($$$ITEMS)',
+            '--rewrite',
+            '[$$$ITEMS]',
+            '--interactive',
+            'src/App.php',
+        ]);
+
+        $this->assertSame(0, $acceptExit);
+        $this->assertSame(0, $declineExit);
+        $this->assertStringContainsString('Rewrite ', $this->readStream($acceptHarness['stdout']));
+        $this->assertStringContainsString("src/App.php\n", $this->readStream($acceptHarness['stdout']));
+        $this->assertStringContainsString('Rewrite ', $this->readStream($declineHarness['stdout']));
+        $this->assertStringNotContainsString('$items = [1, 2, 3];', file_get_contents($this->workspace . '/src/App.php') ?: '');
+    }
+
+    #[Test]
     public function itReportsMissingPatterns(): void
     {
         $harness = $this->newApplication();
@@ -117,17 +159,21 @@ PHP);
      *   stderr: resource
      * }
      */
-    private function newApplication(): array
+    private function newApplication(string $input = ''): array
     {
+        $inputStream = fopen('php://temp', 'w+');
         $output = fopen('php://temp', 'w+');
         $errorOutput = fopen('php://temp', 'w+');
 
-        if (!is_resource($output) || !is_resource($errorOutput)) {
+        if (!is_resource($inputStream) || !is_resource($output) || !is_resource($errorOutput)) {
             throw new \RuntimeException('Failed to create test streams.');
         }
 
+        fwrite($inputStream, $input);
+        rewind($inputStream);
+
         return [
-            'application' => new AstGrepApplication(output: $output, errorOutput: $errorOutput),
+            'application' => new AstGrepApplication(input: $inputStream, output: $output, errorOutput: $errorOutput),
             'stdout' => $output,
             'stderr' => $errorOutput,
         ];

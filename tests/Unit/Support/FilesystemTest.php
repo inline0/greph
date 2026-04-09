@@ -49,8 +49,10 @@ final class FilesystemTest extends TestCase
     public function itNormalizesRelativePathsAndCountsLines(): void
     {
         $path = Workspace::writeFile($this->workspace, 'nested/file.txt', "alpha\nbeta\ngamma");
+        symlink($path, $this->workspace . '/link.txt');
 
         $this->assertSame('nested/file.txt', Filesystem::relativePath($this->workspace, $path));
+        $this->assertSame('link.txt', Filesystem::relativePath($this->workspace, $this->workspace . '/link.txt'));
         $this->assertSame('.', Filesystem::relativePath($this->workspace, $this->workspace));
         $this->assertSame('/tmp/path', Filesystem::normalizePath('/tmp/path/'));
         $this->assertSame(3, Filesystem::lineCount($path));

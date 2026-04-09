@@ -24,6 +24,7 @@ final class RipgrepApplicationTest extends TestCase
         Workspace::writeFile($this->workspace, 'single.txt', "alpha\nneedle\n");
         Workspace::writeFile($this->workspace, 'src/App.php', "<?php\nfunction visible(): void {}\n");
         Workspace::writeFile($this->workspace, '.hidden/secret.txt', "needle\n");
+        symlink($this->workspace . '/single.txt', $this->workspace . '/link-to-single.txt');
     }
 
     protected function tearDown(): void
@@ -83,6 +84,17 @@ final class RipgrepApplicationTest extends TestCase
         $this->assertStringContainsString("single.txt:needle\n", $this->readStream($withFilenameHarness['stdout']));
         $this->assertStringContainsString("needle\n", $this->readStream($noFilenameHarness['stdout']));
         $this->assertStringNotContainsString('single.txt:', $this->readStream($noFilenameHarness['stdout']));
+    }
+
+    #[Test]
+    public function itFollowsSymlinkedFilesWhenRequested(): void
+    {
+        $harness = $this->newApplication();
+
+        $exitCode = $harness['application']->run(['rg', '-L', '-F', 'needle', '.']);
+
+        $this->assertSame(0, $exitCode);
+        $this->assertStringContainsString("./link-to-single.txt:needle\n", $this->readStream($harness['stdout']));
     }
 
     #[Test]
