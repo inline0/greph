@@ -21,6 +21,7 @@ final class AstRootMatcher
         }
 
         return match (true) {
+            $patternRoot instanceof Expr\Array_ && $candidate instanceof Expr\Array_ => $this->matchesArrayKind($patternRoot, $candidate),
             $patternRoot instanceof Expr\FuncCall && $candidate instanceof Expr\FuncCall => $this->matchesNameNode($patternRoot->name, $candidate->name),
             $patternRoot instanceof Expr\New_ && $candidate instanceof Expr\New_ => $this->matchesNameNode($patternRoot->class, $candidate->class),
             $patternRoot instanceof Expr\MethodCall && $candidate instanceof Expr\MethodCall => $this->matchesIdentifierNode($patternRoot->name, $candidate->name),
@@ -56,5 +57,28 @@ final class AstRootMatcher
         }
 
         return true;
+    }
+
+    private function matchesArrayKind(Expr\Array_ $pattern, Expr\Array_ $candidate): bool
+    {
+        $patternKind = $this->arrayKind($pattern);
+        $candidateKind = $this->arrayKind($candidate);
+
+        if ($patternKind === null || $candidateKind === null) {
+            return true;
+        }
+
+        return $patternKind === $candidateKind;
+    }
+
+    private function arrayKind(Expr\Array_ $node): ?int
+    {
+        $kind = $node->getAttribute('kind');
+
+        if (is_int($kind)) {
+            return $kind;
+        }
+
+        return property_exists($node, 'kind') && is_int($node->kind) ? $node->kind : null;
     }
 }

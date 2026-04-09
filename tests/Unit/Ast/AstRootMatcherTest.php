@@ -55,4 +55,15 @@ final class AstRootMatcherTest extends TestCase
         $this->assertTrue($this->matcher->mayMatch($literalPattern->root, $literalCandidate->root));
         $this->assertFalse($this->matcher->mayMatch($newPattern->root, $newMismatch->root));
     }
+
+    #[Test]
+    public function itRejectsArraySyntaxMismatches(): void
+    {
+        $longPattern = $this->parser->parse('array($$$ITEMS)');
+        $longCandidate = $this->parser->parse('array($value)');
+        $shortCandidate = $this->parser->parse('[$value]');
+
+        $this->assertTrue($this->matcher->mayMatch($longPattern->root, $longCandidate->root));
+        $this->assertFalse($this->matcher->mayMatch($longPattern->root, $shortCandidate->root));
+    }
 }
