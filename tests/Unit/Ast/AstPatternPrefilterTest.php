@@ -31,4 +31,19 @@ final class AstPatternPrefilterTest extends TestCase
         $this->assertTrue($prefilter->mayMatch(['new'], "<?php\nNEW Foo();\n"));
         $this->assertFalse($prefilter->mayMatch(['new', 'where'], "<?php\nwhere();\n"));
     }
+
+    #[Test]
+    public function itCanDetectZeroArgumentNewExpressionsBeforeParsing(): void
+    {
+        $parser = new PatternParser();
+        $prefilter = new AstPatternPrefilter();
+        $pattern = $parser->parse('new $CLASS()')->root;
+
+        $this->assertTrue($prefilter->mayMatchPattern($pattern, "<?php\nnew Foo();\n"));
+        $this->assertTrue($prefilter->mayMatchPattern($pattern, "<?php\nnew Foo;\n"));
+        $this->assertTrue($prefilter->mayMatchPattern($pattern, "<?php\nnew Foo /* comment */ ( );\n"));
+        $this->assertTrue($prefilter->mayMatchPattern($pattern, "<?php\nnew Bar(1);\nnew Baz();\n"));
+        $this->assertFalse($prefilter->mayMatchPattern($pattern, "<?php\nnew Foo(1);\n"));
+        $this->assertFalse($prefilter->mayMatchPattern($pattern, '<?php' . "\n" . 'new Foo($arg);' . "\n" . 'new Bar($other);' . "\n"));
+    }
 }

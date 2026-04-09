@@ -45,6 +45,14 @@ final class AstPatternPrefilter
         return true;
     }
 
+    public function mayMatchPattern(Node $pattern, string $contents): bool
+    {
+        return match (true) {
+            $pattern instanceof Expr\New_ && $pattern->args === [] => $this->hasZeroArgumentNewExpression($contents),
+            default => true,
+        };
+    }
+
     /**
      * @param list<string> $tokens
      */
@@ -111,5 +119,70 @@ final class AstPatternPrefilter
             Expr\Include_::TYPE_REQUIRE_ONCE => 'require_once',
             default => 'include',
         };
+    }
+
+    private function hasZeroArgumentNewExpression(string $contents): bool
+    {
+        $tokens = token_get_all($contents);
+        $tokenCount = count($tokens);
+
+        for ($index = 0; $index < $tokenCount; $index++) {
+            $token = $tokens[$index];
+
+            if (!is_array($token) || $token[0] !== T_NEW) {
+                continue;
+            }
+
+            $nextIndex = $this->nextSignificantTokenIndex($tokens, $index + 1);
+
+            if ($nextIndex === null) {
+                continue;
+            }
+
+            for ($cursor = $nextIndex; $cursor < $tokenCount; $cursor++) {
+                $current = $tokens[$cursor];
+
+                if ($this->isIgnorableToken($current)) {
+                    continue;
+                }
+
+                if ($current === '(') {
+                    $closingIndex = $this->nextSignificantTokenIndex($tokens, $cursor + 1);
+
+                    if ($closingIndex !== null && $tokens[$closingIndex] === ')') {
+                        return true;
+                    }
+
+                    continue 2;
+                }
+
+                if ($current === ';' || $current === '{') {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * @param list<int|string|array{int, string, int}> $tokens
+     */
+    private function nextSignificantTokenIndex(array $tokens, int $startIndex): ?int
+    {
+        $tokenCount = count($tokens);
+
+        for ($index = $startIndex; $index < $tokenCount; $index++) {
+            if (!$this->isIgnorableToken($tokens[$index])) {
+                return $index;
+            }
+        }
+
+        return null;
+    }
+
+    private function isIgnorableToken(mixed $token): bool
+    {
+        return is_array($token) && in_array($token[0], [T_WHITESPACE, T_COMMENT, T_DOC_COMMENT], true);
     }
 }

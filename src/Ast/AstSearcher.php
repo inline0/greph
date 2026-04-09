@@ -60,7 +60,10 @@ final class AstSearcher
                 continue;
             }
 
-            if (!$this->patternPrefilter->mayMatch($prefilterTokens, $source)) {
+            if (
+                !$this->patternPrefilter->mayMatch($prefilterTokens, $source)
+                || !$this->patternPrefilter->mayMatchPattern($parsedPattern->root, $source)
+            ) {
                 continue;
             }
 
