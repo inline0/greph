@@ -83,6 +83,43 @@ final class AstSearcher
         return $count;
     }
 
+    public function countParsedFiles(FileList $files, string $pattern, AstSearchOptions $options): int
+    {
+        $parsedPattern = $this->patternParser->parse($pattern, $options->language);
+        $prefilterTokens = $this->patternPrefilter->extract($parsedPattern->root);
+        $parser = $this->parserFactory->forLanguage($options->language);
+        $count = 0;
+
+        foreach ($files as $file) {
+            $source = @file_get_contents($file);
+
+            if ($source === false) {
+                continue;
+            }
+
+            if (
+                !$this->patternPrefilter->mayMatch($prefilterTokens, $source)
+                || !$this->patternPrefilter->mayMatchPattern($parsedPattern->root, $source)
+            ) {
+                continue;
+            }
+
+            try {
+                $parser->parseStatements($source);
+            } catch (ParseException $exception) {
+                if ($options->skipParseErrors) {
+                    continue;
+                }
+
+                throw $exception;
+            }
+
+            $count++;
+        }
+
+        return $count;
+    }
+
     /**
      * @param callable(Node, array<string, mixed>, string, string): void $onMatch
      */

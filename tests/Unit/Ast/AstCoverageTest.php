@@ -76,6 +76,10 @@ final class AstCoverageTest extends TestCase
             2,
             $searcher->countFiles(new FileList([$this->workspace . '/nested.php']), 'array($$$ITEMS)', new AstSearchOptions()),
         );
+        $this->assertSame(
+            1,
+            $searcher->countParsedFiles(new FileList([$this->workspace . '/nested.php']), 'array($$$ITEMS)', new AstSearchOptions()),
+        );
 
         $this->expectException(ParseException::class);
         $searcher->searchFiles(new FileList([$this->workspace . '/invalid.php']), 'function $NAME() {}', $options);
