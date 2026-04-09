@@ -26,33 +26,72 @@ By default, `bin/phgrep-index` stores its index in `.phgrep-index` under the ind
 
 ## Performance
 
-Benchmarks below come from GitHub Actions run [`24194937014`](https://github.com/inline0/phgrep/actions/runs/24194937014) on the WordPress corpus, using `ubuntu-latest`, PHP `8.4`, `5` measured runs, and `1` warmup run. Indexed query timings exclude index build time; build is listed separately.
+Benchmark tables below are always sourced from GitHub Actions CI, never from local runs. Current baseline: run [`24203553976`](https://github.com/inline0/phgrep/actions/runs/24203553976) on the WordPress corpus, using `ubuntu-latest`, PHP `8.4`, `5` measured runs, and `1` warmup run. Tables below show the clean accepted head snapshot from that run.
 
-### Scan Mode
+Comparison tools:
+- `rg`: ripgrep
+- `grep`: GNU grep
+- `sg`: ast-grep
 
-| Category | Operation | phgrep | Fastest external | Gap |
-| --- | --- | ---: | ---: | ---: |
-| `text` | `Literal "function"` | `446.43ms` | `161.87ms (rg)` | `+175.80%` |
-| `text` | `Literal case insensitive` | `455.47ms` | `171.04ms (rg)` | `+166.30%` |
-| `text` | `Regex new instance` | `459.13ms` | `94.98ms (rg)` | `+383.42%` |
-| `text` | `Regex array call` | `404.85ms` | `88.97ms (rg)` | `+355.07%` |
-| `walker` | `Full traversal` | `45.92ms` | `20.25ms (rg)` | `+126.73%` |
-| `parallel` | `1 worker` | `444.00ms` | `161.95ms (rg)` | `+174.16%` |
-| `parallel` | `2 workers` | `1054.53ms` | `163.60ms (rg)` | `+544.56%` |
-| `parallel` | `4 workers` | `1137.28ms` | `159.81ms (rg)` | `+611.63%` |
-| `ast` | `new $CLASS()` | `3091.08ms` | `8519.37ms (sg)` | `-63.72%` |
-| `ast` | `array($$$ITEMS)` | `6078.42ms` | `8651.25ms (sg)` | `-29.74%` |
+### Scan Mode: Text And Traversal
 
-### Indexed Mode
+| Operation | phgrep | rg | grep |
+| --- | ---: | ---: | ---: |
+| `Literal "function"` | `451.39ms` | `161.88ms` | `213.10ms` |
+| `Literal case insensitive` | `450.35ms` | `171.54ms` | `277.65ms` |
+| `Regex new instance` | `452.13ms` | `95.19ms` | `171.91ms` |
+| `Regex array call` | `397.88ms` | `91.18ms` | `197.97ms` |
+| `Full traversal` | `44.54ms` | `19.87ms` | `48.31ms` |
 
-Indexed mode currently targets repeated text queries. AST search and rewrite remain scan-mode operations.
+### Scan Mode: Parallel Text
 
-| Category | Operation | phgrep | Fastest external | Gap |
-| --- | --- | ---: | ---: | ---: |
-| `indexed-build` | `Build trigram index` | `10122.60ms` | `n/a` | `n/a` |
-| `indexed-text` | `Indexed literal "function"` | `261.85ms` | `146.95ms (rg)` | `+78.19%` |
-| `indexed-text` | `Indexed literal case insensitive` | `259.93ms` | `172.58ms (rg)` | `+50.61%` |
-| `indexed-text` | `Indexed regex new instance` | `223.73ms` | `95.33ms (rg)` | `+134.70%` |
-| `indexed-text` | `Indexed regex array call` | `187.97ms` | `89.29ms (rg)` | `+110.51%` |
+| Operation | phgrep | rg | grep |
+| --- | ---: | ---: | ---: |
+| `1 worker` | `457.87ms` | `147.24ms` | `212.47ms` |
+| `2 workers` | `442.46ms` | `157.97ms` | `213.76ms` |
+| `4 workers` | `438.98ms` | `160.29ms` | `213.55ms` |
 
-On the same CI run, indexed text queries reduced `phgrep`'s own warm-query time versus scan mode by about `41%` to `54%`, depending on the pattern.
+### Scan Mode: AST
+
+| Operation | phgrep | sg |
+| --- | ---: | ---: |
+| `new $CLASS()` | `3700.54ms` | `8498.38ms` |
+| `array($$$ITEMS)` | `6332.39ms` | `8639.29ms` |
+
+### Indexed Text Mode
+
+| Operation | phgrep | rg | grep |
+| --- | ---: | ---: | ---: |
+| `Indexed literal "function"` | `11.22ms` | `160.35ms` | `214.16ms` |
+| `Indexed literal case insensitive` | `483.40ms` | `171.16ms` | `275.36ms` |
+| `Indexed regex new instance` | `179.09ms` | `95.08ms` | `171.92ms` |
+| `Indexed regex array call` | `193.01ms` | `90.34ms` | `197.99ms` |
+
+The CLI-exposed indexed mode is text-first today. CI also tracks separate indexed/cached AST search modes below.
+
+### Indexed Summary Queries
+
+| Operation | phgrep | rg | grep |
+| --- | ---: | ---: | ---: |
+| `Indexed count "function"` | `284.43ms` | `125.86ms` | `161.31ms` |
+| `Indexed files with "function"` | `10.35ms` | `101.02ms` | `107.55ms` |
+| `Indexed files without "function"` | `10.87ms` | `161.96ms` | `108.77ms` |
+
+### Indexed / Cached AST
+
+| Operation | phgrep | sg |
+| --- | ---: | ---: |
+| `Indexed new $CLASS()` | `2869.62ms` | `8582.12ms` |
+| `Indexed array($$$ITEMS)` | `6672.03ms` | `8630.45ms` |
+| `Cached new $CLASS()` | `1677.33ms` | `8514.34ms` |
+| `Cached array($$$ITEMS)` | `4871.01ms` | `8624.10ms` |
+
+### Build Costs
+
+| Operation | phgrep |
+| --- | ---: |
+| `Build trigram index` | `9931.40ms` |
+| `Build AST fact index` | `1416.29ms` |
+| `Build cached AST store` | `9770.72ms` |
+
+One known caveat for run `24203553976`: the `Indexed literal "function"` row is artificially low because that branch revision had a query-cache key collision between summary and full-output indexed text searches. The table still records the CI result verbatim, and the next CI refresh will replace it with the corrected value after the cache-key fix is benchmarked.

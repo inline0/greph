@@ -102,6 +102,9 @@ final class TextQueryCacheStore
             'fixed' => $options->fixedString,
             'case_insensitive' => $options->caseInsensitive,
             'whole_word' => $options->wholeWord,
+            'count_only' => $options->countOnly,
+            'files_with_matches' => $options->filesWithMatches,
+            'files_without_matches' => $options->filesWithoutMatches,
         ], JSON_THROW_ON_ERROR));
 
         return $this->directoryPath($indexPath) . '/' . $key . '.phpbin.gz';

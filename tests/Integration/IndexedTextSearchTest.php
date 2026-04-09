@@ -185,4 +185,29 @@ final class IndexedTextSearchTest extends TestCase
         $this->assertNotSame([], $refreshedCacheFiles);
         $this->assertNotContains('App.php', $refreshedMatchedFiles);
     }
+
+    #[Test]
+    public function itKeepsSummaryCachesSeparateFromNormalMatchResults(): void
+    {
+        Phgrep::searchTextIndexed(
+            'function',
+            $this->workspace,
+            new TextSearchOptions(fixedString: true, filesWithMatches: true),
+        );
+
+        $normalResults = Phgrep::searchTextIndexed(
+            'function',
+            $this->workspace,
+            new TextSearchOptions(fixedString: true),
+        );
+
+        $matchMap = [];
+
+        foreach ($normalResults as $result) {
+            $matchMap[basename($result->file)] = count($result->matches);
+        }
+
+        $this->assertSame(1, $matchMap['App.php']);
+        $this->assertSame(1, $matchMap['Util.php']);
+    }
 }

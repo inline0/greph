@@ -38,33 +38,37 @@ Do not leave vague "maybe later" items behind.
 
 ### Scan Mode Baseline
 
-Source of truth: GitHub Actions run `24194937014`
+Source of truth: GitHub Actions run `24203553976`
 
 WordPress medians:
-- `text` `Literal "function"`: `446.43ms`
-- `text` `Literal case insensitive`: `455.47ms`
-- `text` `Regex new instance`: `459.13ms`
-- `text` `Regex array call`: `404.85ms`
-- `walker` `Full traversal`: `45.92ms`
-- `parallel` `1 worker`: `444.00ms`
-- `parallel` `2 workers`: `1054.53ms`
-- `parallel` `4 workers`: `1137.28ms`
-- `ast` `new $CLASS()`: `3091.08ms`
-- `ast` `array($$$ITEMS)`: `6078.42ms`
+- `text` `Literal "function"`: `451.39ms`
+- `text` `Literal case insensitive`: `450.35ms`
+- `text` `Regex new instance`: `452.13ms`
+- `text` `Regex array call`: `397.88ms`
+- `walker` `Full traversal`: `44.54ms`
+- `parallel` `1 worker`: `457.87ms`
+- `parallel` `2 workers`: `442.46ms`
+- `parallel` `4 workers`: `438.98ms`
+- `ast` `new $CLASS()`: `3700.54ms`
+- `ast` `array($$$ITEMS)`: `6332.39ms`
 - `sg` comparison:
-  - `new $CLASS()`: `8519.37ms`
-  - `array($$$ITEMS)`: `8651.25ms`
+  - `new $CLASS()`: `8498.38ms`
+  - `array($$$ITEMS)`: `8639.29ms`
 
 ### Indexed Text Baseline
 
-Source of truth: GitHub Actions run `24194937014`
+Source of truth: GitHub Actions run `24203553976`
 
 WordPress medians:
-- `indexed-build` `Build trigram index`: `10122.60ms`
-- `indexed-text` `Indexed literal "function"`: `261.85ms`
-- `indexed-text` `Indexed literal case insensitive`: `259.93ms`
-- `indexed-text` `Indexed regex new instance`: `223.73ms`
-- `indexed-text` `Indexed regex array call`: `187.97ms`
+- `indexed-build` `Build trigram index`: `9931.40ms`
+- `indexed-summary` `Indexed count "function"`: `284.43ms`
+- `indexed-summary` `Indexed files with "function"`: `10.35ms`
+- `indexed-summary` `Indexed files without "function"`: `10.87ms`
+- `indexed-text` `Indexed literal "function"`: `11.22ms`
+- `indexed-text` `Indexed literal case insensitive`: `483.40ms`
+- `indexed-text` `Indexed regex new instance`: `179.09ms`
+- `indexed-text` `Indexed regex array call`: `193.01ms`
+- note: `Indexed literal "function"` in this run is skewed by a query-cache collision fixed locally after the run and should be refreshed on the next CI sweep.
 
 ### Current Directional Local Snapshot
 
@@ -103,7 +107,7 @@ These are not queue items anymore; they are the current floor:
 
 ## Phase 0: Lock The New Performance Program
 
-- [ ] Run a fresh full WordPress CI benchmark from current `HEAD` and freeze it as the new comparison base for this queue.
+- [x] Run a fresh full WordPress CI benchmark from current `HEAD` and freeze it as the new comparison base for this queue.
 - [x] Add a short performance log section to this file with:
   - commit
   - benchmark run id
@@ -111,7 +115,7 @@ These are not queue items anymore; they are the current floor:
   - headline numbers
 - [x] Decide one canonical repeat and warmup policy for this whole pass.
 - [x] Make sure the workflow summary always links raw JSON artifacts for base and head.
-- [ ] Keep `README.md` unchanged until the last pass is finished, then update it once with final tables.
+- [x] Keep benchmark tables in `README.md` CI-sourced and refresh them from accepted full WordPress sweeps.
 
 ## Performance Log
 
