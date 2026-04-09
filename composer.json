@@ -38,6 +38,7 @@
         "bin/test-regression",
         "bin/verify-compliance",
         "bin/bench",
+        "bin/bench-aggregate",
         "bin/bench-series",
         "bin/bench-compare"
     ],

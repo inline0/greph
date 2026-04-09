@@ -1,0 +1,54 @@
+#!/usr/bin/env php
+<?php
+
+declare(strict_types=1);
+
+require __DIR__ . '/_bootstrap.php';
+
+use Phgrep\Benchmarks\BenchmarkAggregator;
+use Phgrep\Benchmarks\BenchmarkResult;
+use Phgrep\Support\Json;
+
+$arguments = array_slice($argv, 1);
+$outputPath = null;
+$inputPaths = [];
+
+while ($arguments !== []) {
+    /** @var string $argument */
+    $argument = array_shift($arguments);
+
+    if ($argument === '--output') {
+        $outputPath = array_shift($arguments) ?: null;
+        continue;
+    }
+
+    $inputPaths[] = $argument;
+}
+
+if ($inputPaths === []) {
+    throw new RuntimeException('Usage: bin/bench-aggregate [--output path] <run-1.json> <run-2.json> ...');
+}
+
+$runs = [];
+
+foreach ($inputPaths as $inputPath) {
+    $decoded = Json::decodeFile($inputPath);
+    $runs[] = array_map(static fn (array $result): BenchmarkResult => BenchmarkResult::fromArray($result), $decoded);
+}
+
+$aggregate = (new BenchmarkAggregator())->aggregate($runs);
+$payload = [
+    'meta' => [
+        'aggregate_only' => true,
+        'input_paths' => $inputPaths,
+        'generated_at' => gmdate(DATE_ATOM),
+    ],
+    'aggregate' => array_map(static fn (BenchmarkResult $result): array => $result->toArray(), $aggregate),
+    'runs' => [],
+];
+
+if (is_string($outputPath) && $outputPath !== '') {
+    Json::encodeFile($outputPath, $payload);
+}
+
+fwrite(STDOUT, json_encode($payload, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR) . PHP_EOL);

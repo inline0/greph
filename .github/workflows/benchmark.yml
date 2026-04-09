@@ -144,11 +144,26 @@ jobs:
       - name: Run base benchmark series
         shell: bash
         run: |
-          args=(--corpus "${{ steps.settings.outputs.corpus }}" --repeat "${{ steps.settings.outputs.repeat }}" --warmup "${{ steps.settings.outputs.warmup }}" --compare "rg,grep,sg" --output "${{ steps.paths.outputs.base_worktree }}/$BASE_OUTPUT")
+          run_dir="${{ steps.paths.outputs.base_worktree }}/build/benchmarks/base-runs"
+          mkdir -p "$run_dir"
+
+          warmup_args=(--corpus "${{ steps.settings.outputs.corpus }}" --compare "rg,grep,sg")
+          run_args=(--corpus "${{ steps.settings.outputs.corpus }}" --compare "rg,grep,sg")
+
           if [[ -n "${{ steps.settings.outputs.category }}" ]]; then
-            args+=(--category "${{ steps.settings.outputs.category }}")
+            warmup_args+=(--category "${{ steps.settings.outputs.category }}")
+            run_args+=(--category "${{ steps.settings.outputs.category }}")
           fi
-          PHGREP_ROOT="${{ steps.paths.outputs.base_worktree }}" php bin/bench-series "${args[@]}"
+
+          for iteration in $(seq 1 "${{ steps.settings.outputs.warmup }}"); do
+            php "${{ steps.paths.outputs.base_worktree }}/bin/bench" "${warmup_args[@]}" >/dev/null
+          done
+
+          for iteration in $(seq 1 "${{ steps.settings.outputs.repeat }}"); do
+            php "${{ steps.paths.outputs.base_worktree }}/bin/bench" "${run_args[@]}" --output "$run_dir/run-$iteration.json" >/dev/null
+          done
+
+          php bin/bench-aggregate --output "${{ steps.paths.outputs.base_worktree }}/$BASE_OUTPUT" "$run_dir"/run-*.json >/dev/null
 
       - name: Compare benchmark series
         shell: bash
