@@ -120,13 +120,17 @@ Current benchmark baseline commit: `e542ee4`
   - `Regex array call`: `-0.14%`
   - `Regex new instance`: `+0.59%`
   - reverted by `30bfd2f`
+- `81b72e2` `Short-circuit identical AST captures`
+  - `array($$$ITEMS)`: `-1.43%`
+  - `new $CLASS()`: `+1.28%`
+  - reverted by `e2c561d`
 
 ### In Flight
 
-- Short-circuit repeated-capture equality when the captured value is already identical
-  - return early from `bindCapture` on `===` equality before computing subtree fingerprints
-  - low-risk matcher shortcut that should only matter on repeated metavariable cases
-  - validate on CI against the queue-only commit with the `ast` category before keeping
+- Add an internal AST count-only benchmark path
+  - measure parse plus matcher cost without `AstMatch` construction or result sorting
+  - use it to decide whether future AST work should target parser cost or match/materialization cost
+  - validate with local benchmarks and a CI workflow run for the new category
 
 ## Ordered Queue
 
@@ -174,7 +178,7 @@ Current benchmark baseline commit: `e542ee4`
 
 ## Immediate Next Steps
 
-1. Finish the repeated-capture identity shortcut and benchmark it against the queue-only commit.
-2. If it is flat or negative, pivot to parser-cost isolation or the next benchmark-support item.
+1. Finish the internal AST count-only benchmark path and run it in CI.
+2. Use that signal to decide whether AST work should focus on parsing or matching.
 3. Keep rejecting changes that do not clearly beat runner noise.
 4. Keep every pass isolated and CI-verified.
