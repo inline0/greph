@@ -111,13 +111,19 @@ Current benchmark baseline commit: `e542ee4`
   - `array($$$ITEMS)`: `+1.75%`
   - `new $CLASS()`: `+3.22%`
   - reverted by `c259b2f`
+- `3580593` `Add regex line literal prefilters`
+  - `Literal "function"`: `-0.11%`
+  - `Literal case insensitive`: `-0.30%`
+  - `Regex array call`: `-0.14%`
+  - `Regex new instance`: `+0.59%`
+  - reverted by `30bfd2f`
 
 ### In Flight
 
-- Add a line-level suffix literal check for regex seed matches
-  - keep the existing whole-file seed scan, but skip `preg_match` when the candidate line is missing a second required literal
-  - target regex-heavy WordPress paths like `array(...)` that often span lines and fail cheaply
-  - validate on CI against the queue-only commit with the `text` category before keeping
+- Add a benchmark run fetch helper for CI artifact inspection
+  - download `Benchmark` workflow artifacts by run id and print the markdown comparison immediately
+  - remove the manual `gh run download` plus path-hunting loop from every performance pass
+  - validate with unit coverage and a real run download
 
 ## Ordered Queue
 
@@ -165,7 +171,7 @@ Current benchmark baseline commit: `e542ee4`
 
 ## Immediate Next Steps
 
-1. Finish the regex line-literal prefilter pass and benchmark it against the queue-only commit.
-2. If the text pass wins, stay in regex-heavy text work until that surface flattens.
-3. If the text pass is flat or negative, pivot back to parser-cost isolation or benchmark-support work.
+1. Finish the benchmark artifact helper so CI result inspection is one command.
+2. Then return to parser-cost isolation or the next text-path experiment.
+3. Keep rejecting changes that do not clearly beat runner noise.
 4. Keep every pass isolated and CI-verified.
