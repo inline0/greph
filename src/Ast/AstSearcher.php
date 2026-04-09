@@ -7,7 +7,6 @@ namespace Phgrep\Ast;
 use Phgrep\Ast\Parsers\ParserFactory;
 use Phgrep\Exceptions\ParseException;
 use PhpParser\Node;
-use PhpParser\PrettyPrinter\Standard;
 use Phgrep\Walker\FileList;
 
 final class AstSearcher
@@ -24,8 +23,6 @@ final class AstSearcher
 
     private ParserFactory $parserFactory;
 
-    private Standard $printer;
-
     public function __construct(
         ?PatternParser $patternParser = null,
         ?PatternMatcher $patternMatcher = null,
@@ -40,7 +37,6 @@ final class AstSearcher
         $this->candidateFinder = $candidateFinder ?? new AstCandidateFinder();
         $this->rootMatcher = $rootMatcher ?? new AstRootMatcher();
         $this->parserFactory = $parserFactory ?? new ParserFactory();
-        $this->printer = new Standard();
     }
 
     /**
@@ -77,6 +73,8 @@ final class AstSearcher
                 throw $exception;
             }
 
+            $sourceBuffer = new AstSourceBuffer($source);
+
             foreach ($this->candidateFinder->iterate($statements, $parsedPattern, $this->rootMatcher) as $candidate) {
                 $captures = $this->patternMatcher->match($parsedPattern->root, $candidate);
 
@@ -84,7 +82,7 @@ final class AstSearcher
                     continue;
                 }
 
-                $matches[] = $this->createMatch($candidate, $captures, $source, $file);
+                $matches[] = $this->createMatch($candidate, $captures, $sourceBuffer, $file);
             }
         }
 
@@ -99,13 +97,10 @@ final class AstSearcher
     /**
      * @param array<string, mixed> $captures
      */
-    private function createMatch(Node $node, array $captures, string $source, string $file): AstMatch
+    private function createMatch(Node $node, array $captures, AstSourceBuffer $sourceBuffer, string $file): AstMatch
     {
         $startFilePos = $node->getStartFilePos();
         $endFilePos = $node->getEndFilePos();
-        $code = $endFilePos >= $startFilePos
-            ? substr($source, $startFilePos, ($endFilePos - $startFilePos) + 1)
-            : $this->renderNode($node);
 
         return new AstMatch(
             file: $file,
@@ -115,14 +110,7 @@ final class AstSearcher
             endLine: $node->getEndLine(),
             startFilePos: $startFilePos,
             endFilePos: $endFilePos,
-            code: $code,
+            sourceBuffer: $sourceBuffer,
         );
-    }
-
-    private function renderNode(Node $node): string
-    {
-        return $node instanceof Node\Expr
-            ? $this->printer->prettyPrintExpr($node)
-            : $this->printer->prettyPrint([$node]);
     }
 }
