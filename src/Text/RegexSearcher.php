@@ -34,24 +34,39 @@ final class RegexSearcher implements TextMatcher
 
     public function mayMatchContents(string $contents): bool
     {
-        if ($this->literalPrefilter === null) {
-            return true;
-        }
-
-        return ($this->caseInsensitive ? stripos($contents, $this->literalPrefilter) : strpos($contents, $this->literalPrefilter)) !== false;
+        return $this->literalPrefilter === null || $this->findPrefilterInContents($contents) !== false;
     }
 
     public function match(string $line): ?LineMatch
     {
         if (
             $this->literalPrefilter !== null
-            && (($this->caseInsensitive
-                ? stripos($line, $this->literalPrefilter)
-                : strpos($line, $this->literalPrefilter)) === false)
+            && $this->findPrefilterInContents($line) === false
         ) {
             return null;
         }
 
+        return $this->matchPrefilteredLine($line);
+    }
+
+    public function supportsOccurrenceScan(): bool
+    {
+        return $this->literalPrefilter !== null && $this->literalPrefilter !== '';
+    }
+
+    public function findPrefilterInContents(string $contents, int $offset = 0): int|false
+    {
+        if ($this->literalPrefilter === null || $this->literalPrefilter === '') {
+            return false;
+        }
+
+        return $this->caseInsensitive
+            ? stripos($contents, $this->literalPrefilter, $offset)
+            : strpos($contents, $this->literalPrefilter, $offset);
+    }
+
+    public function matchPrefilteredLine(string $line): ?LineMatch
+    {
         $matches = [];
         $matched = @preg_match($this->regex, $line, $matches, PREG_OFFSET_CAPTURE);
 

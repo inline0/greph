@@ -198,6 +198,10 @@ final class TextSearcher
             return $this->searchContentsByLiteral($file, $contents, $matcher, $options);
         }
 
+        if ($matcher instanceof RegexSearcher && !$options->invertMatch && $matcher->supportsOccurrenceScan()) {
+            return $this->searchContentsByRegexPrefilter($file, $contents, $matcher, $options);
+        }
+
         return $this->searchContentsWithoutContext($file, $contents, $matcher, $options);
     }
 
@@ -366,6 +370,65 @@ final class TextSearcher
                     content: $lineContent,
                     matchedText: $matcher->matchedTextAt($contents, $position),
                 );
+            }
+
+            if (
+                $options->filesWithMatches
+                || $options->filesWithoutMatches
+                || ($options->maxCount !== null && $foundCount >= $options->maxCount)
+                || $lineEnd === false
+            ) {
+                break;
+            }
+
+            $lineStart = $lineEnd + 1;
+            $lineNumber++;
+            $offset = $lineStart;
+            $lineEnd = strpos($contents, "\n", $lineStart);
+        }
+
+        return new TextFileResult($file, $matches, $foundCount);
+    }
+
+    private function searchContentsByRegexPrefilter(
+        string $file,
+        string $contents,
+        RegexSearcher $matcher,
+        TextSearchOptions $options,
+    ): TextFileResult {
+        $matches = [];
+        $foundCount = 0;
+        $contentsLength = strlen($contents);
+        $lineStart = 0;
+        $lineNumber = 1;
+        $lineEnd = strpos($contents, "\n");
+        $offset = 0;
+
+        while (($position = $matcher->findPrefilterInContents($contents, $offset)) !== false) {
+            while ($lineEnd !== false && $position > $lineEnd) {
+                $lineStart = $lineEnd + 1;
+                $lineNumber++;
+                $lineEnd = strpos($contents, "\n", $lineStart);
+            }
+
+            $lineStop = $lineEnd === false ? $contentsLength : $lineEnd;
+            $rawLine = substr($contents, $lineStart, $lineStop - $lineStart);
+            $lineContent = str_ends_with($rawLine, "\r") ? substr($rawLine, 0, -1) : $rawLine;
+            $lineMatch = $matcher->matchPrefilteredLine($lineContent);
+
+            if ($lineMatch !== null) {
+                $foundCount++;
+
+                if (!$options->countOnly && !$options->filesWithMatches && !$options->filesWithoutMatches) {
+                    $matches[] = new TextMatch(
+                        file: $file,
+                        line: $lineNumber,
+                        column: $lineMatch->column,
+                        content: $lineContent,
+                        matchedText: $lineMatch->matchedText,
+                        captures: $lineMatch->captures,
+                    );
+                }
             }
 
             if (
