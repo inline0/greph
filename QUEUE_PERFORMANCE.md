@@ -90,6 +90,9 @@ Current benchmark baseline commit: `e542ee4`
 - `b94070d` `Interleave CI benchmark comparisons`
   - Head/base runs are interleaved instead of measured in two large blocks
   - Same-commit self-compare now stays near runner noise instead of inventing fake regressions
+- `4a57c04` `Add benchmark artifact fetch helper`
+  - `bin/bench-run <run-id>` downloads the workflow artifact and prints the markdown comparison immediately
+  - CI result inspection is now one command instead of a manual artifact download plus path hunt
 
 ### Rejected Or Reverted
 
@@ -120,10 +123,10 @@ Current benchmark baseline commit: `e542ee4`
 
 ### In Flight
 
-- Add a benchmark run fetch helper for CI artifact inspection
-  - download `Benchmark` workflow artifacts by run id and print the markdown comparison immediately
-  - remove the manual `gh run download` plus path-hunting loop from every performance pass
-  - validate with unit coverage and a real run download
+- Short-circuit repeated-capture equality when the captured value is already identical
+  - return early from `bindCapture` on `===` equality before computing subtree fingerprints
+  - low-risk matcher shortcut that should only matter on repeated metavariable cases
+  - validate on CI against the queue-only commit with the `ast` category before keeping
 
 ## Ordered Queue
 
@@ -171,7 +174,7 @@ Current benchmark baseline commit: `e542ee4`
 
 ## Immediate Next Steps
 
-1. Finish the benchmark artifact helper so CI result inspection is one command.
-2. Then return to parser-cost isolation or the next text-path experiment.
+1. Finish the repeated-capture identity shortcut and benchmark it against the queue-only commit.
+2. If it is flat or negative, pivot to parser-cost isolation or the next benchmark-support item.
 3. Keep rejecting changes that do not clearly beat runner noise.
 4. Keep every pass isolated and CI-verified.
