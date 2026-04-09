@@ -4,14 +4,18 @@ declare(strict_types=1);
 
 namespace Phgrep\Cli;
 
+use Phgrep\Output\GrepFormatter;
 use Phgrep\Phgrep;
 use Phgrep\Support\Filesystem;
+use Phgrep\Text\TextFileResult;
+use Phgrep\Text\TextMatch;
+use Phgrep\Text\TextSearchOptions;
 use Phgrep\Walker\FileTypeFilter;
 use Phgrep\Walker\WalkOptions;
 
 final class RipgrepApplication
 {
-    private Application $application;
+    private GrepFormatter $grepFormatter;
 
     /**
      * @var resource
@@ -27,11 +31,11 @@ final class RipgrepApplication
      * @param resource|null $output
      * @param resource|null $errorOutput
      */
-    public function __construct(?Application $application = null, $output = null, $errorOutput = null)
+    public function __construct(?GrepFormatter $grepFormatter = null, $output = null, $errorOutput = null)
     {
+        $this->grepFormatter = $grepFormatter ?? new GrepFormatter();
         $this->output = $output ?? STDOUT;
         $this->errorOutput = $errorOutput ?? STDERR;
-        $this->application = $application ?? new Application(output: $this->output, errorOutput: $this->errorOutput);
     }
 
     /**
@@ -41,7 +45,7 @@ final class RipgrepApplication
     {
         $arguments = array_slice($argv, 1);
 
-        if (in_array('--help', $arguments, true)) {
+        if (in_array('--help', $arguments, true) || in_array('-h', $arguments, true) && $arguments === ['-h']) {
             $this->writeOutput($this->usage());
 
             return 0;
@@ -51,7 +55,74 @@ final class RipgrepApplication
             return $this->runFiles($arguments);
         }
 
-        return $this->application->run($this->translateSearchArguments($argv));
+        return $this->runSearch($arguments);
+    }
+
+    /**
+     * @param list<string> $arguments
+     */
+    private function runSearch(array $arguments): int
+    {
+        $parsed = $this->parseSearchArguments($arguments);
+
+        if ($parsed['pattern'] === null) {
+            $this->writeError("Missing search pattern.\n");
+
+            return 2;
+        }
+
+        $options = new TextSearchOptions(
+            fixedString: $parsed['fixedString'],
+            caseInsensitive: $parsed['caseInsensitive'],
+            wholeWord: $parsed['wholeWord'],
+            invertMatch: $parsed['invertMatch'],
+            maxCount: $parsed['maxCount'],
+            beforeContext: $parsed['context'] ?? $parsed['beforeContext'],
+            afterContext: $parsed['context'] ?? $parsed['afterContext'],
+            countOnly: $parsed['countOnly'],
+            filesWithMatches: $parsed['filesWithMatches'],
+            filesWithoutMatches: $parsed['filesWithoutMatches'],
+            jsonOutput: $parsed['json'],
+            jobs: $parsed['jobs'],
+            respectIgnore: !$parsed['noIgnore'],
+            includeHidden: $parsed['hidden'],
+            followSymlinks: $parsed['followSymlinks'],
+            fileTypeFilter: $this->createFileTypeFilter($parsed['type'], $parsed['typeNot']),
+            globPatterns: $parsed['glob'],
+            showLineNumbers: $parsed['showLineNumbers'],
+            showFileNames: $this->shouldDisplayFileNames($parsed),
+        );
+
+        $results = Phgrep::searchText($parsed['pattern'], $parsed['paths'], $options);
+        $displayResults = $this->displayTextResults($results, $this->shouldPrefixCurrentDirectory($parsed['paths']));
+
+        if ($parsed['json']) {
+            $this->writeOutput($this->formatJsonEvents($results, $this->shouldPrefixCurrentDirectory($parsed['paths'])) . PHP_EOL);
+        } elseif ($parsed['countOnly']) {
+            $this->writeOutput($this->formatCounts($displayResults, $options));
+        } elseif ($parsed['filesWithMatches']) {
+            $this->writeOutput($this->formatFileList($displayResults, true));
+        } elseif ($parsed['filesWithoutMatches']) {
+            $this->writeOutput($this->formatFileList($displayResults, false));
+        } else {
+            $this->writeOutput($this->grepFormatter->format($displayResults, $options));
+        }
+
+        foreach ($results as $result) {
+            if ($parsed['filesWithoutMatches']) {
+                if (!$result->hasMatches()) {
+                    return 0;
+                }
+
+                continue;
+            }
+
+            if ($result->hasMatches()) {
+                return 0;
+            }
+        }
+
+        return 1;
     }
 
     /**
@@ -66,6 +137,7 @@ final class RipgrepApplication
             new WalkOptions(
                 respectIgnore: !$parsed['noIgnore'],
                 includeHidden: $parsed['hidden'],
+                followSymlinks: $parsed['followSymlinks'],
                 skipBinaryFiles: false,
                 includeGitDirectory: false,
                 fileTypeFilter: $filter,
@@ -75,9 +147,10 @@ final class RipgrepApplication
         );
 
         $lines = [];
+        $prefixCurrentDirectory = $this->shouldPrefixCurrentDirectory($parsed['paths']);
 
         foreach ($files as $file) {
-            $lines[] = $this->displayPath($file);
+            $lines[] = $this->displayPath($file, $prefixCurrentDirectory);
         }
 
         sort($lines, SORT_STRING);
@@ -90,149 +163,214 @@ final class RipgrepApplication
     }
 
     /**
-     * @param list<string> $argv
-     * @return list<string>
+     * @param list<string> $arguments
+     * @return array{
+     *   fixedString: bool,
+     *   caseInsensitive: bool,
+     *   wholeWord: bool,
+     *   invertMatch: bool,
+     *   countOnly: bool,
+     *   filesWithMatches: bool,
+     *   filesWithoutMatches: bool,
+     *   json: bool,
+     *   noIgnore: bool,
+     *   hidden: bool,
+     *   followSymlinks: bool,
+     *   glob: list<string>,
+     *   showFileNames: ?bool,
+     *   showLineNumbers: bool,
+     *   jobs: int,
+     *   maxCount: ?int,
+     *   beforeContext: int,
+     *   afterContext: int,
+     *   context: ?int,
+     *   type: list<string>,
+     *   typeNot: list<string>,
+     *   pattern: ?string,
+     *   paths: list<string>
+     * }
      */
-    private function translateSearchArguments(array $argv): array
+    private function parseSearchArguments(array $arguments): array
     {
-        $arguments = array_slice($argv, 1);
-        $translated = [$argv[0] ?? 'rg'];
-        $pattern = null;
-        $paths = [];
+        $parsed = [
+            'fixedString' => false,
+            'caseInsensitive' => false,
+            'wholeWord' => false,
+            'invertMatch' => false,
+            'countOnly' => false,
+            'filesWithMatches' => false,
+            'filesWithoutMatches' => false,
+            'json' => false,
+            'noIgnore' => false,
+            'hidden' => false,
+            'followSymlinks' => false,
+            'glob' => [],
+            'showFileNames' => null,
+            'showLineNumbers' => false,
+            'jobs' => 1,
+            'maxCount' => null,
+            'beforeContext' => 0,
+            'afterContext' => 0,
+            'context' => null,
+            'type' => [],
+            'typeNot' => [],
+            'pattern' => null,
+            'paths' => [],
+        ];
 
         while ($arguments !== []) {
             /** @var string $argument */
             $argument = array_shift($arguments);
 
             if ($argument === '--') {
-                if ($pattern === null) {
-                    $pattern = array_shift($arguments);
+                if ($parsed['pattern'] === null) {
+                    $parsed['pattern'] = $this->shiftValue($arguments, $argument);
                 }
 
                 foreach ($arguments as $path) {
-                    $paths[] = $path;
+                    $parsed['paths'][] = $path;
                 }
 
                 break;
             }
 
-            if ($argument === '-e' || $argument === '--regexp') {
-                $pattern ??= $this->shiftValue($arguments, $argument);
+            if ($argument === '-F' || $argument === '--fixed-strings') {
+                $parsed['fixedString'] = true;
                 continue;
             }
 
-            if ($argument === '--fixed-strings') {
-                $translated[] = '-F';
+            if ($argument === '-i' || $argument === '--ignore-case') {
+                $parsed['caseInsensitive'] = true;
                 continue;
             }
 
-            if ($argument === '--ignore-case') {
-                $translated[] = '-i';
+            if ($argument === '-w' || $argument === '--word-regexp') {
+                $parsed['wholeWord'] = true;
                 continue;
             }
 
-            if ($argument === '--word-regexp') {
-                $translated[] = '-w';
+            if ($argument === '-v' || $argument === '--invert-match') {
+                $parsed['invertMatch'] = true;
                 continue;
             }
 
-            if ($argument === '--invert-match') {
-                $translated[] = '-v';
+            if ($argument === '-c' || $argument === '--count') {
+                $parsed['countOnly'] = true;
                 continue;
             }
 
-            if ($argument === '--count') {
-                $translated[] = '-c';
-                continue;
-            }
-
-            if ($argument === '--files-with-matches') {
-                $translated[] = '-l';
+            if ($argument === '-l' || $argument === '--files-with-matches') {
+                $parsed['filesWithMatches'] = true;
                 continue;
             }
 
             if ($argument === '--files-without-match' || $argument === '--files-without-matches') {
-                $translated[] = '-L';
+                $parsed['filesWithoutMatches'] = true;
                 continue;
             }
 
-            if ($argument === '--line-number') {
-                $translated[] = '-n';
+            if ($argument === '-n' || $argument === '--line-number') {
+                $parsed['showLineNumbers'] = true;
                 continue;
             }
 
-            if ($argument === '--no-filename') {
-                $translated[] = '-h';
+            if ($argument === '-I' || $argument === '--no-filename') {
+                $parsed['showFileNames'] = false;
                 continue;
             }
 
-            if ($argument === '--with-filename') {
-                $translated[] = '-H';
+            if ($argument === '-H' || $argument === '--with-filename') {
+                $parsed['showFileNames'] = true;
                 continue;
             }
 
-            if ($argument === '--max-count') {
-                $translated[] = '-m';
-                $translated[] = $this->shiftValue($arguments, $argument);
+            if ($argument === '--json' || str_starts_with($argument, '--json=')) {
+                $parsed['json'] = true;
                 continue;
             }
 
-            if ($argument === '--after-context') {
-                $translated[] = '-A';
-                $translated[] = $this->shiftValue($arguments, $argument);
+            if ($argument === '-L' || $argument === '--follow') {
+                $parsed['followSymlinks'] = true;
                 continue;
             }
 
-            if ($argument === '--before-context') {
-                $translated[] = '-B';
-                $translated[] = $this->shiftValue($arguments, $argument);
+            if ($argument === '--no-follow') {
+                $parsed['followSymlinks'] = false;
                 continue;
             }
 
-            if ($argument === '--context') {
-                $translated[] = '-C';
-                $translated[] = $this->shiftValue($arguments, $argument);
+            if ($argument === '--no-ignore') {
+                $parsed['noIgnore'] = true;
                 continue;
             }
 
-            if ($argument === '--threads') {
-                $translated[] = '-j';
-                $translated[] = $this->shiftValue($arguments, $argument);
+            if ($argument === '--hidden') {
+                $parsed['hidden'] = true;
                 continue;
             }
 
-            if ($argument === '--glob' || $argument === '--type' || $argument === '--type-not' || $argument === '--json' || $argument === '--no-ignore' || $argument === '--hidden' || $argument === '-F' || $argument === '-i' || $argument === '-w' || $argument === '-v' || $argument === '-c' || $argument === '-l' || $argument === '-L' || $argument === '-h' || $argument === '-H' || $argument === '-n' || $argument === '-m' || $argument === '-A' || $argument === '-B' || $argument === '-C' || $argument === '-j') {
-                $translated[] = $argument;
+            if ($argument === '-e' || $argument === '--regexp') {
+                $parsed['pattern'] ??= $this->shiftValue($arguments, $argument);
+                continue;
+            }
 
-                if (in_array($argument, ['--glob', '--type', '--type-not', '-m', '-A', '-B', '-C', '-j'], true)) {
-                    $translated[] = $this->shiftValue($arguments, $argument);
-                }
+            if ($argument === '--glob') {
+                $parsed['glob'][] = $this->shiftValue($arguments, $argument);
+                continue;
+            }
 
+            if ($argument === '--type') {
+                $parsed['type'][] = $this->shiftValue($arguments, $argument);
+                continue;
+            }
+
+            if ($argument === '--type-not') {
+                $parsed['typeNot'][] = $this->shiftValue($arguments, $argument);
+                continue;
+            }
+
+            if ($argument === '-j' || $argument === '--threads') {
+                $parsed['jobs'] = $this->parsePositiveInt($this->shiftValue($arguments, $argument), $argument);
+                continue;
+            }
+
+            if ($argument === '-m' || $argument === '--max-count') {
+                $parsed['maxCount'] = $this->parsePositiveInt($this->shiftValue($arguments, $argument), $argument);
+                continue;
+            }
+
+            if ($argument === '-A' || $argument === '--after-context') {
+                $parsed['afterContext'] = $this->parseNonNegativeInt($this->shiftValue($arguments, $argument), $argument);
+                continue;
+            }
+
+            if ($argument === '-B' || $argument === '--before-context') {
+                $parsed['beforeContext'] = $this->parseNonNegativeInt($this->shiftValue($arguments, $argument), $argument);
+                continue;
+            }
+
+            if ($argument === '-C' || $argument === '--context') {
+                $parsed['context'] = $this->parseNonNegativeInt($this->shiftValue($arguments, $argument), $argument);
                 continue;
             }
 
             if ($argument !== '' && $argument[0] === '-') {
-                $translated[] = $argument;
+                throw new \InvalidArgumentException(sprintf('Unsupported rg argument: %s', $argument));
+            }
+
+            if ($parsed['pattern'] === null) {
+                $parsed['pattern'] = $argument;
                 continue;
             }
 
-            if ($pattern === null) {
-                $pattern = $argument;
-                continue;
-            }
-
-            $paths[] = $argument;
+            $parsed['paths'][] = $argument;
         }
 
-        if ($pattern !== null) {
-            $translated[] = $pattern;
+        if ($parsed['paths'] === []) {
+            $parsed['paths'] = ['.'];
         }
 
-        foreach ($paths as $path) {
-            $translated[] = $path;
-        }
-
-        return $translated;
+        return $parsed;
     }
 
     /**
@@ -240,6 +378,7 @@ final class RipgrepApplication
      * @return array{
      *   hidden: bool,
      *   noIgnore: bool,
+     *   followSymlinks: bool,
      *   glob: list<string>,
      *   type: list<string>,
      *   typeNot: list<string>,
@@ -251,6 +390,7 @@ final class RipgrepApplication
         $parsed = [
             'hidden' => false,
             'noIgnore' => false,
+            'followSymlinks' => false,
             'glob' => [],
             'type' => [],
             'typeNot' => [],
@@ -272,6 +412,11 @@ final class RipgrepApplication
 
             if ($argument === '--no-ignore') {
                 $parsed['noIgnore'] = true;
+                continue;
+            }
+
+            if ($argument === '-L' || $argument === '--follow') {
+                $parsed['followSymlinks'] = true;
                 continue;
             }
 
@@ -305,6 +450,253 @@ final class RipgrepApplication
     }
 
     /**
+     * @param list<TextFileResult> $results
+     */
+    private function formatCounts(array $results, TextSearchOptions $options): string
+    {
+        $lines = [];
+
+        foreach ($results as $result) {
+            if (!$result->hasMatches()) {
+                continue;
+            }
+
+            $lines[] = $options->showFileNames
+                ? sprintf('%s:%d', $result->file, $result->matchCount())
+                : (string) $result->matchCount();
+        }
+
+        return $lines === [] ? '' : implode(PHP_EOL, $lines) . PHP_EOL;
+    }
+
+    /**
+     * @param list<TextFileResult> $results
+     */
+    private function formatFileList(array $results, bool $matching): string
+    {
+        $lines = [];
+
+        foreach ($results as $result) {
+            if ($matching && !$result->hasMatches()) {
+                continue;
+            }
+
+            if (!$matching && $result->hasMatches()) {
+                continue;
+            }
+
+            $lines[] = $result->file;
+        }
+
+        return $lines === [] ? '' : implode(PHP_EOL, $lines) . PHP_EOL;
+    }
+
+    /**
+     * @param list<TextFileResult> $results
+     */
+    private function formatJsonEvents(array $results, bool $prefixCurrentDirectory): string
+    {
+        $events = [];
+        $summary = [
+            'bytes_printed' => 0,
+            'bytes_searched' => 0,
+            'matched_lines' => 0,
+            'matches' => 0,
+            'searches' => count($results),
+            'searches_with_match' => 0,
+        ];
+
+        foreach ($results as $result) {
+            $displayFile = $this->displayPath($result->file, $prefixCurrentDirectory);
+            $fileBytes = @filesize($result->file);
+            $stats = [
+                'elapsed' => [
+                    'secs' => 0,
+                    'nanos' => 0,
+                    'human' => '0.000000s',
+                ],
+                'searches' => 1,
+                'searches_with_match' => $result->hasMatches() ? 1 : 0,
+                'bytes_searched' => $fileBytes === false ? 0 : (int) $fileBytes,
+                'bytes_printed' => 0,
+                'matched_lines' => count($result->matches),
+                'matches' => count($result->matches),
+            ];
+
+            $events[] = [
+                'type' => 'begin',
+                'data' => [
+                    'path' => ['text' => $displayFile],
+                ],
+            ];
+
+            foreach ($result->matches as $match) {
+                $offset = $this->absoluteOffset($result->file, $match);
+                $matchedText = $match->matchedText !== '' ? $match->matchedText : $match->content;
+                $start = max(0, $match->column - 1);
+                $end = $start + strlen($matchedText);
+                $event = [
+                    'type' => 'match',
+                    'data' => [
+                        'path' => ['text' => $displayFile],
+                        'lines' => ['text' => $match->content . "\n"],
+                        'line_number' => $match->line,
+                        'absolute_offset' => $offset,
+                        'submatches' => [[
+                            'match' => ['text' => $matchedText],
+                            'start' => $start,
+                            'end' => $end,
+                        ]],
+                    ],
+                ];
+                $events[] = $event;
+                $encoded = json_encode($event, JSON_UNESCAPED_SLASHES);
+                $stats['bytes_printed'] += is_string($encoded) ? strlen($encoded) + 1 : 0;
+            }
+
+            $events[] = [
+                'type' => 'end',
+                'data' => [
+                    'path' => ['text' => $displayFile],
+                    'binary_offset' => null,
+                    'stats' => $stats,
+                ],
+            ];
+
+            $summary['bytes_printed'] += $stats['bytes_printed'];
+            $summary['bytes_searched'] += $stats['bytes_searched'];
+            $summary['matched_lines'] += $stats['matched_lines'];
+            $summary['matches'] += $stats['matches'];
+            $summary['searches_with_match'] += $stats['searches_with_match'];
+        }
+
+        $events[] = [
+            'type' => 'summary',
+            'data' => [
+                'elapsed_total' => [
+                    'human' => '0.000000s',
+                    'nanos' => 0,
+                    'secs' => 0,
+                ],
+                'stats' => array_merge(
+                    $summary,
+                    [
+                        'elapsed' => [
+                            'human' => '0.000000s',
+                            'nanos' => 0,
+                            'secs' => 0,
+                        ],
+                    ],
+                ),
+            ],
+        ];
+
+        return implode(
+            PHP_EOL,
+            array_map(
+                static fn (array $event): string => (string) json_encode($event, JSON_UNESCAPED_SLASHES),
+                $events,
+            ),
+        );
+    }
+
+    private function absoluteOffset(string $file, TextMatch $match): int
+    {
+        $contents = file_get_contents($file);
+
+        if (!is_string($contents) || $contents === '') {
+            return 0;
+        }
+
+        $offset = 0;
+        $line = 1;
+        $length = strlen($contents);
+
+        while ($line < $match->line && $offset < $length) {
+            $next = strpos($contents, "\n", $offset);
+
+            if ($next === false) {
+                break;
+            }
+
+            $offset = $next + 1;
+            $line++;
+        }
+
+        return $offset + max(0, $match->column - 1);
+    }
+
+    /**
+     * @param list<TextFileResult> $results
+     * @return list<TextFileResult>
+     */
+    private function displayTextResults(array $results, bool $prefixCurrentDirectory): array
+    {
+        $displayResults = [];
+
+        foreach ($results as $result) {
+            $displayFile = $this->displayPath($result->file, $prefixCurrentDirectory);
+            $displayMatches = [];
+
+            foreach ($result->matches as $match) {
+                $displayMatches[] = new TextMatch(
+                    file: $displayFile,
+                    line: $match->line,
+                    column: $match->column,
+                    content: $match->content,
+                    matchedText: $match->matchedText,
+                    captures: $match->captures,
+                    beforeContext: $match->beforeContext,
+                    afterContext: $match->afterContext,
+                );
+            }
+
+            $displayResults[] = new TextFileResult($displayFile, $displayMatches, $result->matchCount());
+        }
+
+        return $displayResults;
+    }
+
+    /**
+     * @param array{
+     *   showFileNames: ?bool,
+     *   paths: list<string>
+     * } $arguments
+     */
+    private function shouldDisplayFileNames(array $arguments): bool
+    {
+        if ($arguments['showFileNames'] !== null) {
+            return $arguments['showFileNames'];
+        }
+
+        if (count($arguments['paths']) > 1) {
+            return true;
+        }
+
+        foreach ($arguments['paths'] as $path) {
+            if (is_dir($path)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * @param list<string> $paths
+     */
+    private function shouldPrefixCurrentDirectory(array $paths): bool
+    {
+        foreach ($paths as $path) {
+            if ($path === '.' || $path === './') {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
      * @param list<string> $include
      * @param list<string> $exclude
      */
@@ -331,6 +723,24 @@ final class RipgrepApplication
         return $value;
     }
 
+    private function parsePositiveInt(string $value, string $flag): int
+    {
+        if (!ctype_digit($value) || (int) $value < 1) {
+            throw new \InvalidArgumentException(sprintf('Expected a positive integer for %s.', $flag));
+        }
+
+        return (int) $value;
+    }
+
+    private function parseNonNegativeInt(string $value, string $flag): int
+    {
+        if (!ctype_digit($value)) {
+            throw new \InvalidArgumentException(sprintf('Expected a non-negative integer for %s.', $flag));
+        }
+
+        return (int) $value;
+    }
+
     private function usage(): string
     {
         return <<<TEXT
@@ -339,32 +749,50 @@ Usage:
   rg --files [options] [path...]
 
 Supported Options:
-  -F, --fixed-strings       Fixed-string search.
-  -i, --ignore-case         Case-insensitive search.
-  -w, --word-regexp         Whole-word search.
-  -v, --invert-match        Invert matches.
-  -c, --count               Count matches per file.
-  -l, --files-with-matches  List matching files.
-  -L, --files-without-match List non-matching files.
-  -h, --no-filename         Suppress filename prefixes.
-  -H, --with-filename       Always print filename prefixes.
-  -n, --line-number         Show line numbers.
-  -A N, --after-context N   Show N lines after each match.
-  -B N, --before-context N  Show N lines before each match.
-  -C N, --context N         Show N lines of context before and after each match.
-  -m N, --max-count N       Stop after N matches per file.
-  -j N, --threads N         Use N workers.
-  -e P, --regexp P          Search pattern.
-  --glob GLOB               Include only files whose paths match GLOB.
-  --type NAME               Include a file type.
-  --type-not NAME           Exclude a file type.
-  --json                    Emit JSON output.
-  --no-ignore               Ignore .gitignore and .phgrepignore rules.
-  --hidden                  Include hidden files.
-  --files                   List candidate files instead of searching.
-  --help                    Show this help.
+  -F, --fixed-strings          Fixed-string search.
+  -i, --ignore-case            Case-insensitive search.
+  -w, --word-regexp            Whole-word search.
+  -v, --invert-match           Invert matches.
+  -c, --count                  Count matching lines.
+  -l, --files-with-matches     List matching files.
+  --files-without-match        List non-matching files.
+  -I, --no-filename            Suppress filename prefixes.
+  -H, --with-filename          Always print filename prefixes.
+  -n, --line-number            Show line numbers.
+  -A N, --after-context N      Show N lines after each match.
+  -B N, --before-context N     Show N lines before each match.
+  -C N, --context N            Show N lines before and after each match.
+  -m N, --max-count N          Stop after N matches per file.
+  -j N, --threads N            Use N workers.
+  -e P, --regexp P             Search pattern.
+  -L, --follow                 Follow symlinks.
+  --glob GLOB                  Include only files whose paths match GLOB.
+  --type NAME                  Include a file type.
+  --type-not NAME              Exclude a file type.
+  --json                       Emit ripgrep-style JSON events.
+  --no-ignore                  Ignore .gitignore and .phgrepignore rules.
+  --hidden                     Include hidden files.
+  --files                      List candidate files instead of searching.
+  --help                       Show this help.
 
 TEXT;
+    }
+
+    private function displayPath(string $path, bool $prefixCurrentDirectory = false): string
+    {
+        $relative = Filesystem::relativePath(getcwd() ?: '.', $path);
+
+        if (
+            $prefixCurrentDirectory
+            && $relative !== '.'
+            && !str_starts_with($relative, './')
+            && !str_starts_with($relative, '../')
+            && !str_starts_with($relative, '/')
+        ) {
+            return './' . $relative;
+        }
+
+        return $relative;
     }
 
     private function writeOutput(string $contents): void
@@ -372,8 +800,8 @@ TEXT;
         fwrite($this->output, $contents);
     }
 
-    private function displayPath(string $path): string
+    private function writeError(string $contents): void
     {
-        return Filesystem::relativePath(getcwd() ?: '.', $path);
+        fwrite($this->errorOutput, $contents);
     }
 }

@@ -2,7 +2,7 @@
 
 Generated from live command probes, not hand-maintained guesses.
 
-Generated at `2026-04-09T21:43:04+00:00` from real fixture workspaces. Raw evidence is stored in [FEATURE_MATRIX.json](FEATURE_MATRIX.json).
+Generated at `2026-04-09T22:05:42+00:00` from real fixture workspaces. Raw evidence is stored in [FEATURE_MATRIX.json](FEATURE_MATRIX.json).
 
 Status legend:
 - `Pass`: the command probe succeeded.
@@ -13,32 +13,42 @@ Status legend:
 
 | Feature | rg | bin/rg | Notes |
 | --- | --- | --- | --- |
-| Fixed-string search | Pass | Fail<br><sub>Expected output lines `needle`, got `2:needle`.</sub> | Probe: `-F needle single.txt` |
-| Case-insensitive fixed-string search | Pass | Fail<br><sub>Expected output lines `needle, NEEDLE`, got `2:needle, 3:NEEDLE`.</sub> | Probe: `-F -i needle single.txt` |
-| Whole-word search | Pass | Fail<br><sub>Expected output lines `needle`, got `1:needle`.</sub> | Probe: `-F -w needle words.txt` |
-| Invert match | Pass | Fail<br><sub>Expected output lines `hay`, got `2:hay`.</sub> | Probe: `-F -v needle invert.txt` |
-| Count mode | Pass | Fail<br><sub>Expected count output `2`, got `0`.</sub> | Probe: `-F -c needle counts.txt` |
-| Files with matches | Pass | Fail<br><sub>Expected stdout to contain `single.txt`.</sub> | Probe: `-F -l needle .` |
+| Fixed-string search | Pass | Pass | Probe: `-F needle single.txt` |
+| Case-insensitive fixed-string search | Pass | Pass | Probe: `-F -i needle single.txt` |
+| Whole-word search | Pass | Pass | Probe: `-F -w needle words.txt` |
+| Invert match | Pass | Pass | Probe: `-F -v needle invert.txt` |
+| Count mode | Pass | Pass | Probe: `-F -c needle counts.txt` |
+| Regexp alias | Pass | Pass | Probe: `--regexp needle single.txt` |
+| Files with matches | Pass | Pass | Probe: `-F -l needle .` |
 | Files without matches | Pass | Pass | Probe: `-F --files-without-match needle .` |
 | Context lines | Pass | Pass | Probe: `-F -C 1 needle context.txt` |
+| Line number output | Pass | Pass | Probe: `-n -F needle single.txt` |
+| Filename override | Pass | Pass | Probe: `-H -F needle single.txt` |
+| No-filename override | Pass | Pass | Probe: `-I -F needle .` |
 | Max count | Pass | Pass | Probe: `-F -m 1 needle counts.txt` |
 | Glob filter | Pass | Pass | Probe: `--glob *.php function .` |
 | Type filter | Pass | Pass | Probe: `--type php function .` |
+| Type exclusion | Pass | Pass | Probe: `--type-not php function .` |
 | Hidden files | Pass | Pass | Probe: `--hidden -F secret .` |
 | No ignore | Pass | Pass | Probe: `--no-ignore -F ignored .` |
 | --files mode | Pass | Pass | Probe: `--files .` |
-| Structured JSON output | Pass | Fail<br><sub>Expected newline-delimited JSON events.</sub> | Probe: `--json -F needle single.txt` using ripgrep JSON-event semantics |
+| Structured JSON output | Pass | Pass | Probe: `--json -F needle single.txt` using ripgrep JSON-event semantics |
 
 ## sg Compatibility Surface
 
 | Feature | sg | bin/sg | Notes |
 | --- | --- | --- | --- |
 | Pattern search with `run --pattern` | Pass | Pass | Probe: `run --pattern array($$$ITEMS) src/App.php` |
-| Rewrite via `run --rewrite` | Pass | Fail<br><sub>Expected stdout to contain `[1, 2, 3]`.</sub> | Probe: `run --pattern array($$$ITEMS) --rewrite [$$$ITEMS] src/App.php` |
+| Default one-shot search | Pass | Pass | Probe: `--pattern array($$$ITEMS) src/App.php` |
+| Rewrite via `run --rewrite` | Pass | Pass | Probe: `run --pattern array($$$ITEMS) --rewrite [$$$ITEMS] src/App.php` |
 | Structured JSON output | Pass | Pass | Probe: `run --json --pattern dispatch($EVENT) src/App.php` |
-| Rewrite dry-run | Pass | Fail<br><sub>Expected dry-run output to contain rewritten code.</sub> | Probe: `run --pattern array($$$ITEMS) --rewrite [$$$ITEMS] src/App.php` without `--update-all` |
-| Interactive rewrite accept | Fail<br><sub>Expected exit 0, got 101.</sub> | Pass | Probe: `run --pattern array($$$ITEMS) --rewrite [$$$ITEMS] --interactive src/App.php` with `y` |
-| Interactive rewrite decline | Fail<br><sub>Expected exit 0, got 101.</sub> | Pass | Probe: `run --pattern array($$$ITEMS) --rewrite [$$$ITEMS] --interactive src/App.php` with `n` |
+| Structured JSON stream output | Pass | Pass | Probe: `run --json=stream --pattern dispatch($EVENT) src/App.php` |
+| Structured JSON compact output | Pass | Pass | Probe: `run --json=compact --pattern dispatch($EVENT) src/App.php` |
+| Files with matches | Pass | Pass | Probe: `run --files-with-matches --pattern array($$$ITEMS) src/App.php` |
+| Glob filtering | Pass | Pass | Probe: `run --globs src/*.php --pattern dispatch($EVENT) .` |
+| No-ignore hidden traversal | Pass | Pass | Probe: `run --no-ignore hidden --pattern dispatch($EVENT) .` |
+| Rewrite dry-run | Pass | Pass | Probe: `run --pattern array($$$ITEMS) --rewrite [$$$ITEMS] src/App.php` without `--update-all` |
+| Update-all rewrite | Pass | Pass | Probe: `run --pattern array($$$ITEMS) --rewrite [$$$ITEMS] --update-all src/App.php` |
 | Explicit PHP language flag | Pass | Pass | Probe: `run --lang php --pattern $CLIENT->send($MESSAGE) src/App.php` |
 
 ## Native phgrep Surface

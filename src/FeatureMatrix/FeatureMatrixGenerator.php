@@ -144,6 +144,16 @@ final class FeatureMatrixGenerator
                     ),
                 ),
                 $this->buildRow(
+                    'Regexp alias',
+                    'Probe: `--regexp needle single.txt`',
+                    $sectionProviders,
+                    static fn (self $generator, string $provider): array => $generator->runCommandProbe(
+                        $providers[$provider],
+                        ['--regexp', 'needle', 'single.txt'],
+                        static fn (ProcessResult $result): ?string => self::expectExactOutputLines($result, ['needle']),
+                    ),
+                ),
+                $this->buildRow(
                     'Files with matches',
                     'Probe: `-F -l needle .`',
                     $sectionProviders,
@@ -174,6 +184,50 @@ final class FeatureMatrixGenerator
                     ),
                 ),
                 $this->buildRow(
+                    'Line number output',
+                    'Probe: `-n -F needle single.txt`',
+                    $sectionProviders,
+                    static fn (self $generator, string $provider): array => $generator->runCommandProbe(
+                        $providers[$provider],
+                        ['-n', '-F', 'needle', 'single.txt'],
+                        static fn (ProcessResult $result): ?string => self::expectExactOutputLines($result, ['2:needle']),
+                    ),
+                ),
+                $this->buildRow(
+                    'Filename override',
+                    'Probe: `-H -F needle single.txt`',
+                    $sectionProviders,
+                    static fn (self $generator, string $provider): array => $generator->runCommandProbe(
+                        $providers[$provider],
+                        ['-H', '-F', 'needle', 'single.txt'],
+                        static fn (ProcessResult $result): ?string => self::expectExactOutputLines($result, ['single.txt:needle']),
+                    ),
+                ),
+                $this->buildRow(
+                    'No-filename override',
+                    'Probe: `-I -F needle .`',
+                    $sectionProviders,
+                    static fn (self $generator, string $provider): array => $generator->runCommandProbe(
+                        $providers[$provider],
+                        ['-I', '-F', 'needle', '.'],
+                        static function (ProcessResult $result): ?string {
+                            if ($result->exitCode !== 0) {
+                                return sprintf('Expected exit 0, got %d.', $result->exitCode);
+                            }
+
+                            if (!str_contains($result->stdout, "needle\n")) {
+                                return 'Expected no-filename output to contain matched lines.';
+                            }
+
+                            if (str_contains($result->stdout, 'single.txt:')) {
+                                return 'Expected no-filename output to suppress file prefixes.';
+                            }
+
+                            return null;
+                        },
+                    ),
+                ),
+                $this->buildRow(
                     'Max count',
                     'Probe: `-F -m 1 needle counts.txt`',
                     $sectionProviders,
@@ -201,6 +255,30 @@ final class FeatureMatrixGenerator
                         $providers[$provider],
                         ['--type', 'php', 'function', '.'],
                         static fn (ProcessResult $result): ?string => self::expectGlobFilteredOutput($result),
+                    ),
+                ),
+                $this->buildRow(
+                    'Type exclusion',
+                    'Probe: `--type-not php function .`',
+                    $sectionProviders,
+                    static fn (self $generator, string $provider): array => $generator->runCommandProbe(
+                        $providers[$provider],
+                        ['--type-not', 'php', 'function', '.'],
+                        static function (ProcessResult $result): ?string {
+                            if ($result->exitCode !== 0) {
+                                return sprintf('Expected exit 0, got %d.', $result->exitCode);
+                            }
+
+                            if (!str_contains($result->stdout, 'src/Other.txt')) {
+                                return 'Expected type exclusion output to include `src/Other.txt`.';
+                            }
+
+                            if (str_contains($result->stdout, 'src/App.php')) {
+                                return 'Expected type exclusion output to exclude `src/App.php`.';
+                            }
+
+                            return null;
+                        },
                     ),
                 ),
                 $this->buildRow(
@@ -285,6 +363,16 @@ final class FeatureMatrixGenerator
                     ),
                 ),
                 $this->buildRow(
+                    'Default one-shot search',
+                    'Probe: `--pattern array($$$ITEMS) src/App.php`',
+                    $sectionProviders,
+                    static fn (self $generator, string $provider): array => $generator->runCommandProbe(
+                        $providers[$provider],
+                        ['--pattern', 'array($$$ITEMS)', 'src/App.php'],
+                        static fn (ProcessResult $result): ?string => self::expectExitAndStdoutContains($result, 0, 'array(1, 2, 3)'),
+                    ),
+                ),
+                $this->buildRow(
                     'Rewrite via `run --rewrite`',
                     'Probe: `run --pattern array($$$ITEMS) --rewrite [$$$ITEMS] src/App.php`',
                     $sectionProviders,
@@ -302,6 +390,70 @@ final class FeatureMatrixGenerator
                         $providers[$provider],
                         ['run', '--json', '--pattern', 'dispatch($EVENT)', 'src/App.php'],
                         static fn (ProcessResult $result): ?string => self::expectStructuredJson($result),
+                    ),
+                ),
+                $this->buildRow(
+                    'Structured JSON stream output',
+                    'Probe: `run --json=stream --pattern dispatch($EVENT) src/App.php`',
+                    $sectionProviders,
+                    static fn (self $generator, string $provider): array => $generator->runCommandProbe(
+                        $providers[$provider],
+                        ['run', '--json=stream', '--pattern', 'dispatch($EVENT)', 'src/App.php'],
+                        static fn (ProcessResult $result): ?string => self::expectStructuredJson($result),
+                    ),
+                ),
+                $this->buildRow(
+                    'Structured JSON compact output',
+                    'Probe: `run --json=compact --pattern dispatch($EVENT) src/App.php`',
+                    $sectionProviders,
+                    static fn (self $generator, string $provider): array => $generator->runCommandProbe(
+                        $providers[$provider],
+                        ['run', '--json=compact', '--pattern', 'dispatch($EVENT)', 'src/App.php'],
+                        static fn (ProcessResult $result): ?string => self::expectStructuredJson($result),
+                    ),
+                ),
+                $this->buildRow(
+                    'Files with matches',
+                    'Probe: `run --files-with-matches --pattern array($$$ITEMS) src/App.php`',
+                    $sectionProviders,
+                    static fn (self $generator, string $provider): array => $generator->runCommandProbe(
+                        $providers[$provider],
+                        ['run', '--files-with-matches', '--pattern', 'array($$$ITEMS)', 'src/App.php'],
+                        static fn (ProcessResult $result): ?string => self::expectExitAndStdoutContains($result, 0, 'src/App.php'),
+                    ),
+                ),
+                $this->buildRow(
+                    'Glob filtering',
+                    'Probe: `run --globs src/*.php --pattern dispatch($EVENT) .`',
+                    $sectionProviders,
+                    static fn (self $generator, string $provider): array => $generator->runCommandProbe(
+                        $providers[$provider],
+                        ['run', '--globs', 'src/*.php', '--pattern', 'dispatch($EVENT)', '.'],
+                        static function (ProcessResult $result): ?string {
+                            if ($result->exitCode !== 0) {
+                                return sprintf('Expected exit 0, got %d.', $result->exitCode);
+                            }
+
+                            if (!str_contains($result->stdout, 'src/App.php')) {
+                                return 'Expected glob-filtered output to include `src/App.php`.';
+                            }
+
+                            if (str_contains($result->stdout, '.hidden/Hidden.php')) {
+                                return 'Expected glob-filtered output to exclude hidden files.';
+                            }
+
+                            return null;
+                        },
+                    ),
+                ),
+                $this->buildRow(
+                    'No-ignore hidden traversal',
+                    'Probe: `run --no-ignore hidden --pattern dispatch($EVENT) .`',
+                    $sectionProviders,
+                    static fn (self $generator, string $provider): array => $generator->runCommandProbe(
+                        $providers[$provider],
+                        ['run', '--no-ignore', 'hidden', '--pattern', 'dispatch($EVENT)', '.'],
+                        static fn (ProcessResult $result): ?string => self::expectExitAndStdoutContains($result, 0, '.hidden/Hidden.php'),
                     ),
                 ),
                 $this->buildRow(
@@ -331,12 +483,12 @@ final class FeatureMatrixGenerator
                     ),
                 ),
                 $this->buildRow(
-                    'Interactive rewrite accept',
-                    'Probe: `run --pattern array($$$ITEMS) --rewrite [$$$ITEMS] --interactive src/App.php` with `y`',
+                    'Update-all rewrite',
+                    'Probe: `run --pattern array($$$ITEMS) --rewrite [$$$ITEMS] --update-all src/App.php`',
                     $sectionProviders,
                     static fn (self $generator, string $provider): array => $generator->runCommandProbe(
                         $providers[$provider],
-                        ['run', '--pattern', 'array($$$ITEMS)', '--rewrite', '[$$$ITEMS]', '--interactive', 'src/App.php'],
+                        ['run', '--pattern', 'array($$$ITEMS)', '--rewrite', '[$$$ITEMS]', '--update-all', 'src/App.php'],
                         static function (ProcessResult $result, string $workspace): ?string {
                             if ($result->exitCode !== 0) {
                                 return sprintf('Expected exit 0, got %d.', $result->exitCode);
@@ -345,35 +497,15 @@ final class FeatureMatrixGenerator
                             $contents = file_get_contents($workspace . '/src/App.php') ?: '';
 
                             if (!str_contains($contents, '[1, 2, 3]')) {
-                                return 'Expected interactive rewrite accept to update the file.';
+                                return 'Expected update-all rewrite to update the file.';
+                            }
+
+                            if ($result->stdout === '' && $result->stderr === '') {
+                                return 'Expected update-all rewrite to report applied changes or changed files.';
                             }
 
                             return null;
                         },
-                        "y\n",
-                    ),
-                ),
-                $this->buildRow(
-                    'Interactive rewrite decline',
-                    'Probe: `run --pattern array($$$ITEMS) --rewrite [$$$ITEMS] --interactive src/App.php` with `n`',
-                    $sectionProviders,
-                    static fn (self $generator, string $provider): array => $generator->runCommandProbe(
-                        $providers[$provider],
-                        ['run', '--pattern', 'array($$$ITEMS)', '--rewrite', '[$$$ITEMS]', '--interactive', 'src/App.php'],
-                        static function (ProcessResult $result, string $workspace): ?string {
-                            if ($result->exitCode !== 0) {
-                                return sprintf('Expected exit 0, got %d.', $result->exitCode);
-                            }
-
-                            $contents = file_get_contents($workspace . '/src/App.php') ?: '';
-
-                            if (!str_contains($contents, 'array(1, 2, 3)')) {
-                                return 'Expected interactive rewrite decline to leave the file unchanged.';
-                            }
-
-                            return null;
-                        },
-                        "n\n",
                     ),
                 ),
                 $this->buildRow(
@@ -847,6 +979,8 @@ final class FeatureMatrixGenerator
         file_put_contents($workspace . '/notes.txt', "old instance\nnew instance\n");
         file_put_contents($workspace . '/.hidden/secret.txt', "secret needle\n");
         file_put_contents($workspace . '/vendor/ignored.txt', "ignored needle\n");
+        file_put_contents($workspace . '/.hidden/Hidden.php', "<?php\ndispatch(\$hidden);\n");
+        file_put_contents($workspace . '/vendor/Ignored.php', "<?php\ndispatch(\$ignored);\n");
         file_put_contents($workspace . '/src/App.php', <<<'PHP'
 <?php
 

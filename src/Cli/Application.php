@@ -596,7 +596,7 @@ TEXT;
                 );
             }
 
-            $displayResults[] = new TextFileResult($displayFile, $displayMatches);
+            $displayResults[] = new TextFileResult($displayFile, $displayMatches, $result->matchCount());
         }
 
         return $displayResults;

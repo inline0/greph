@@ -46,7 +46,7 @@ final class RipgrepApplicationTest extends TestCase
         $this->assertSame(0, $helpExit);
         $this->assertSame(0, $searchExit);
         $this->assertStringContainsString('Usage:' . PHP_EOL . '  rg [options] pattern [path...]', $stdout);
-        $this->assertStringContainsString("2:needle\n", $stdout);
+        $this->assertStringContainsString("needle\n", $stdout);
     }
 
     #[Test]
@@ -67,6 +67,22 @@ final class RipgrepApplicationTest extends TestCase
         $this->assertStringContainsString("single.txt\n", $stdout);
         $this->assertStringContainsString("src/App.php\n", $stdout);
         $this->assertStringContainsString(".hidden/secret.txt\n", $stdout);
+    }
+
+    #[Test]
+    public function itSupportsRipgrepFilenameFlags(): void
+    {
+        $withFilenameHarness = $this->newApplication();
+        $noFilenameHarness = $this->newApplication();
+
+        $withFilenameExit = $withFilenameHarness['application']->run(['rg', '-H', '-F', 'needle', 'single.txt']);
+        $noFilenameExit = $noFilenameHarness['application']->run(['rg', '-I', '-F', 'needle', '.']);
+
+        $this->assertSame(0, $withFilenameExit);
+        $this->assertSame(0, $noFilenameExit);
+        $this->assertStringContainsString("single.txt:needle\n", $this->readStream($withFilenameHarness['stdout']));
+        $this->assertStringContainsString("needle\n", $this->readStream($noFilenameHarness['stdout']));
+        $this->assertStringNotContainsString('single.txt:', $this->readStream($noFilenameHarness['stdout']));
     }
 
     #[Test]

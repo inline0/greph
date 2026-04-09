@@ -49,8 +49,8 @@ PHP);
         $this->assertSame(0, $helpExit);
         $this->assertSame(0, $scanExit);
         $this->assertSame(0, $positionalExit);
-        $this->assertStringContainsString('Usage:' . PHP_EOL . '  sg -p PATTERN [options] [path...]', $stdout);
-        $this->assertStringContainsString('src/App.php:3:array(1, 2, 3)', $stdout);
+        $this->assertStringContainsString('Usage:' . PHP_EOL . '  sg run --pattern PATTERN [options] [path...]', $stdout);
+        $this->assertStringContainsString('src/App.php:3:$items = array(1, 2, 3);', $stdout);
     }
 
     #[Test]
@@ -73,8 +73,30 @@ PHP);
         $stdout = $this->readStream($harness['stdout']);
 
         $this->assertSame(0, $exitCode);
-        $this->assertStringContainsString("=== src/App.php ===\n", $stdout);
-        $this->assertStringContainsString('$items = [1, 2, 3];', $stdout);
+        $this->assertStringContainsString("src/App.php\n", $stdout);
+        $this->assertStringContainsString("@@ -3,1 +3,1 @@\n", $stdout);
+        $this->assertStringContainsString('+$items = [1, 2, 3];', $stdout);
+    }
+
+    #[Test]
+    public function itSupportsUpdateAllRewrites(): void
+    {
+        $harness = $this->newApplication();
+
+        $exitCode = $harness['application']->run([
+            'sg',
+            'run',
+            '--pattern',
+            'array($$$ITEMS)',
+            '--rewrite',
+            '[$$$ITEMS]',
+            '--update-all',
+            'src/App.php',
+        ]);
+
+        $this->assertSame(0, $exitCode);
+        $this->assertStringContainsString("src/App.php\n", $this->readStream($harness['stdout']));
+        $this->assertStringContainsString('$items = [1, 2, 3];', file_get_contents($this->workspace . '/src/App.php') ?: '');
     }
 
     #[Test]
