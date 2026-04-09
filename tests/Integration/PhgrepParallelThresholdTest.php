@@ -64,4 +64,38 @@ final class PhgrepParallelThresholdTest extends TestCase
         $this->assertCount(1501, $rewriteResults);
         $this->assertTrue($rewriteResults[0]->changed());
     }
+
+    #[Test]
+    public function itSupportsSparseParallelTextPayloadsForMatchedFilesOnly(): void
+    {
+        $paths = [];
+
+        for ($index = 0; $index < 1501; $index++) {
+            $relativePath = sprintf('mixed/File%04d.txt', $index);
+            $contents = $index % 2 === 0
+                ? "needle in file {$index}\n"
+                : "plain text {$index}\n";
+            $paths[] = Workspace::writeFile($this->workspace, $relativePath, $contents);
+        }
+
+        $filesWithMatches = Phgrep::searchText(
+            'needle',
+            $paths,
+            new TextSearchOptions(fixedString: true, filesWithMatches: true, jobs: 2),
+        );
+        $normalResults = Phgrep::searchText(
+            'needle',
+            $paths,
+            new TextSearchOptions(fixedString: true, jobs: 2),
+        );
+
+        $matchedFiles = array_map(static fn ($result): string => basename($result->file), $filesWithMatches);
+        $normalMatchedFiles = array_map(static fn ($result): string => basename($result->file), $normalResults);
+
+        $this->assertCount(751, $filesWithMatches);
+        $this->assertCount(751, $normalResults);
+        $this->assertContains('File0000.txt', $matchedFiles);
+        $this->assertContains('File1500.txt', $matchedFiles);
+        $this->assertSame($matchedFiles, $normalMatchedFiles);
+    }
 }
