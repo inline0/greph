@@ -134,9 +134,9 @@ Current benchmark baseline commit: `e542ee4`
 ### In Flight
 
 - Strengthen AST parser-side prefilters
-  - use the `ast-parse` signal to cut parse volume before `nikic/php-parser` runs
-  - focus on parser-side heuristics rather than more matcher micro-optimizations
-  - validate on CI with `ast` plus `ast-parse` once a concrete prefilter change lands
+  - add cheap regex rejects before `token_get_all()` for long-array and zero-arg-`new` pattern gates
+  - cut obvious non-candidates before the token scan and parser ever run
+  - validate on CI with `ast`, then follow with `ast-parse` if the real search category wins
 
 ## Ordered Queue
 
