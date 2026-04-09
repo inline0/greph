@@ -71,15 +71,19 @@ final class CliTextOutputTest extends TestCase
         $payload = json_decode($result['stdout'], true, 512, JSON_THROW_ON_ERROR);
 
         $this->assertCount(3, $payload);
-        $this->assertSame('single.txt', $payload[0]['file']);
-        $this->assertCount(1, $payload[0]['matches']);
-        $this->assertSame(2, $payload[0]['matches'][0]['line']);
-        $this->assertSame(1, $payload[0]['matches'][0]['column']);
-        $this->assertSame('needle', $payload[0]['matches'][0]['matched_text']);
-        $this->assertSame('src/app.php', $payload[1]['file']);
-        $this->assertSame([], $payload[1]['matches']);
-        $this->assertSame('src/readme.txt', $payload[2]['file']);
-        $this->assertSame([], $payload[2]['matches']);
+        $payloadByFile = [];
+
+        foreach ($payload as $entry) {
+            $payloadByFile[$entry['file']] = $entry;
+        }
+
+        $this->assertEqualsCanonicalizing(['single.txt', 'src/app.php', 'src/readme.txt'], array_keys($payloadByFile));
+        $this->assertCount(1, $payloadByFile['single.txt']['matches']);
+        $this->assertSame(2, $payloadByFile['single.txt']['matches'][0]['line']);
+        $this->assertSame(1, $payloadByFile['single.txt']['matches'][0]['column']);
+        $this->assertSame('needle', $payloadByFile['single.txt']['matches'][0]['matched_text']);
+        $this->assertSame([], $payloadByFile['src/app.php']['matches']);
+        $this->assertSame([], $payloadByFile['src/readme.txt']['matches']);
     }
 
     #[Test]

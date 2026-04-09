@@ -13,14 +13,22 @@ final class ToolResolverTest extends TestCase
     #[Test]
     public function itResolvesConfiguredToolCommands(): void
     {
-        $resolver = new ToolResolver();
+        $resolver = new ToolResolver(
+            static fn (string $candidate): ?string => match ($candidate) {
+                'grep' => '/mock/grep',
+                'rg' => '/mock/rg',
+                'gh' => '/mock/gh',
+                'sg' => '/mock/sg',
+                default => null,
+            },
+        );
 
-        $this->assertNotSame([], $resolver->grep());
-        $this->assertNotSame([], $resolver->ripgrep());
-        $this->assertNotSame([], $resolver->githubCli());
+        $this->assertSame(['/mock/grep'], $resolver->grep());
+        $this->assertSame(['/mock/rg'], $resolver->ripgrep());
+        $this->assertSame(['/mock/gh'], $resolver->githubCli());
         $this->assertSame([PHP_BINARY], $resolver->phpBinary());
         $this->assertSame([PHP_BINARY, '/tmp/project/bin/phgrep'], $resolver->phgrep('/tmp/project'));
-        $this->assertNotSame([], $resolver->astGrep());
+        $this->assertSame(['/mock/sg'], $resolver->astGrep());
         $this->assertTrue($resolver->hasAstGrep());
     }
 
