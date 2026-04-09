@@ -55,10 +55,17 @@ final class WorkerPool
     /**
      * @param list<FileList> $chunks
      * @param callable(FileList): mixed $task
+     * @param (callable(mixed): mixed)|null $resultEncoder
+     * @param (callable(mixed): mixed)|null $resultDecoder
      * @return list<mixed>
      */
-    public function map(array $chunks, callable $task, ?int $maxWorkers = null): array
-    {
+    public function map(
+        array $chunks,
+        callable $task,
+        ?int $maxWorkers = null,
+        ?callable $resultEncoder = null,
+        ?callable $resultDecoder = null,
+    ): array {
         if ($chunks === []) {
             return [];
         }
@@ -73,10 +80,10 @@ final class WorkerPool
             $workers = [];
 
             foreach ($chunks as $index => $chunk) {
-                $workers[] = $this->startSocketWorker($index, $chunk, $task);
+                $workers[] = $this->startSocketWorker($index, $chunk, $task, $resultEncoder);
             }
 
-            return $this->resultCollector->collect($workers);
+            return $this->resultCollector->collect($workers, $resultDecoder);
         }
 
         $pending = [];
@@ -94,7 +101,7 @@ final class WorkerPool
                 $entry = $pending[$pendingIndex];
                 $pendingIndex++;
 
-                $worker = $this->startFileWorker($entry['index'], $entry['chunk'], $task);
+                $worker = $this->startFileWorker($entry['index'], $entry['chunk'], $task, $resultEncoder);
                 $activeWorkers[$worker['pid']] = $worker;
             }
 
@@ -114,6 +121,7 @@ final class WorkerPool
             $results[$worker['index']] = $this->resultCollector->collectWorker(
                 ['pid' => $worker['pid'], 'socket' => $worker['socket']],
                 false,
+                $resultDecoder,
             );
         }
 
@@ -125,9 +133,10 @@ final class WorkerPool
 
     /**
      * @param callable(FileList): mixed $task
+     * @param (callable(mixed): mixed)|null $resultEncoder
      * @return array{pid: int, socket: mixed}
      */
-    private function startSocketWorker(int $index, FileList $chunk, callable $task): array
+    private function startSocketWorker(int $index, FileList $chunk, callable $task, ?callable $resultEncoder = null): array
     {
         $sockets = ($this->socketPairFactory)();
 
@@ -143,7 +152,7 @@ final class WorkerPool
 
         if ($pid === 0) {
             fclose($sockets[0]);
-            ($this->workerFactory)($index, $chunk)->run($task, $sockets[1]);
+            ($this->workerFactory)($index, $chunk)->run($task, $sockets[1], $resultEncoder);
         }
 
         fclose($sockets[1]);
@@ -153,9 +162,10 @@ final class WorkerPool
 
     /**
      * @param callable(FileList): mixed $task
+     * @param (callable(mixed): mixed)|null $resultEncoder
      * @return array{pid: int, socket: mixed, index: int, tempPath: string}
      */
-    private function startFileWorker(int $index, FileList $chunk, callable $task): array
+    private function startFileWorker(int $index, FileList $chunk, callable $task, ?callable $resultEncoder = null): array
     {
         $tempPath = tempnam(sys_get_temp_dir(), 'phgrep-worker-');
 
@@ -184,7 +194,7 @@ final class WorkerPool
 
         if ($pid === 0) {
             fclose($reader);
-            ($this->workerFactory)($index, $chunk)->run($task, $writer);
+            ($this->workerFactory)($index, $chunk)->run($task, $writer, $resultEncoder);
         }
 
         fclose($writer);

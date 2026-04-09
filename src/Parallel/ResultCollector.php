@@ -8,14 +8,15 @@ final class ResultCollector
 {
     /**
      * @param list<array{pid: int, socket: mixed, tempPath?: string}> $workers
+     * @param (callable(mixed): mixed)|null $resultDecoder
      * @return list<mixed>
      */
-    public function collect(array $workers): array
+    public function collect(array $workers, ?callable $resultDecoder = null): array
     {
         $results = [];
 
         foreach ($workers as $worker) {
-            $results[] = $this->collectWorker($worker);
+            $results[] = $this->collectWorker($worker, true, $resultDecoder);
         }
 
         return $results;
@@ -23,8 +24,9 @@ final class ResultCollector
 
     /**
      * @param array{pid: int, socket: mixed, tempPath?: string} $worker
+     * @param (callable(mixed): mixed)|null $resultDecoder
      */
-    public function collectWorker(array $worker, bool $waitForExit = true): mixed
+    public function collectWorker(array $worker, bool $waitForExit = true, ?callable $resultDecoder = null): mixed
     {
         try {
             $metadata = stream_get_meta_data($worker['socket']);
@@ -61,7 +63,9 @@ final class ResultCollector
                 ));
             }
 
-            return $payload['result'] ?? null;
+            $result = $payload['result'] ?? null;
+
+            return $resultDecoder !== null ? $resultDecoder($result) : $result;
         } finally {
             if (isset($worker['tempPath'])) {
                 @unlink($worker['tempPath']);

@@ -47,6 +47,41 @@ final class WorkerTest extends TestCase
     }
 
     #[Test]
+    public function itAppliesTheResultEncoderBeforeSerializing(): void
+    {
+        $sockets = stream_socket_pair(STREAM_PF_UNIX, STREAM_SOCK_STREAM, STREAM_IPPROTO_IP);
+
+        if ($sockets === false) {
+            $this->fail('Failed to create worker test sockets.');
+        }
+
+        [$reader, $writer] = $sockets;
+
+        try {
+            $worker = new Worker(
+                3,
+                new FileList(['/tmp/one.php']),
+                static function (int $exitCode): never {
+                    throw new WorkerTermination($exitCode);
+                },
+            );
+
+            try {
+                $worker->run(static fn (FileList $files): int => count($files), $writer, static fn (int $result): string => 'count:' . $result);
+            } catch (WorkerTermination $termination) {
+                $this->assertSame(0, $termination->exitCode);
+            }
+
+            $payload = stream_get_contents($reader);
+
+            $this->assertIsString($payload);
+            $this->assertSame(['result' => 'count:1'], unserialize($payload));
+        } finally {
+            fclose($reader);
+        }
+    }
+
+    #[Test]
     public function itSerializesThrownErrors(): void
     {
         $sockets = stream_socket_pair(STREAM_PF_UNIX, STREAM_SOCK_STREAM, STREAM_IPPROTO_IP);

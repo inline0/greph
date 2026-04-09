@@ -25,6 +25,19 @@ final class ResultCollectorTest extends TestCase
     }
 
     #[Test]
+    public function itAppliesTheResultDecoderWhenCollecting(): void
+    {
+        $this->requirePcntl();
+
+        $collector = new ResultCollector();
+        $workers = [
+            $this->spawnWorker(serialize(['result' => 'first'])),
+        ];
+
+        $this->assertSame(['FIRST'], $collector->collect($workers, 'strtoupper'));
+    }
+
+    #[Test]
     public function itThrowsForErrorPayloads(): void
     {
         $this->requirePcntl();

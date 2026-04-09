@@ -23,14 +23,16 @@ final class Worker
 
     /**
      * @param callable(FileList): mixed $task
+     * @param (callable(mixed): mixed)|null $resultEncoder
      */
-    public function run(callable $task, mixed $socket): never
+    public function run(callable $task, mixed $socket, ?callable $resultEncoder = null): never
     {
         $payload = [];
         $exitCode = 0;
 
         try {
-            $payload = ['result' => $task($this->files)];
+            $result = $task($this->files);
+            $payload = ['result' => $resultEncoder !== null ? $resultEncoder($result) : $result];
         } catch (\Throwable $throwable) {
             $payload = [
                 'error' => $throwable::class,

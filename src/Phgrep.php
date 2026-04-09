@@ -12,6 +12,7 @@ use Phgrep\Ast\RewriteResult;
 use Phgrep\Parallel\WorkSplitter;
 use Phgrep\Parallel\WorkerPool;
 use Phgrep\Text\TextFileResult;
+use Phgrep\Text\TextResultCodec;
 use Phgrep\Text\TextSearcher;
 use Phgrep\Text\TextSearchOptions;
 use Phgrep\Walker\FileList;
@@ -37,6 +38,7 @@ final class Phgrep
         $options ??= new TextSearchOptions();
         $files = self::walk($paths, $options->walkOptions());
         $searcher = new TextSearcher();
+        $codec = new TextResultCodec();
 
         if (!self::shouldUseWorkers($options->jobs, count($files))) {
             return $searcher->searchFiles($files, $pattern, $options);
@@ -47,6 +49,15 @@ final class Phgrep
             $chunks,
             static fn (FileList $chunk): array => $searcher->searchFiles($chunk, $pattern, $options),
             $options->jobs,
+            static function (mixed $chunkResults) use ($codec): array {
+                if (!is_array($chunkResults)) {
+                    throw new \RuntimeException('Worker returned invalid text result set.');
+                }
+
+                /** @var list<TextFileResult> $chunkResults */
+                return $codec->encode($chunkResults);
+            },
+            static fn (mixed $payload): array => $codec->decode($payload),
         );
 
         $flattened = [];
