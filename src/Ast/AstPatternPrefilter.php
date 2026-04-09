@@ -48,6 +48,7 @@ final class AstPatternPrefilter
     public function mayMatchPattern(Node $pattern, string $contents): bool
     {
         return match (true) {
+            $pattern instanceof Expr\Array_ && $this->isLongArraySyntax($pattern) => $this->hasLongArraySyntax($contents),
             $pattern instanceof Expr\New_ && $pattern->args === [] => $this->hasZeroArgumentNewExpression($contents),
             default => true,
         };
@@ -121,6 +122,28 @@ final class AstPatternPrefilter
         };
     }
 
+    private function hasLongArraySyntax(string $contents): bool
+    {
+        $tokens = token_get_all($contents);
+        $tokenCount = count($tokens);
+
+        for ($index = 0; $index < $tokenCount; $index++) {
+            $token = $tokens[$index];
+
+            if (!is_array($token) || $token[0] !== T_ARRAY) {
+                continue;
+            }
+
+            $nextIndex = $this->nextSignificantTokenIndex($tokens, $index + 1);
+
+            if ($nextIndex !== null && $tokens[$nextIndex] === '(') {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     private function hasZeroArgumentNewExpression(string $contents): bool
     {
         $tokens = token_get_all($contents);
@@ -163,6 +186,17 @@ final class AstPatternPrefilter
         }
 
         return false;
+    }
+
+    private function isLongArraySyntax(Expr\Array_ $node): bool
+    {
+        $kind = $node->getAttribute('kind');
+
+        if (is_int($kind)) {
+            return $kind === Expr\Array_::KIND_LONG;
+        }
+
+        return property_exists($node, 'kind') && $node->kind === Expr\Array_::KIND_LONG;
     }
 
     /**

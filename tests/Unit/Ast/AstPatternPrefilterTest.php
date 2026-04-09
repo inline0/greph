@@ -46,4 +46,17 @@ final class AstPatternPrefilterTest extends TestCase
         $this->assertFalse($prefilter->mayMatchPattern($pattern, "<?php\nnew Foo(1);\n"));
         $this->assertFalse($prefilter->mayMatchPattern($pattern, '<?php' . "\n" . 'new Foo($arg);' . "\n" . 'new Bar($other);' . "\n"));
     }
+
+    #[Test]
+    public function itCanDetectLongArraySyntaxBeforeParsing(): void
+    {
+        $parser = new PatternParser();
+        $prefilter = new AstPatternPrefilter();
+        $pattern = $parser->parse('array($$$ITEMS)')->root;
+
+        $this->assertTrue($prefilter->mayMatchPattern($pattern, "<?php\n\$values = array(1, 2);\n"));
+        $this->assertTrue($prefilter->mayMatchPattern($pattern, "<?php\n\$values = array /* comment */ (1, 2);\n"));
+        $this->assertFalse($prefilter->mayMatchPattern($pattern, "<?php\n\$values = [1, 2];\n"));
+        $this->assertFalse($prefilter->mayMatchPattern($pattern, "<?php\n\$label = 'array(1, 2)';\n"));
+    }
 }
