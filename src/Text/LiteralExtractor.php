@@ -8,6 +8,16 @@ final class LiteralExtractor
 {
     public function extract(string $pattern): ?string
     {
+        $literals = $this->extractAll($pattern);
+
+        return $literals[0] ?? null;
+    }
+
+    /**
+     * @return list<string>
+     */
+    public function extractAll(string $pattern): array
+    {
         $segments = [];
         $segment = '';
         $length = strlen($pattern);
@@ -47,6 +57,16 @@ final class LiteralExtractor
                 continue;
             }
 
+            if ($character === '|') {
+                return [];
+            }
+
+            if ($character === '?' || $character === '*') {
+                $segment = substr($segment, 0, max(0, strlen($segment) - 1));
+                $this->flushSegment($segments, $segment);
+                continue;
+            }
+
             if (str_contains('.*+?()|{}^$', $character)) {
                 $this->flushSegment($segments, $segment);
                 continue;
@@ -57,16 +77,14 @@ final class LiteralExtractor
 
         $this->flushSegment($segments, $segment);
 
-        if ($segments === []) {
-            return null;
-        }
+        $segments = array_values(array_unique($segments));
 
         usort(
             $segments,
-            static fn (string $left, string $right): int => strlen($right) <=> strlen($left)
+            static fn (string $left, string $right): int => [strlen($right), $left] <=> [strlen($left), $right]
         );
 
-        return $segments[0];
+        return array_slice($segments, 0, 3);
     }
 
     /**

@@ -14,7 +14,7 @@ final class RegexSearcherTest extends TestCase
     #[Test]
     public function itMatchesRegexesWithPrefiltersAndWholeWords(): void
     {
-        $searcher = new RegexSearcher('save', caseInsensitive: true, wholeWord: true, literalPrefilter: 'save');
+        $searcher = new RegexSearcher('save', caseInsensitive: true, wholeWord: true, literalPrefilter: ['save']);
         $match = $searcher->match('Before SAVE after');
 
         $this->assertNotNull($match);
@@ -46,11 +46,14 @@ final class RegexSearcherTest extends TestCase
     #[Test]
     public function itCanPrefilterWholeFileContentsFromExtractedLiterals(): void
     {
-        $searcher = new RegexSearcher('save', caseInsensitive: true, literalPrefilter: 'save');
+        $searcher = new RegexSearcher('save', caseInsensitive: true, literalPrefilter: ['save']);
         $noPrefilter = new RegexSearcher('^save$');
+        $multiPrefilter = new RegexSearcher('\$[a-z]+ = new [A-Za-z]+\(\)', literalPrefilter: ['$', ' = new ']);
 
         $this->assertTrue($searcher->mayMatchContents("Before\nSAVE\nAfter"));
         $this->assertFalse($searcher->mayMatchContents("Before\nstore\nAfter"));
         $this->assertTrue($noPrefilter->mayMatchContents("anything"));
+        $this->assertTrue($multiPrefilter->mayMatchContents("<?php\n\$foo = new Bar();\n"));
+        $this->assertFalse($multiPrefilter->mayMatchContents("<?php\nvalue = new Bar();\n"));
     }
 }

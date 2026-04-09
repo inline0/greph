@@ -18,5 +18,7 @@ final class LiteralExtractorTest extends TestCase
         $this->assertSame('->save(', $extractor->extract('\$\w+->save\('));
         $this->assertSame('function', $extractor->extract('^function\s+[a-z_]+'));
         $this->assertNull($extractor->extract('^.*$'));
+        $this->assertSame(['->save(', '$'], $extractor->extractAll('\$\w+->save\('));
+        $this->assertSame([], $extractor->extractAll('foo|bar'));
     }
 }

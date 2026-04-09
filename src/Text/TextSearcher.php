@@ -64,7 +64,7 @@ final class TextSearcher
             $pattern,
             $options->caseInsensitive,
             $options->wholeWord,
-            $this->literalExtractor->extract($pattern),
+            $this->literalExtractor->extractAll($pattern),
         );
     }
 
