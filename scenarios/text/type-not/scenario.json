@@ -1,0 +1,12 @@
+{
+    "name": "type-not",
+    "category": "text",
+    "description": "Exclude file types from text search results",
+    "pattern": "typed-target",
+    "flags": [
+        "-F",
+        "--type-not",
+        "json"
+    ],
+    "path": "setup"
+}

@@ -1,0 +1,9 @@
+[
+    {
+        "file": "setup/.hidden.php",
+        "line": 3,
+        "column": 1,
+        "content": "secret-token();",
+        "matched_text": "secret-token"
+    }
+]

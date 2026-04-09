@@ -1,0 +1,9 @@
+{
+    "name": "formatting-preservation",
+    "category": "rewrite",
+    "description": "Rewrite expressions while preserving surrounding indentation",
+    "mode": "rewrite",
+    "pattern": "array($$$ITEMS)",
+    "rewrite": "[$$$ITEMS]",
+    "path": "setup"
+}

@@ -1,0 +1,2 @@
+setup/source.php:3:if ($ready) { run(); }
+setup/source.php:7:if ($enabled && $ready) { run(); }

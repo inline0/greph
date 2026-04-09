@@ -114,4 +114,28 @@ PHP);
         );
         $this->assertSame([1, 2], array_map(static fn ($result): int => $result->replacementCount, $results));
     }
+
+    #[Test]
+    public function itIsIdempotentAcrossRepeatedRewriteRuns(): void
+    {
+        $firstPass = Phgrep::rewriteAst(
+            'array($$$ITEMS)',
+            '[$$$ITEMS]',
+            $this->workspace . '/src/Legacy.php',
+            new AstSearchOptions(dryRun: true),
+        );
+
+        file_put_contents($this->workspace . '/src/Legacy.php', $firstPass[0]->rewrittenContents);
+
+        $secondPass = Phgrep::rewriteAst(
+            'array($$$ITEMS)',
+            '[$$$ITEMS]',
+            $this->workspace . '/src/Legacy.php',
+            new AstSearchOptions(dryRun: true),
+        );
+
+        $this->assertCount(1, $secondPass);
+        $this->assertFalse($secondPass[0]->changed());
+        $this->assertSame($secondPass[0]->originalContents, $secondPass[0]->rewrittenContents);
+    }
 }

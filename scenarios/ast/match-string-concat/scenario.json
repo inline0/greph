@@ -1,0 +1,7 @@
+{
+    "name": "match-string-concat",
+    "category": "ast",
+    "description": "Find concatenation expressions structurally",
+    "pattern": "$LEFT . $RIGHT",
+    "path": "setup"
+}

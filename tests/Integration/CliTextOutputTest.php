@@ -62,6 +62,46 @@ final class CliTextOutputTest extends TestCase
         $this->assertSame("src/app.php:2:function visible(): void {}\n", $result['stdout']);
     }
 
+    #[Test]
+    public function itEmitsStructuredJsonForTextMatches(): void
+    {
+        $result = $this->runCli(['-F', '--json', 'needle', '.']);
+
+        $this->assertSame(0, $result['exit']);
+        $payload = json_decode($result['stdout'], true, 512, JSON_THROW_ON_ERROR);
+
+        $this->assertCount(3, $payload);
+        $this->assertSame('single.txt', $payload[0]['file']);
+        $this->assertCount(1, $payload[0]['matches']);
+        $this->assertSame(2, $payload[0]['matches'][0]['line']);
+        $this->assertSame(1, $payload[0]['matches'][0]['column']);
+        $this->assertSame('needle', $payload[0]['matches'][0]['matched_text']);
+        $this->assertSame('src/app.php', $payload[1]['file']);
+        $this->assertSame([], $payload[1]['matches']);
+        $this->assertSame('src/readme.txt', $payload[2]['file']);
+        $this->assertSame([], $payload[2]['matches']);
+    }
+
+    #[Test]
+    public function itReturnsOneWhenTextSearchFindsNoMatches(): void
+    {
+        $result = $this->runCli(['-F', 'missing', '.']);
+
+        $this->assertSame(1, $result['exit']);
+        $this->assertSame('', $result['stdout']);
+        $this->assertSame('', $result['stderr']);
+    }
+
+    #[Test]
+    public function itReturnsTwoForTextRuntimeErrors(): void
+    {
+        $result = $this->runCli(['-F', 'needle', '/definitely/missing']);
+
+        $this->assertSame(2, $result['exit']);
+        $this->assertSame('', $result['stdout']);
+        $this->assertStringContainsString('Path does not exist: /definitely/missing', $result['stderr']);
+    }
+
     /**
      * @param list<string> $arguments
      * @return array{exit: int, stdout: string, stderr: string}

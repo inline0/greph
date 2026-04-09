@@ -1,0 +1,11 @@
+{
+    "name": "no-ignore",
+    "category": "text",
+    "description": "Include ignored files when no-ignore is enabled",
+    "pattern": "vendor-token",
+    "flags": [
+        "-F",
+        "--no-ignore"
+    ],
+    "path": "setup"
+}

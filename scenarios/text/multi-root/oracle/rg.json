@@ -1,0 +1,16 @@
+[
+    {
+        "file": "setup/alpha/first.php",
+        "line": 3,
+        "column": 1,
+        "content": "shared-token();",
+        "matched_text": "shared-token"
+    },
+    {
+        "file": "setup/beta/second.php",
+        "line": 3,
+        "column": 1,
+        "content": "shared-token();",
+        "matched_text": "shared-token"
+    }
+]

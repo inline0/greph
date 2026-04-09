@@ -1,0 +1,7 @@
+{
+    "name": "match-function-call",
+    "category": "ast",
+    "description": "Find plain function calls by structure",
+    "pattern": "dispatch($EVENT)",
+    "path": "setup"
+}

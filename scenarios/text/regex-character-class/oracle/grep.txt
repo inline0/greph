@@ -1,0 +1,3 @@
+setup/tasks.txt:1:task_A1
+setup/tasks.txt:2:task_B2
+setup/tasks.txt:4:task_C3

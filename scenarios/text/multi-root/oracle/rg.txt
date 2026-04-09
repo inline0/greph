@@ -1,0 +1,2 @@
+setup/beta/second.php:3:shared-token();
+setup/alpha/first.php:3:shared-token();

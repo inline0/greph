@@ -1,0 +1,7 @@
+{
+    "name": "match-class-method",
+    "category": "ast",
+    "description": "Find instance method calls by structure",
+    "pattern": "$CLIENT->send($MESSAGE)",
+    "path": "setup"
+}

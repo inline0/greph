@@ -1,0 +1,2 @@
+setup/lines.txt:1:needle
+setup/lines.txt:3:needle again

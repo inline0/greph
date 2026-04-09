@@ -1,0 +1,18 @@
+[
+    {
+        "file": "setup/source.php",
+        "start_line": 3,
+        "end_line": 5,
+        "start_byte": 7,
+        "end_byte": 33,
+        "code": "if ($ready) {\n    run();\n}"
+    },
+    {
+        "file": "setup/source.php",
+        "start_line": 7,
+        "end_line": 9,
+        "start_byte": 35,
+        "end_byte": 73,
+        "code": "if ($enabled && $ready) {\n    run();\n}"
+    }
+]

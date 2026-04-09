@@ -1,0 +1,18 @@
+[
+    {
+        "file": "setup/source.php",
+        "start_line": 4,
+        "end_line": 4,
+        "start_byte": 20,
+        "end_byte": 36,
+        "code": "dispatch($event)"
+    },
+    {
+        "file": "setup/source.php",
+        "start_line": 7,
+        "end_line": 7,
+        "start_byte": 57,
+        "end_byte": 71,
+        "code": "dispatch($job)"
+    }
+]

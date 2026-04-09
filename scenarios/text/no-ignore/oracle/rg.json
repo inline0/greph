@@ -1,0 +1,9 @@
+[
+    {
+        "file": "setup/vendor/lib.php",
+        "line": 3,
+        "column": 1,
+        "content": "vendor-token();",
+        "matched_text": "vendor-token"
+    }
+]

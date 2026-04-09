@@ -1,0 +1,7 @@
+{
+    "name": "match-if-condition",
+    "category": "ast",
+    "description": "Find if statements by condition shape",
+    "pattern": "if ($COND) { run(); }",
+    "path": "setup"
+}

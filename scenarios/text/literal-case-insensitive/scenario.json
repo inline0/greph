@@ -1,0 +1,11 @@
+{
+    "name": "literal-case-insensitive",
+    "category": "text",
+    "description": "Match fixed strings without case sensitivity",
+    "pattern": "needle",
+    "flags": [
+        "-F",
+        "-i"
+    ],
+    "path": "setup"
+}

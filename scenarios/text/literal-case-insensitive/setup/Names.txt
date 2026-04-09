@@ -1,0 +1,4 @@
+Needle
+needle
+NEEDLE
+nomatch

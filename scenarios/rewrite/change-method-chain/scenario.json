@@ -1,0 +1,9 @@
+{
+    "name": "change-method-chain",
+    "category": "rewrite",
+    "description": "Rewrite method chains structurally",
+    "mode": "rewrite",
+    "pattern": "$QUERY->where($FIELD)->first()",
+    "rewrite": "$QUERY->where($FIELD)->value()",
+    "path": "setup"
+}

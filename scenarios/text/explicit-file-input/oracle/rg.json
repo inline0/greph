@@ -1,0 +1,9 @@
+[
+    {
+        "file": "setup/vendor/ignored.php",
+        "line": 3,
+        "column": 1,
+        "content": "secret-call();",
+        "matched_text": "secret-call"
+    }
+]

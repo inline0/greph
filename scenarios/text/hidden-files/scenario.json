@@ -1,0 +1,11 @@
+{
+    "name": "hidden-files",
+    "category": "text",
+    "description": "Include hidden files when requested",
+    "pattern": "secret-token",
+    "flags": [
+        "-F",
+        "--hidden"
+    ],
+    "path": "setup"
+}

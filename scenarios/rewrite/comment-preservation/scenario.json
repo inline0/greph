@@ -1,0 +1,9 @@
+{
+    "name": "comment-preservation",
+    "category": "rewrite",
+    "description": "Rewrite expressions without disturbing surrounding comments",
+    "mode": "rewrite",
+    "pattern": "array($$$ITEMS)",
+    "rewrite": "[$$$ITEMS]",
+    "path": "setup"
+}

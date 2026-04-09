@@ -1,0 +1,1 @@
+setup/vendor/ignored.php:3:secret-call();

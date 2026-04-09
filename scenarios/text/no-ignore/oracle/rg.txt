@@ -1,0 +1,1 @@
+setup/vendor/lib.php:3:vendor-token();

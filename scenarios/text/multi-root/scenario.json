@@ -1,0 +1,23 @@
+{
+    "name": "multi-root",
+    "category": "text",
+    "description": "Search across multiple input roots",
+    "pattern": "shared-token",
+    "flags": [
+        "-F"
+    ],
+    "paths": [
+        "setup/alpha",
+        "setup/beta"
+    ],
+    "expectations": {
+        "grep": "exact",
+        "rg": "skip",
+        "rg_json": "semantic"
+    },
+    "oracle_disagreement": {
+        "grep_vs_rg": "grep preserves the requested root order while ripgrep emits matches in lexical file order across roots",
+        "phgrep_follows": "grep",
+        "reason": "Text mode is grep-compatible and keeps traversal order anchored to input roots"
+    }
+}

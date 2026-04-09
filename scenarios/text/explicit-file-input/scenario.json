@@ -1,0 +1,20 @@
+{
+    "name": "explicit-file-input",
+    "category": "text",
+    "description": "Search an ignored file directly by path",
+    "pattern": "secret-call",
+    "flags": [
+        "-F"
+    ],
+    "path": "setup/vendor/ignored.php",
+    "expectations": {
+        "grep": "exact",
+        "rg": "skip",
+        "rg_json": "semantic"
+    },
+    "oracle_disagreement": {
+        "grep_vs_rg": "grep prints filenames for explicit file paths in recursive mode while ripgrep suppresses the filename for a single file target",
+        "phgrep_follows": "grep",
+        "reason": "Text mode defaults to grep-compatible filename display semantics"
+    }
+}

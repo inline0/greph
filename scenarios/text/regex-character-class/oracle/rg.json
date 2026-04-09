@@ -1,0 +1,23 @@
+[
+    {
+        "file": "setup/tasks.txt",
+        "line": 1,
+        "column": 1,
+        "content": "task_A1",
+        "matched_text": "task_A1"
+    },
+    {
+        "file": "setup/tasks.txt",
+        "line": 2,
+        "column": 1,
+        "content": "task_B2",
+        "matched_text": "task_B2"
+    },
+    {
+        "file": "setup/tasks.txt",
+        "line": 4,
+        "column": 1,
+        "content": "task_C3",
+        "matched_text": "task_C3"
+    }
+]

@@ -1,0 +1,7 @@
+{
+    "name": "ignore-comments",
+    "category": "ast",
+    "description": "Comments do not affect AST matching",
+    "pattern": "dispatch($EVENT)",
+    "path": "setup"
+}

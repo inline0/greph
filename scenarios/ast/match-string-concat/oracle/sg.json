@@ -1,0 +1,26 @@
+[
+    {
+        "file": "setup/source.php",
+        "start_line": 3,
+        "end_line": 3,
+        "start_byte": 18,
+        "end_byte": 35,
+        "code": "$greeting . $name"
+    },
+    {
+        "file": "setup/source.php",
+        "start_line": 5,
+        "end_line": 5,
+        "start_byte": 69,
+        "end_byte": 87,
+        "code": "$dir . '/' . $file"
+    },
+    {
+        "file": "setup/source.php",
+        "start_line": 5,
+        "end_line": 5,
+        "start_byte": 69,
+        "end_byte": 79,
+        "code": "$dir . '/'"
+    }
+]

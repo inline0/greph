@@ -1,0 +1,6 @@
+[
+    {
+        "file": "setup/source.php",
+        "content": "<?php\n\n$first = $query->where($field)->value();\n$value = $query->where($field)->get();\n"
+    }
+]

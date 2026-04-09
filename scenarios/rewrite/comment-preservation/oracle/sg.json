@@ -1,0 +1,6 @@
+[
+    {
+        "file": "setup/source.php",
+        "content": "<?php\n\nif ($ready) {\n    // Keep this comment.\n    $items = [1, 2, 3];\n}\n"
+    }
+]

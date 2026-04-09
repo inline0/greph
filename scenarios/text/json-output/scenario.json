@@ -1,0 +1,11 @@
+{
+    "name": "json-output",
+    "category": "text",
+    "description": "Capture structured text match output",
+    "pattern": "needle",
+    "flags": [
+        "-F",
+        "--json"
+    ],
+    "path": "setup"
+}

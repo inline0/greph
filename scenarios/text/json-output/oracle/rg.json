@@ -1,0 +1,16 @@
+[
+    {
+        "file": "setup/lines.txt",
+        "line": 1,
+        "column": 1,
+        "content": "needle",
+        "matched_text": "needle"
+    },
+    {
+        "file": "setup/lines.txt",
+        "line": 3,
+        "column": 1,
+        "content": "needle again",
+        "matched_text": "needle"
+    }
+]

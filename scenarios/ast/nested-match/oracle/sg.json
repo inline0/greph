@@ -1,0 +1,10 @@
+[
+    {
+        "file": "setup/source.php",
+        "start_line": 3,
+        "end_line": 3,
+        "start_byte": 7,
+        "end_byte": 29,
+        "code": "wrap(dispatch($event))"
+    }
+]

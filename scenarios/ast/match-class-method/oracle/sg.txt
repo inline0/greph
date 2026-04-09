@@ -1,0 +1,2 @@
+setup/source.php:3:$client->send($message)
+setup/source.php:4:$mailer->send($welcome)

@@ -20,6 +20,13 @@ final class CliAstRewriteTest extends TestCase
 
 $items = array(1, 2, 3);
 PHP);
+        Workspace::writeFile($this->workspace, 'src/Search.php', <<<'PHP'
+<?php
+
+dispatch($event);
+dispatch($job);
+PHP);
+        Workspace::writeFile($this->workspace, 'src/Unchanged.php', "<?php\n\n\$value = 42;\n");
     }
 
     protected function tearDown(): void
@@ -47,6 +54,51 @@ PHP);
         $this->assertStringContainsString('Rewrite', $accepted['stdout']);
         $this->assertStringContainsString("src/Legacy.php\n", $accepted['stdout']);
         $this->assertStringContainsString('[1, 2, 3]', file_get_contents($this->workspace . '/src/Legacy.php') ?: '');
+    }
+
+    #[Test]
+    public function itEmitsStructuredJsonForAstMatches(): void
+    {
+        $result = $this->runCli(['-p', 'dispatch($EVENT)', '--json', 'src/Search.php']);
+
+        $this->assertSame(0, $result['exit']);
+        $payload = json_decode($result['stdout'], true, 512, JSON_THROW_ON_ERROR);
+
+        $this->assertCount(2, $payload);
+        $this->assertSame('src/Search.php', $payload[0]['file']);
+        $this->assertSame(3, $payload[0]['start_line']);
+        $this->assertSame(3, $payload[0]['end_line']);
+        $this->assertSame("dispatch(\$event)", trim($payload[0]['code']));
+    }
+
+    #[Test]
+    public function itLeavesFilesUnchangedWhenInteractiveRewriteIsDeclined(): void
+    {
+        $declined = $this->runCli(['-p', 'array($$$ITEMS)', '-r', '[$$$ITEMS]', '--interactive', '.'], "n\n");
+
+        $this->assertSame(0, $declined['exit']);
+        $this->assertStringContainsString('Rewrite', $declined['stdout']);
+        $this->assertStringContainsString('array(1, 2, 3)', file_get_contents($this->workspace . '/src/Legacy.php') ?: '');
+    }
+
+    #[Test]
+    public function itReturnsOneWhenRewriteFindsNoChanges(): void
+    {
+        $result = $this->runCli(['-p', 'array($$$ITEMS)', '-r', '[$$$ITEMS]', 'src/Unchanged.php']);
+
+        $this->assertSame(1, $result['exit']);
+        $this->assertSame('', $result['stdout']);
+        $this->assertSame('', $result['stderr']);
+    }
+
+    #[Test]
+    public function itReturnsTwoForInvalidRewritePatterns(): void
+    {
+        $result = $this->runCli(['-p', 'array($$$ITEMS)', '-r', 'if ($COND) { $$$BODY }', 'src/Legacy.php']);
+
+        $this->assertSame(2, $result['exit']);
+        $this->assertSame('', $result['stdout']);
+        $this->assertStringContainsString('Syntax error', $result['stderr']);
     }
 
     /**

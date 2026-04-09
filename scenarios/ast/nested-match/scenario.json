@@ -1,0 +1,7 @@
+{
+    "name": "nested-match",
+    "category": "ast",
+    "description": "Find nested structural matches",
+    "pattern": "wrap(dispatch($EVENT))",
+    "path": "setup"
+}

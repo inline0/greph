@@ -1,0 +1,7 @@
+{
+    "name": "regex-character-class",
+    "category": "text",
+    "description": "Match text with basic regex character classes",
+    "pattern": "task_[A-C][0-9]",
+    "path": "setup"
+}
