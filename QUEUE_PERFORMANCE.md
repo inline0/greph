@@ -107,12 +107,16 @@ Current benchmark baseline commit: `e542ee4`
   - `Regex array call`: `+0.56%`
   - `Regex new instance`: `+1.20%`
   - reverted by `2fa6111`
+- `baf0a5d` `Defer AST code materialization`
+  - `array($$$ITEMS)`: `+1.75%`
+  - `new $CLASS()`: `+3.22%`
+  - reverted by `c259b2f`
 
 ### In Flight
 
-- Delay `AstMatch::code` materialization until output actually needs it
-  - store per-file source once and slice lazily for successful matches
-  - avoid per-match code extraction on AST scans that only need counts or comparisons
+- Fast-path whole-array variadic captures in `PatternMatcher::matchArray`
+  - target the `array($$$ITEMS)` shape without reintroducing the broader trailing-variadic regression
+  - skip generic variadic backtracking when the remaining pattern is exactly one variadic capture
   - validate on CI against `e542ee4` with the `ast` category before keeping
 
 ## Ordered Queue
@@ -121,6 +125,7 @@ Current benchmark baseline commit: `e542ee4`
 
 - [x] Memoize fingerprints during one match attempt so repeated captures do not reserialize the same subtree.
 - [ ] Short-circuit repeated-capture equality when the candidate node/value is the same instance as the previously captured value.
+- [ ] Fast-path pure variadic array captures so patterns like `array($$$ITEMS)` do not pay generic backtracking costs.
 - [ ] Add cheaper root checks for literal scalar subnodes that are common in benchmark patterns.
 - [ ] Add token-aware AST prefiltering for long-array vs short-array syntax before parsing.
 - [ ] Add token-aware AST prefiltering for zero-argument `new` expressions before parsing.
@@ -160,7 +165,7 @@ Current benchmark baseline commit: `e542ee4`
 
 ## Immediate Next Steps
 
-1. Finish the lazy AST code-materialization pass and benchmark it against `e542ee4`.
+1. Finish the whole-array variadic AST fast path and benchmark it against `e542ee4`.
 2. If the AST pass wins, stay in AST matcher-cost work until that surface flattens.
 3. If the AST pass is flat or negative, pivot back to text-path work or parser-cost isolation.
 4. Keep every pass isolated and CI-verified.
