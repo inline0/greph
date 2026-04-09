@@ -211,6 +211,94 @@ final class RipgrepApplicationTest extends TestCase
         $unsupportedArg->run(['rg', '--bogus', 'needle', '.']);
     }
 
+    #[Test]
+    public function itCoversRipgrepPrivateParsingAndFormattingBranches(): void
+    {
+        $application = $this->newApplication()['application'];
+
+        $parsedSearch = $this->invokeMethod(
+            $application,
+            'parseSearchArguments',
+            ['-n', '--no-follow', '-B', '2', '-C', '3', '--glob', '*.php', '--type', 'php', '--type-not', 'txt', 'needle', 'single.txt', 'counts.txt'],
+        );
+        $parsedFiles = $this->invokeMethod(
+            $application,
+            'parseFilesArguments',
+            ['--files', '--no-ignore', '-L'],
+        );
+        $counts = $this->invokeMethod(
+            $application,
+            'formatCounts',
+            [
+                new \Phgrep\Text\TextFileResult('match.txt', [new \Phgrep\Text\TextMatch('match.txt', 1, 1, 'needle', 'needle')], 1),
+                new \Phgrep\Text\TextFileResult('empty.txt', [], 0),
+            ],
+            new \Phgrep\Text\TextSearchOptions(showFileNames: true),
+        );
+        $nonMatchingFiles = $this->invokeMethod(
+            $application,
+            'formatFileList',
+            [
+                new \Phgrep\Text\TextFileResult('match.txt', [new \Phgrep\Text\TextMatch('match.txt', 1, 1, 'needle', 'needle')], 1),
+                new \Phgrep\Text\TextFileResult('empty.txt', [], 0),
+            ],
+            false,
+        );
+        Workspace::writeFile($this->workspace, 'empty.txt', '');
+        $emptyOffset = $this->invokeMethod(
+            $application,
+            'absoluteOffset',
+            $this->workspace . '/empty.txt',
+            new \Phgrep\Text\TextMatch('empty.txt', 1, 2, 'needle', 'needle'),
+        );
+        Workspace::writeFile($this->workspace, 'single-line.txt', 'needle');
+        $truncatedOffset = $this->invokeMethod(
+            $application,
+            'absoluteOffset',
+            $this->workspace . '/single-line.txt',
+            new \Phgrep\Text\TextMatch('single-line.txt', 2, 3, 'needle', 'needle'),
+        );
+        $displayNames = $this->invokeMethod(
+            $application,
+            'shouldDisplayFileNames',
+            ['showFileNames' => null, 'paths' => ['single.txt', 'counts.txt']],
+        );
+
+        $this->assertTrue($parsedSearch['showLineNumbers']);
+        $this->assertSame(2, $parsedSearch['beforeContext']);
+        $this->assertSame(3, $parsedSearch['context']);
+        $this->assertSame(['*.php'], $parsedSearch['glob']);
+        $this->assertSame(['php'], $parsedSearch['type']);
+        $this->assertSame(['txt'], $parsedSearch['typeNot']);
+        $this->assertSame(['single.txt', 'counts.txt'], $parsedSearch['paths']);
+        $this->assertFalse($parsedSearch['followSymlinks']);
+        $this->assertTrue($parsedFiles['noIgnore']);
+        $this->assertTrue($parsedFiles['followSymlinks']);
+        $this->assertSame(['.'], $parsedFiles['paths']);
+        $this->assertSame("match.txt:1\n", $counts);
+        $this->assertSame("empty.txt\n", $nonMatchingFiles);
+        $this->assertSame(0, $emptyOffset);
+        $this->assertSame(2, $truncatedOffset);
+        $this->assertTrue($displayNames);
+    }
+
+    #[Test]
+    public function itCoversRipgrepPrivateErrorBranches(): void
+    {
+        $application = $this->newApplication()['application'];
+
+        $noMatchExit = $application->run(['rg', '-F', 'absent', 'single.txt']);
+
+        $this->assertSame(1, $noMatchExit);
+
+        try {
+            $this->invokeMethod($application, 'parseNonNegativeInt', 'bad', '-B');
+            self::fail('Expected invalid non-negative integer.');
+        } catch (\InvalidArgumentException $exception) {
+            $this->assertSame('Expected a non-negative integer for -B.', $exception->getMessage());
+        }
+    }
+
     /**
      * @return array{
      *   application: RipgrepApplication,
@@ -242,5 +330,16 @@ final class RipgrepApplicationTest extends TestCase
         rewind($stream);
 
         return (string) stream_get_contents($stream);
+    }
+
+    /**
+     * @return mixed
+     */
+    private function invokeMethod(object $object, string $method, mixed ...$arguments): mixed
+    {
+        $reflection = new \ReflectionMethod($object, $method);
+        $reflection->setAccessible(true);
+
+        return $reflection->invoke($object, ...$arguments);
     }
 }

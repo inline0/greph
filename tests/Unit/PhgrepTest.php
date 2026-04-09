@@ -6,6 +6,8 @@ namespace Phgrep\Tests\Unit;
 
 use Phgrep\Ast\AstSearchOptions;
 use Phgrep\Phgrep;
+use Phgrep\Text\TextFileResult;
+use Phgrep\Text\TextResultCodec;
 use Phgrep\Text\TextSearchOptions;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
@@ -101,6 +103,24 @@ final class PhgrepTest extends TestCase
         $this->assertTrue($disabledByPattern);
         $this->assertTrue($disabledByFlags);
         $this->assertTrue($astStillIndependent);
+    }
+
+    #[Test]
+    public function itEncodesValidatedTextWorkerResults(): void
+    {
+        $codec = new TextResultCodec();
+        $encoded = $this->invokeStaticMethod(
+            Phgrep::class,
+            'encodeTextWorkerResults',
+            [new TextFileResult('file.php', [], 1)],
+            $codec,
+        );
+
+        $this->assertSame([['f' => 'file.php', 'c' => 1]], $encoded);
+
+        $this->expectException(\RuntimeException::class);
+        $this->expectExceptionMessage('Worker returned invalid text result set.');
+        $this->invokeStaticMethod(Phgrep::class, 'encodeTextWorkerResults', 'bad', $codec);
     }
 
     /**

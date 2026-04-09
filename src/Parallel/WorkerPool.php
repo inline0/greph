@@ -22,11 +22,19 @@ final class WorkerPool
     /** @var \Closure(int): int */
     private \Closure $wait;
 
+    /** @var \Closure(): (string|false) */
+    private \Closure $tempFileFactory;
+
+    /** @var \Closure(string, string): mixed */
+    private \Closure $fileOpener;
+
     /**
      * @param \Closure(): (array{0: resource, 1: resource}|false)|null $socketPairFactory
      * @param \Closure(): int|null $fork
      * @param \Closure(int, FileList): Worker|null $workerFactory
      * @param \Closure(int): int|null $wait
+     * @param (\Closure(): (string|false))|null $tempFileFactory
+     * @param \Closure(string, string): mixed|null $fileOpener
      */
     public function __construct(
         ?ResultCollector $resultCollector = null,
@@ -34,6 +42,8 @@ final class WorkerPool
         ?\Closure $fork = null,
         ?\Closure $workerFactory = null,
         ?\Closure $wait = null,
+        ?\Closure $tempFileFactory = null,
+        ?\Closure $fileOpener = null,
     ) {
         $this->resultCollector = $resultCollector ?? new ResultCollector();
         /** @var \Closure(): (array{0: resource, 1: resource}|false) $resolvedSocketPairFactory */
@@ -50,6 +60,12 @@ final class WorkerPool
             return pcntl_wait($status);
         };
         $this->wait = $resolvedWait;
+        /** @var \Closure(): (string|false) $resolvedTempFileFactory */
+        $resolvedTempFileFactory = $tempFileFactory ?? static fn (): string|false => tempnam(sys_get_temp_dir(), 'phgrep-worker-');
+        $this->tempFileFactory = $resolvedTempFileFactory;
+        /** @var \Closure(string, string): mixed $resolvedFileOpener */
+        $resolvedFileOpener = $fileOpener ?? static fn (string $path, string $mode): mixed => fopen($path, $mode);
+        $this->fileOpener = $resolvedFileOpener;
     }
 
     /**
@@ -167,14 +183,14 @@ final class WorkerPool
      */
     private function startFileWorker(int $index, FileList $chunk, callable $task, ?callable $resultEncoder = null): array
     {
-        $tempPath = tempnam(sys_get_temp_dir(), 'phgrep-worker-');
+        $tempPath = ($this->tempFileFactory)();
 
         if ($tempPath === false) {
             throw new \RuntimeException('Failed to create worker buffer.');
         }
 
-        $writer = fopen($tempPath, 'wb');
-        $reader = fopen($tempPath, 'rb');
+        $writer = ($this->fileOpener)($tempPath, 'wb');
+        $reader = ($this->fileOpener)($tempPath, 'rb');
 
         if ($writer === false || $reader === false) {
             @unlink($tempPath);

@@ -192,21 +192,14 @@ final class FeatureMatrixGenerator
                     static fn (self $generator, string $provider): array => $generator->runCommandProbe(
                         $providers[$provider],
                         ['-F', '-B', '1', 'needle', 'context.txt'],
-                        static function (ProcessResult $result): ?string {
-                            if ($result->exitCode !== 0) {
-                                return sprintf('Expected exit 0, got %d.', $result->exitCode);
-                            }
-
-                            if (!str_contains($result->stdout, 'before') || !str_contains($result->stdout, 'needle')) {
-                                return 'Expected before-context output to include `before` and `needle`.';
-                            }
-
-                            if (str_contains($result->stdout, 'after')) {
-                                return 'Expected before-context output to exclude `after`.';
-                            }
-
-                            return null;
-                        },
+                        static fn (ProcessResult $result): ?string => self::expectContainsAllAndExcludes(
+                            $result,
+                            0,
+                            ['before', 'needle'],
+                            ['after'],
+                            'Expected before-context output to include `before` and `needle`.',
+                            'Expected before-context output to exclude `after`.',
+                        ),
                     ),
                 ),
                 $this->buildRow(
@@ -216,21 +209,14 @@ final class FeatureMatrixGenerator
                     static fn (self $generator, string $provider): array => $generator->runCommandProbe(
                         $providers[$provider],
                         ['-F', '-A', '1', 'needle', 'context.txt'],
-                        static function (ProcessResult $result): ?string {
-                            if ($result->exitCode !== 0) {
-                                return sprintf('Expected exit 0, got %d.', $result->exitCode);
-                            }
-
-                            if (!str_contains($result->stdout, 'needle') || !str_contains($result->stdout, 'after')) {
-                                return 'Expected after-context output to include `needle` and `after`.';
-                            }
-
-                            if (str_contains($result->stdout, 'before')) {
-                                return 'Expected after-context output to exclude `before`.';
-                            }
-
-                            return null;
-                        },
+                        static fn (ProcessResult $result): ?string => self::expectContainsAllAndExcludes(
+                            $result,
+                            0,
+                            ['needle', 'after'],
+                            ['before'],
+                            'Expected after-context output to include `needle` and `after`.',
+                            'Expected after-context output to exclude `before`.',
+                        ),
                     ),
                 ),
                 $this->buildRow(
@@ -260,21 +246,14 @@ final class FeatureMatrixGenerator
                     static fn (self $generator, string $provider): array => $generator->runCommandProbe(
                         $providers[$provider],
                         ['-I', '-F', 'needle', '.'],
-                        static function (ProcessResult $result): ?string {
-                            if ($result->exitCode !== 0) {
-                                return sprintf('Expected exit 0, got %d.', $result->exitCode);
-                            }
-
-                            if (!str_contains($result->stdout, "needle\n")) {
-                                return 'Expected no-filename output to contain matched lines.';
-                            }
-
-                            if (str_contains($result->stdout, 'single.txt:')) {
-                                return 'Expected no-filename output to suppress file prefixes.';
-                            }
-
-                            return null;
-                        },
+                        static fn (ProcessResult $result): ?string => self::expectContainsAllAndExcludes(
+                            $result,
+                            0,
+                            ["needle\n"],
+                            ['single.txt:'],
+                            'Expected no-filename output to contain matched lines.',
+                            'Expected no-filename output to suppress file prefixes.',
+                        ),
                     ),
                 ),
                 $this->buildRow(
@@ -314,21 +293,14 @@ final class FeatureMatrixGenerator
                     static fn (self $generator, string $provider): array => $generator->runCommandProbe(
                         $providers[$provider],
                         ['--type-not', 'php', 'function', '.'],
-                        static function (ProcessResult $result): ?string {
-                            if ($result->exitCode !== 0) {
-                                return sprintf('Expected exit 0, got %d.', $result->exitCode);
-                            }
-
-                            if (!str_contains($result->stdout, 'src/Other.txt')) {
-                                return 'Expected type exclusion output to include `src/Other.txt`.';
-                            }
-
-                            if (str_contains($result->stdout, 'src/App.php')) {
-                                return 'Expected type exclusion output to exclude `src/App.php`.';
-                            }
-
-                            return null;
-                        },
+                        static fn (ProcessResult $result): ?string => self::expectContainsAllAndExcludes(
+                            $result,
+                            0,
+                            ['src/Other.txt'],
+                            ['src/App.php'],
+                            'Expected type exclusion output to include `src/Other.txt`.',
+                            'Expected type exclusion output to exclude `src/App.php`.',
+                        ),
                     ),
                 ),
                 $this->buildRow(
@@ -358,17 +330,14 @@ final class FeatureMatrixGenerator
                     static fn (self $generator, string $provider): array => $generator->runCommandProbe(
                         $providers[$provider],
                         ['-L', '-F', 'needle', '.'],
-                        static function (ProcessResult $result): ?string {
-                            if ($result->exitCode !== 0) {
-                                return sprintf('Expected exit 0, got %d.', $result->exitCode);
-                            }
-
-                            if (!str_contains($result->stdout, 'link-to-single.txt')) {
-                                return 'Expected follow-symlink output to include `link-to-single.txt`.';
-                            }
-
-                            return null;
-                        },
+                        static fn (ProcessResult $result): ?string => self::expectContainsAllAndExcludes(
+                            $result,
+                            0,
+                            ['link-to-single.txt'],
+                            [],
+                            'Expected follow-symlink output to include `link-to-single.txt`.',
+                            '',
+                        ),
                     ),
                 ),
                 $this->buildRow(
@@ -388,17 +357,14 @@ final class FeatureMatrixGenerator
                     static fn (self $generator, string $provider): array => $generator->runCommandProbe(
                         $providers[$provider],
                         ['--files', '--hidden', '.'],
-                        static function (ProcessResult $result): ?string {
-                            if ($result->exitCode !== 0) {
-                                return sprintf('Expected exit 0, got %d.', $result->exitCode);
-                            }
-
-                            if (!str_contains($result->stdout, '.hidden/secret.txt')) {
-                                return 'Expected hidden files mode output to include `.hidden/secret.txt`.';
-                            }
-
-                            return null;
-                        },
+                        static fn (ProcessResult $result): ?string => self::expectContainsAllAndExcludes(
+                            $result,
+                            0,
+                            ['.hidden/secret.txt'],
+                            [],
+                            'Expected hidden files mode output to include `.hidden/secret.txt`.',
+                            '',
+                        ),
                     ),
                 ),
                 $this->buildRow(
@@ -408,21 +374,14 @@ final class FeatureMatrixGenerator
                     static fn (self $generator, string $provider): array => $generator->runCommandProbe(
                         $providers[$provider],
                         ['--files', '--type', 'php', '.'],
-                        static function (ProcessResult $result): ?string {
-                            if ($result->exitCode !== 0) {
-                                return sprintf('Expected exit 0, got %d.', $result->exitCode);
-                            }
-
-                            if (!str_contains($result->stdout, 'src/App.php')) {
-                                return 'Expected typed files output to include `src/App.php`.';
-                            }
-
-                            if (str_contains($result->stdout, 'single.txt')) {
-                                return 'Expected typed files output to exclude `single.txt`.';
-                            }
-
-                            return null;
-                        },
+                        static fn (ProcessResult $result): ?string => self::expectContainsAllAndExcludes(
+                            $result,
+                            0,
+                            ['src/App.php'],
+                            ['single.txt'],
+                            'Expected typed files output to include `src/App.php`.',
+                            'Expected typed files output to exclude `single.txt`.',
+                        ),
                     ),
                 ),
                 $this->buildRow(
@@ -543,21 +502,14 @@ final class FeatureMatrixGenerator
                     static fn (self $generator, string $provider): array => $generator->runCommandProbe(
                         $providers[$provider],
                         ['run', '--globs', 'src/*.php', '--pattern', 'dispatch($EVENT)', '.'],
-                        static function (ProcessResult $result): ?string {
-                            if ($result->exitCode !== 0) {
-                                return sprintf('Expected exit 0, got %d.', $result->exitCode);
-                            }
-
-                            if (!str_contains($result->stdout, 'src/App.php')) {
-                                return 'Expected glob-filtered output to include `src/App.php`.';
-                            }
-
-                            if (str_contains($result->stdout, '.hidden/Hidden.php')) {
-                                return 'Expected glob-filtered output to exclude hidden files.';
-                            }
-
-                            return null;
-                        },
+                        static fn (ProcessResult $result): ?string => self::expectContainsAllAndExcludes(
+                            $result,
+                            0,
+                            ['src/App.php'],
+                            ['.hidden/Hidden.php'],
+                            'Expected glob-filtered output to include `src/App.php`.',
+                            'Expected glob-filtered output to exclude hidden files.',
+                        ),
                     ),
                 ),
                 $this->buildRow(
@@ -587,23 +539,15 @@ final class FeatureMatrixGenerator
                     static fn (self $generator, string $provider): array => $generator->runCommandProbe(
                         $providers[$provider],
                         ['run', '--pattern', 'array($$$ITEMS)', '--rewrite', '[$$$ITEMS]', 'src/App.php'],
-                        static function (ProcessResult $result, string $workspace): ?string {
-                            if ($result->exitCode !== 0) {
-                                return sprintf('Expected exit 0, got %d.', $result->exitCode);
-                            }
-
-                            if (!str_contains($result->stdout, '[1, 2, 3]')) {
-                                return 'Expected dry-run output to contain rewritten code.';
-                            }
-
-                            $contents = file_get_contents($workspace . '/src/App.php') ?: '';
-
-                            if (!str_contains($contents, 'array(1, 2, 3)')) {
-                                return 'Expected source file to remain unchanged without `--update-all`.';
-                            }
-
-                            return null;
-                        },
+                        static fn (ProcessResult $result, string $workspace): ?string => self::firstFailure(
+                            self::expectExitAndStdoutContains($result, 0, '[1, 2, 3]'),
+                            self::expectWorkspaceFileContains(
+                                $workspace,
+                                'src/App.php',
+                                'array(1, 2, 3)',
+                                'Expected source file to remain unchanged without `--update-all`.',
+                            ),
+                        ),
                     ),
                 ),
                 $this->buildRow(
@@ -613,23 +557,16 @@ final class FeatureMatrixGenerator
                     static fn (self $generator, string $provider): array => $generator->runCommandProbe(
                         $providers[$provider],
                         ['run', '--pattern', 'array($$$ITEMS)', '--rewrite', '[$$$ITEMS]', '--update-all', 'src/App.php'],
-                        static function (ProcessResult $result, string $workspace): ?string {
-                            if ($result->exitCode !== 0) {
-                                return sprintf('Expected exit 0, got %d.', $result->exitCode);
-                            }
-
-                            $contents = file_get_contents($workspace . '/src/App.php') ?: '';
-
-                            if (!str_contains($contents, '[1, 2, 3]')) {
-                                return 'Expected update-all rewrite to update the file.';
-                            }
-
-                            if ($result->stdout === '' && $result->stderr === '') {
-                                return 'Expected update-all rewrite to report applied changes or changed files.';
-                            }
-
-                            return null;
-                        },
+                        static fn (ProcessResult $result, string $workspace): ?string => self::firstFailure(
+                            self::expectExitCode($result, 0),
+                            self::expectWorkspaceFileContains(
+                                $workspace,
+                                'src/App.php',
+                                '[1, 2, 3]',
+                                'Expected update-all rewrite to update the file.',
+                            ),
+                            self::expectAnyOutput($result, 'Expected update-all rewrite to report applied changes or changed files.'),
+                        ),
                     ),
                 ),
                 $this->buildRow(
@@ -710,19 +647,15 @@ final class FeatureMatrixGenerator
                     static fn (self $generator, string $provider): array => $generator->runCommandProbe(
                         $providers[$provider],
                         ['rewrite', '-p', 'array($$$ITEMS)', '-r', '[$$$ITEMS]', '--interactive', 'src/App.php'],
-                        static function (ProcessResult $result, string $workspace): ?string {
-                            if ($result->exitCode !== 0) {
-                                return sprintf('Expected exit 0, got %d.', $result->exitCode);
-                            }
-
-                            $contents = file_get_contents($workspace . '/src/App.php') ?: '';
-
-                            if (!str_contains($contents, '$items = [1, 2, 3];')) {
-                                return 'Expected interactive accept rewrite to update the file.';
-                            }
-
-                            return null;
-                        },
+                        static fn (ProcessResult $result, string $workspace): ?string => self::firstFailure(
+                            self::expectExitCode($result, 0),
+                            self::expectWorkspaceFileContains(
+                                $workspace,
+                                'src/App.php',
+                                '$items = [1, 2, 3];',
+                                'Expected interactive accept rewrite to update the file.',
+                            ),
+                        ),
                         "y\n",
                     ),
                 ),
@@ -733,19 +666,15 @@ final class FeatureMatrixGenerator
                     static fn (self $generator, string $provider): array => $generator->runCommandProbe(
                         $providers[$provider],
                         ['rewrite', '-p', 'array($$$ITEMS)', '-r', '[$$$ITEMS]', '--interactive', 'src/App.php'],
-                        static function (ProcessResult $result, string $workspace): ?string {
-                            if ($result->exitCode !== 0) {
-                                return sprintf('Expected exit 0, got %d.', $result->exitCode);
-                            }
-
-                            $contents = file_get_contents($workspace . '/src/App.php') ?: '';
-
-                            if (!str_contains($contents, '$items = array(1, 2, 3);')) {
-                                return 'Expected interactive decline rewrite to leave the file unchanged.';
-                            }
-
-                            return null;
-                        },
+                        static fn (ProcessResult $result, string $workspace): ?string => self::firstFailure(
+                            self::expectExitCode($result, 0),
+                            self::expectWorkspaceFileContains(
+                                $workspace,
+                                'src/App.php',
+                                '$items = array(1, 2, 3);',
+                                'Expected interactive decline rewrite to leave the file unchanged.',
+                            ),
+                        ),
                         "n\n",
                     ),
                 ),
@@ -960,21 +889,14 @@ final class FeatureMatrixGenerator
                     static fn (self $generator, string $provider): array => $generator->runIndexedSearchProbe(
                         $providers[$provider],
                         ['search', '-F', '-i', 'needle', '.'],
-                        static function (ProcessResult $result): ?string {
-                            if ($result->exitCode !== 0) {
-                                return sprintf('Expected exit 0, got %d.', $result->exitCode);
-                            }
-
-                            if (!str_contains($result->stdout, 'single.txt:2:needle')) {
-                                return 'Expected indexed case-insensitive output to include lowercase match.';
-                            }
-
-                            if (!str_contains($result->stdout, 'single.txt:3:NEEDLE')) {
-                                return 'Expected indexed case-insensitive output to include uppercase match.';
-                            }
-
-                            return null;
-                        },
+                        static fn (ProcessResult $result): ?string => self::expectContainsAllAndExcludes(
+                            $result,
+                            0,
+                            ['single.txt:2:needle', 'single.txt:3:NEEDLE'],
+                            [],
+                            'Expected indexed case-insensitive output to include lowercase match.',
+                            'Expected indexed case-insensitive output to include uppercase match.',
+                        ),
                     ),
                 ),
                 $this->buildRow(
@@ -1054,21 +976,14 @@ final class FeatureMatrixGenerator
                     static fn (self $generator, string $provider): array => $generator->runIndexedSearchProbe(
                         $providers[$provider],
                         ['search', '--type-not', 'php', 'function', '.'],
-                        static function (ProcessResult $result): ?string {
-                            if ($result->exitCode !== 0) {
-                                return sprintf('Expected exit 0, got %d.', $result->exitCode);
-                            }
-
-                            if (!str_contains($result->stdout, 'src/Other.txt')) {
-                                return 'Expected indexed type exclusion output to include `src/Other.txt`.';
-                            }
-
-                            if (str_contains($result->stdout, 'src/App.php')) {
-                                return 'Expected indexed type exclusion output to exclude `src/App.php`.';
-                            }
-
-                            return null;
-                        },
+                        static fn (ProcessResult $result): ?string => self::expectContainsAllAndExcludes(
+                            $result,
+                            0,
+                            ['src/Other.txt'],
+                            ['src/App.php'],
+                            'Expected indexed type exclusion output to include `src/Other.txt`.',
+                            'Expected indexed type exclusion output to exclude `src/App.php`.',
+                        ),
                     ),
                 ),
             ],
@@ -1113,19 +1028,10 @@ require '__PHGREP_ROOT__/vendor/autoload.php';
 $result = Phgrep\Phgrep::buildAstIndex('.');
 echo json_encode(['file_count' => $result->fileCount, 'index_path' => $result->indexPath], JSON_UNESCAPED_SLASHES);
 PHP,
-                        static function (ProcessResult $result): ?string {
-                            if ($result->exitCode !== 0) {
-                                return sprintf('Expected exit 0, got %d.', $result->exitCode);
-                            }
-
-                            $decoded = json_decode($result->stdout, true);
-
-                            if (!is_array($decoded) || !is_int($decoded['file_count'] ?? null) || ($decoded['file_count'] ?? 0) < 1) {
-                                return 'Expected AST index build output to report a positive file count.';
-                            }
-
-                            return null;
-                        },
+                        static fn (ProcessResult $result): ?string => self::expectPositiveReportedFileCount(
+                            $result,
+                            'Expected AST index build output to report a positive file count.',
+                        ),
                     ),
                 ),
                 $this->buildRow(
@@ -1171,19 +1077,10 @@ require '__PHGREP_ROOT__/vendor/autoload.php';
 $result = Phgrep\Phgrep::buildAstCache('.');
 echo json_encode(['file_count' => $result->fileCount, 'index_path' => $result->indexPath], JSON_UNESCAPED_SLASHES);
 PHP,
-                        static function (ProcessResult $result): ?string {
-                            if ($result->exitCode !== 0) {
-                                return sprintf('Expected exit 0, got %d.', $result->exitCode);
-                            }
-
-                            $decoded = json_decode($result->stdout, true);
-
-                            if (!is_array($decoded) || !is_int($decoded['file_count'] ?? null) || ($decoded['file_count'] ?? 0) < 1) {
-                                return 'Expected AST cache build output to report a positive file count.';
-                            }
-
-                            return null;
-                        },
+                        static fn (ProcessResult $result): ?string => self::expectPositiveReportedFileCount(
+                            $result,
+                            'Expected AST cache build output to report a positive file count.',
+                        ),
                     ),
                 ),
                 $this->buildRow(
@@ -1706,6 +1603,102 @@ PHP);
         $validated = $validator($result);
 
         return $validated;
+    }
+
+    private static function firstFailure(?string ...$checks): ?string
+    {
+        foreach ($checks as $check) {
+            if ($check !== null) {
+                return $check;
+            }
+        }
+
+        return null;
+    }
+
+    private static function expectExitCode(ProcessResult $result, int $exitCode): ?string
+    {
+        if ($result->exitCode !== $exitCode) {
+            return sprintf('Expected exit %d, got %d.', $exitCode, $result->exitCode);
+        }
+
+        return null;
+    }
+
+    /**
+     * @param list<string> $required
+     * @param list<string> $forbidden
+     */
+    private static function expectContainsAllAndExcludes(
+        ProcessResult $result,
+        int $exitCode,
+        array $required,
+        array $forbidden,
+        string $missingMessage,
+        string $forbiddenMessage,
+    ): ?string {
+        $exitFailure = self::expectExitCode($result, $exitCode);
+
+        if ($exitFailure !== null) {
+            return $exitFailure;
+        }
+
+        foreach ($required as $needle) {
+            if (!str_contains($result->stdout, $needle)) {
+                return $missingMessage;
+            }
+        }
+
+        if ($forbiddenMessage !== '') {
+            foreach ($forbidden as $needle) {
+                if (str_contains($result->stdout, $needle)) {
+                    return $forbiddenMessage;
+                }
+            }
+        }
+
+        return null;
+    }
+
+    private static function expectWorkspaceFileContains(
+        string $workspace,
+        string $relativePath,
+        string $needle,
+        string $message,
+    ): ?string {
+        $contents = file_get_contents($workspace . '/' . ltrim($relativePath, '/')) ?: '';
+
+        if (!str_contains($contents, $needle)) {
+            return $message;
+        }
+
+        return null;
+    }
+
+    private static function expectAnyOutput(ProcessResult $result, string $message): ?string
+    {
+        if ($result->stdout === '' && $result->stderr === '') {
+            return $message;
+        }
+
+        return null;
+    }
+
+    private static function expectPositiveReportedFileCount(ProcessResult $result, string $message): ?string
+    {
+        $exitFailure = self::expectExitCode($result, 0);
+
+        if ($exitFailure !== null) {
+            return $exitFailure;
+        }
+
+        $decoded = json_decode($result->stdout, true);
+
+        if (!is_array($decoded) || !is_int($decoded['file_count'] ?? null) || ($decoded['file_count'] ?? 0) < 1) {
+            return $message;
+        }
+
+        return null;
     }
 
     private static function expectExitAndStdoutContains(ProcessResult $result, int $exitCode, string $needle): ?string

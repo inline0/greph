@@ -6,6 +6,7 @@ namespace Phgrep\Tests\Unit\Ast;
 
 use Phgrep\Ast\AstRootMatcher;
 use Phgrep\Ast\PatternParser;
+use PhpParser\Node\Expr\Array_;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
@@ -82,5 +83,39 @@ final class AstRootMatcherTest extends TestCase
         $this->assertTrue($this->matcher->mayMatch($dynamicFunctionPattern->root, $literalFunctionCandidate->root));
         $this->assertTrue($this->matcher->mayMatch($dynamicMethodPattern->root, $literalMethodCandidate->root));
         $this->assertTrue($this->matcher->mayMatch($newWithArgsPattern->root, $newWithArgsCandidate->root));
+    }
+
+    #[Test]
+    public function itCoversPermissiveFallbacksForNonLiteralNamesAndUnknownArrayKinds(): void
+    {
+        $dynamicFunctionPattern = $this->parser->parse('($handlers[0])()');
+        $dynamicFunctionCandidate = $this->parser->parse('($other[1])()');
+        $dynamicMethodPattern = $this->parser->parse('$client->{$parts[0]}()');
+        $dynamicMethodCandidate = $this->parser->parse('$client->{$other[1]}()');
+        $patternArray = new class ([]) extends Array_ {
+            public mixed $kind = null;
+        };
+        $candidateArray = new class ([]) extends Array_ {
+            public mixed $kind = null;
+        };
+
+        $patternArray->setAttribute('kind', null);
+        $candidateArray->setAttribute('kind', null);
+
+        $this->assertTrue($this->matcher->mayMatch($dynamicFunctionPattern->root, $dynamicFunctionCandidate->root));
+        $this->assertTrue($this->matcher->mayMatch($dynamicMethodPattern->root, $dynamicMethodCandidate->root));
+        $this->assertTrue($this->matcher->mayMatch($patternArray, $candidateArray));
+        $this->assertNull($this->invokeMethod($this->matcher, 'arrayKind', $patternArray));
+    }
+
+    /**
+     * @return mixed
+     */
+    private function invokeMethod(object $object, string $method, mixed ...$arguments): mixed
+    {
+        $reflection = new \ReflectionMethod($object, $method);
+        $reflection->setAccessible(true);
+
+        return $reflection->invoke($object, ...$arguments);
     }
 }

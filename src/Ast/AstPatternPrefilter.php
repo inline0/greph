@@ -169,7 +169,46 @@ final class AstPatternPrefilter
             return false;
         }
 
-        $tokens = token_get_all($contents);
+        return $this->tokensContainZeroArgumentNewExpression(token_get_all($contents));
+    }
+
+    private function isLongArraySyntax(Expr\Array_ $node): bool
+    {
+        $kind = $node->getAttribute('kind');
+
+        if (is_int($kind)) {
+            return $kind === Expr\Array_::KIND_LONG;
+        }
+
+        return property_exists($node, 'kind') && $node->kind === Expr\Array_::KIND_LONG;
+    }
+
+    /**
+     * @param list<int|string|array{int, string, int}> $tokens
+     */
+    private function nextSignificantTokenIndex(array $tokens, int $startIndex): ?int
+    {
+        $tokenCount = count($tokens);
+
+        for ($index = $startIndex; $index < $tokenCount; $index++) {
+            if (!$this->isIgnorableToken($tokens[$index])) {
+                return $index;
+            }
+        }
+
+        return null;
+    }
+
+    private function isIgnorableToken(mixed $token): bool
+    {
+        return is_array($token) && in_array($token[0], [T_WHITESPACE, T_COMMENT, T_DOC_COMMENT], true);
+    }
+
+    /**
+     * @param list<int|string|array{int, string, int}> $tokens
+     */
+    private function tokensContainZeroArgumentNewExpression(array $tokens): bool
+    {
         $tokenCount = count($tokens);
 
         for ($index = 0; $index < $tokenCount; $index++) {
@@ -209,37 +248,5 @@ final class AstPatternPrefilter
         }
 
         return false;
-    }
-
-    private function isLongArraySyntax(Expr\Array_ $node): bool
-    {
-        $kind = $node->getAttribute('kind');
-
-        if (is_int($kind)) {
-            return $kind === Expr\Array_::KIND_LONG;
-        }
-
-        return property_exists($node, 'kind') && $node->kind === Expr\Array_::KIND_LONG;
-    }
-
-    /**
-     * @param list<int|string|array{int, string, int}> $tokens
-     */
-    private function nextSignificantTokenIndex(array $tokens, int $startIndex): ?int
-    {
-        $tokenCount = count($tokens);
-
-        for ($index = $startIndex; $index < $tokenCount; $index++) {
-            if (!$this->isIgnorableToken($tokens[$index])) {
-                return $index;
-            }
-        }
-
-        return null;
-    }
-
-    private function isIgnorableToken(mixed $token): bool
-    {
-        return is_array($token) && in_array($token[0], [T_WHITESPACE, T_COMMENT, T_DOC_COMMENT], true);
     }
 }

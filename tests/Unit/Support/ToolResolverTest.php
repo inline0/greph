@@ -83,4 +83,15 @@ final class ToolResolverTest extends TestCase
         $this->assertCount(1, $command);
         $this->assertNotSame('', $command[0]);
     }
+
+    #[Test]
+    public function itNormalizesShellLookupResults(): void
+    {
+        $reflection = new \ReflectionMethod(ToolResolver::class, 'normalizeLocatedPath');
+        $reflection->setAccessible(true);
+
+        $this->assertNull($reflection->invoke(null, null));
+        $this->assertNull($reflection->invoke(null, " \n"));
+        $this->assertSame('/mock/bin', $reflection->invoke(null, " /mock/bin \n"));
+    }
 }

@@ -239,6 +239,27 @@ final class IndexedAstSearcherTest extends TestCase
         $this->assertNull($missingIndexPath);
     }
 
+    #[Test]
+    public function itUsesCachedResultsAndCoversTypeFilterMisses(): void
+    {
+        $pattern = 'new $CLASS()';
+
+        $rootMatches = $this->searcher->search($pattern, $this->workspace, new AstSearchOptions());
+        $cachedRootMatches = $this->searcher->search($pattern, $this->workspace, new AstSearchOptions());
+        $typeFiltered = $this->invokeMethod(
+            $this->searcher,
+            'matchesQueryFilters',
+            ['id' => 1, 'p' => 'src/App.php', 's' => 10, 'm' => 1, 'h' => false, 'g' => false, 'o' => 0],
+            $this->workspace . '/src/App.php',
+            $this->workspace,
+            new AstSearchOptions(fileTypeFilter: new FileTypeFilter(['txt'])),
+        );
+
+        $this->assertCount(1, $rootMatches);
+        $this->assertCount(1, $cachedRootMatches);
+        $this->assertFalse($typeFiltered);
+    }
+
     private function createMatch(string $file): AstMatch
     {
         $pattern = $this->parser->parse('new $CLASS()');

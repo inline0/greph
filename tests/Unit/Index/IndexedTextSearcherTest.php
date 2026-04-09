@@ -257,6 +257,76 @@ final class IndexedTextSearcherTest extends TestCase
         $this->assertNull($unlocatedIndexPath);
     }
 
+    #[Test]
+    public function itCoversIndexedTextFallbackSummaryAndLiteralHelpers(): void
+    {
+        $missingIndexedPath = Workspace::writeFile($this->workspace, 'src/Newer.php', "<?php\nfunction future(): void {}\n");
+        $indexPath = $this->workspace . '/.phgrep-index';
+
+        $deletedFallback = $this->searcher->search(
+            'function',
+            $missingIndexedPath,
+            new TextSearchOptions(fixedString: true, countOnly: true),
+            $indexPath,
+        );
+        $externalFallback = $this->searcher->search(
+            'external',
+            $this->externalWorkspace . '/external.txt',
+            new TextSearchOptions(fixedString: true, countOnly: true),
+            $indexPath,
+        );
+        $shortSummary = $this->searcher->search(
+            'fu',
+            $this->workspace,
+            new TextSearchOptions(fixedString: true, countOnly: true),
+            $indexPath,
+        );
+        $caseInsensitiveContains = $this->invokeMethod(
+            $this->searcher,
+            'contentsContainLiteral',
+            "NEEDLE\n",
+            'needle',
+            true,
+        );
+        $lastLineCount = $this->invokeMethod(
+            $this->searcher,
+            'countLiteralMatchingLines',
+            "one\nneedle",
+            'needle',
+            false,
+            null,
+        );
+        $caseInsensitiveCount = $this->invokeMethod(
+            $this->searcher,
+            'countLiteralMatchingLines',
+            "NEEDLE\nhay\n",
+            'needle',
+            true,
+            1,
+        );
+        $candidateIdsBreak = $this->invokeMethod(
+            $this->searcher,
+            'candidateIds',
+            $indexPath,
+            ['function', 'alpha'],
+        );
+        $emptyRegexSeeds = $this->invokeMethod(
+            $this->searcher,
+            'querySeeds',
+            '.+',
+            new TextSearchOptions(),
+        );
+
+        $this->assertSame(1, $deletedFallback[0]->matchCount());
+        $this->assertSame(1, $externalFallback[0]->matchCount());
+        $this->assertSame(2, array_sum(array_map(static fn (TextFileResult $result): int => $result->matchCount(), $shortSummary)));
+        $this->assertTrue($caseInsensitiveContains);
+        $this->assertSame(1, $lastLineCount);
+        $this->assertSame(1, $caseInsensitiveCount);
+        $this->assertSame([], $candidateIdsBreak);
+        $this->assertSame([], $emptyRegexSeeds);
+    }
+
     /**
      * @return mixed
      */

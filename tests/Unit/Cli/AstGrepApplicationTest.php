@@ -243,6 +243,48 @@ PHP);
         $unsupported->run(['sg', 'run', '--bogus', '--pattern', 'dispatch($EVENT)', 'src/App.php']);
     }
 
+    #[Test]
+    public function itCoversAstGrepPrivateParsingAndFormattingBranches(): void
+    {
+        $application = $this->newApplication()['application'];
+
+        $missingPatternExit = $application->run(['sg', 'run']);
+        $parsedTerminated = $this->invokeMethod($application, 'parseArguments', ['--', 'src/App.php', 'notes.txt']);
+        $parsedDefaults = $this->invokeMethod(
+            $application,
+            'parseArguments',
+            ['--type', 'php', '--type-not', 'txt', '--rewrite', '', '--pattern', 'dispatch($EVENT)'],
+        );
+        $fallbackLine = $this->invokeMethod(
+            $application,
+            'displayLine',
+            new \Phgrep\Ast\AstMatch(
+                file: $this->workspace . '/src/App.php',
+                node: new \PhpParser\Node\Expr\Variable('event'),
+                captures: [],
+                startLine: 99,
+                endLine: 99,
+                startFilePos: 0,
+                endFilePos: 0,
+                code: "dispatch(\n    \$event\n);",
+            ),
+        );
+        $splitEmpty = $this->invokeMethod($application, 'splitLines', '');
+        $noFilter = $this->invokeMethod($application, 'createFileTypeFilter', [], []);
+        $yesFilter = $this->invokeMethod($application, 'createFileTypeFilter', ['php'], ['txt']);
+
+        $this->assertSame(2, $missingPatternExit);
+        $this->assertSame(['src/App.php', 'notes.txt'], $parsedTerminated['paths']);
+        $this->assertSame(['php'], $parsedDefaults['type']);
+        $this->assertSame(['txt'], $parsedDefaults['typeNot']);
+        $this->assertNull($parsedDefaults['rewrite']);
+        $this->assertSame(['.'], $parsedDefaults['paths']);
+        $this->assertSame('dispatch( $event );', $fallbackLine);
+        $this->assertSame([], $splitEmpty);
+        $this->assertNull($noFilter);
+        $this->assertInstanceOf(\Phgrep\Walker\FileTypeFilter::class, $yesFilter);
+    }
+
     /**
      * @return array{
      *   application: AstGrepApplication,
@@ -278,5 +320,16 @@ PHP);
         rewind($stream);
 
         return (string) stream_get_contents($stream);
+    }
+
+    /**
+     * @return mixed
+     */
+    private function invokeMethod(object $object, string $method, mixed ...$arguments): mixed
+    {
+        $reflection = new \ReflectionMethod($object, $method);
+        $reflection->setAccessible(true);
+
+        return $reflection->invoke($object, ...$arguments);
     }
 }

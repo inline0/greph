@@ -77,4 +77,68 @@ final class TextIndexBuilderTest extends TestCase
         $this->assertNotContains('.phgrep-index/metadata.phpbin', $refreshedPaths);
         $this->assertNotContains('.phgrep-index/postings.phpbin', $refreshedPaths);
     }
+
+    #[Test]
+    public function itCoversPrivateIndexBuilderBranches(): void
+    {
+        $builder = new TextIndexBuilder();
+        $otherWorkspace = Workspace::createDirectory('text-index-builder-other');
+
+        try {
+            Workspace::writeFile($otherWorkspace, 'src/Other.php', "<?php\nfunction other(): void {}\n");
+            $foreignResult = $builder->build($otherWorkspace);
+
+            try {
+                $builder->refresh($this->workspace, $foreignResult->indexPath);
+                self::fail('Expected index root mismatch.');
+            } catch (\RuntimeException $exception) {
+                $this->assertStringContainsString('Index root mismatch', $exception->getMessage());
+            }
+        } finally {
+            Workspace::remove($otherWorkspace);
+        }
+
+        $absoluteIndexPath = $this->invokeMethod($builder, 'resolveIndexPath', $this->workspace, '/tmp/custom-text-index');
+        $relativeIndexPath = $this->invokeMethod($builder, 'resolveIndexPath', $this->workspace, '.alt-index');
+        $scannedFiles = $this->invokeMethod($builder, 'scanFiles', $this->workspace, $this->workspace . '/.phgrep-index');
+        $postings = $this->invokeMethod($builder, 'buildPostings', [3 => ['ghi', 'abc'], 1 => ['abc', 'def']]);
+        $missingTrigrams = $this->invokeMethod($builder, 'extractFileTrigrams', $this->workspace . '/missing.txt');
+        $hidden = $this->invokeMethod($builder, 'isHiddenPath', '.hidden/Secret.php');
+        $visible = $this->invokeMethod($builder, 'isHiddenPath', 'src/App.php');
+
+        $this->assertSame('/tmp/custom-text-index', $absoluteIndexPath);
+        $this->assertSame($this->workspace . '/.alt-index', $relativeIndexPath);
+        $this->assertCount(4, $scannedFiles);
+        $this->assertSame([1, 3], $postings['abc']);
+        $this->assertSame([], $missingTrigrams);
+        $this->assertTrue($hidden);
+        $this->assertFalse($visible);
+
+        $this->expectException(\RuntimeException::class);
+        $this->expectExceptionMessage('Index root does not exist');
+
+        $this->invokeMethod($builder, 'resolveRootPath', $this->workspace . '/missing');
+    }
+
+    #[Test]
+    public function itRefreshesByBuildingWhenTheIndexIsMissing(): void
+    {
+        $builder = new TextIndexBuilder();
+        $result = $builder->refresh($this->workspace);
+
+        $this->assertSame($this->workspace . '/.phgrep-index', $result->indexPath);
+        $this->assertSame($result->fileCount, $result->addedFiles);
+        $this->assertGreaterThan(0, $result->trigramCount);
+    }
+
+    /**
+     * @return mixed
+     */
+    private function invokeMethod(object $object, string $method, mixed ...$arguments): mixed
+    {
+        $reflection = new \ReflectionMethod($object, $method);
+        $reflection->setAccessible(true);
+
+        return $reflection->invoke($object, ...$arguments);
+    }
 }

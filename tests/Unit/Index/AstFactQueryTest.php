@@ -6,6 +6,7 @@ namespace Phgrep\Tests\Unit\Index;
 
 use Phgrep\Ast\PatternParser;
 use Phgrep\Index\AstFactQuery;
+use PhpParser\Node\Expr\Array_;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
@@ -82,5 +83,29 @@ final class AstFactQueryTest extends TestCase
 
         $this->assertSame([1 => true], $dynamicNew);
         $this->assertNull($unsupported);
+    }
+
+    #[Test]
+    public function itFallsBackToTheArrayKindPropertyWhenNoAttributeIsPresent(): void
+    {
+        $query = new AstFactQuery();
+        $array = new class ([]) extends Array_ {
+            public mixed $kind = null;
+        };
+        $array->setAttribute('kind', null);
+        $array->kind = Array_::KIND_LONG;
+
+        $this->assertTrue($this->invokeMethod($query, 'isLongArraySyntax', $array));
+    }
+
+    /**
+     * @return mixed
+     */
+    private function invokeMethod(object $object, string $method, mixed ...$arguments): mixed
+    {
+        $reflection = new \ReflectionMethod($object, $method);
+        $reflection->setAccessible(true);
+
+        return $reflection->invoke($object, ...$arguments);
     }
 }

@@ -149,4 +149,77 @@ final class TextIndexStoreTest extends TestCase
         $this->assertSame([1 => ['fun']], $loaded->forward);
         $this->assertFileDoesNotExist($indexPath . '/queries/stale.txt');
     }
+
+    #[Test]
+    public function itCoversPrivateWriteAndLegacyForwardBranches(): void
+    {
+        $store = new TextIndexStore();
+        $indexPath = $this->workspace . '/.phgrep-index';
+        $writePath = $indexPath . '/custom.phpbin';
+
+        mkdir($writePath . '.tmp', 0777, true);
+
+        try {
+            $this->invokeMethod($store, 'writeAtomic', $writePath, ['ok' => true]);
+            self::fail('Expected index write failure.');
+        } catch (\RuntimeException $exception) {
+            $this->assertStringContainsString('Failed to write index file', $exception->getMessage());
+        }
+
+        Workspace::remove($writePath . '.tmp');
+        mkdir($writePath, 0777, true);
+
+        try {
+            $this->invokeMethod($store, 'writeAtomic', $writePath, ['ok' => true]);
+            self::fail('Expected index finalize failure.');
+        } catch (\RuntimeException $exception) {
+            $this->assertStringContainsString('Failed to finalize index file', $exception->getMessage());
+        }
+
+        $temporaryDirectory = $indexPath . '/postings.tmp';
+        $postingsDirectory = $indexPath . '/postings';
+        mkdir($temporaryDirectory, 0777, true);
+        mkdir($postingsDirectory, 0777, true);
+        file_put_contents($postingsDirectory . '/existing.txt', 'busy');
+
+        try {
+            $this->invokeMethod($store, 'finalizePostingsDirectory', $temporaryDirectory, $postingsDirectory, $indexPath);
+            self::fail('Expected postings finalize failure.');
+        } catch (\RuntimeException $exception) {
+            $this->assertStringContainsString('Failed to finalize index postings', $exception->getMessage());
+        }
+
+        $legacyForward = $this->invokeMethod($store, 'forwardFromLegacyFiles', [
+            ['id' => 1, 't' => ['fun', 99]],
+            ['id' => 'bad', 't' => ['skip']],
+        ]);
+
+        $this->assertSame([1 => ['fun']], $legacyForward);
+
+        Workspace::writeFile($this->workspace, '.phgrep-index/metadata.phpbin', serialize([
+            'version' => $store->version(),
+            'rootPath' => $this->workspace,
+            'builtAt' => 1,
+        ]));
+        Workspace::writeFile($this->workspace, '.phgrep-index/files.phpbin', serialize([]));
+        Workspace::writeFile($this->workspace, '.phgrep-index/postings.phpbin', serialize([]));
+
+        try {
+            $store->load($indexPath);
+            self::fail('Expected corrupt metadata to throw.');
+        } catch (\RuntimeException $exception) {
+            $this->assertStringContainsString('Index is corrupt', $exception->getMessage());
+        }
+    }
+
+    /**
+     * @return mixed
+     */
+    private function invokeMethod(object $object, string $method, mixed ...$arguments): mixed
+    {
+        $reflection = new \ReflectionMethod($object, $method);
+        $reflection->setAccessible(true);
+
+        return $reflection->invoke($object, ...$arguments);
+    }
 }

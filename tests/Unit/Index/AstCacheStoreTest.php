@@ -177,4 +177,67 @@ final class AstCacheStoreTest extends TestCase
         $this->assertSame(['render_widget'], $loaded->facts[1]['function_calls']);
         $this->assertFileDoesNotExist($indexPath . '/queries/stale.txt');
     }
+
+    #[Test]
+    public function itCoversPrivateWriteTreeAndPruneBranches(): void
+    {
+        $store = new AstCacheStore();
+        $indexPath = $this->workspace . '/.phgrep-ast-cache';
+        $treePath = $this->invokeMethod($store, 'treePath', $indexPath, 77);
+        $writePath = $indexPath . '/custom.phpbin';
+        $statements = [new Expression(new ConstFetch(new \PhpParser\Node\Name('true')))];
+
+        mkdir(dirname($treePath . '.tmp'), 0777, true);
+        mkdir($treePath . '.tmp', 0777, true);
+
+        try {
+            $store->saveTree($indexPath, 77, $statements);
+            self::fail('Expected AST tree write failure.');
+        } catch (\RuntimeException $exception) {
+            $this->assertStringContainsString('Failed to write AST tree cache', $exception->getMessage());
+        }
+
+        Workspace::remove($treePath . '.tmp');
+        mkdir($treePath, 0777, true);
+
+        try {
+            $store->saveTree($indexPath, 77, $statements);
+            self::fail('Expected AST tree finalize failure.');
+        } catch (\RuntimeException $exception) {
+            $this->assertStringContainsString('Failed to finalize AST tree cache', $exception->getMessage());
+        }
+
+        mkdir($writePath . '.tmp', 0777, true);
+
+        try {
+            $this->invokeMethod($store, 'writeAtomic', $writePath, ['ok' => true]);
+            self::fail('Expected AST cache write failure.');
+        } catch (\RuntimeException $exception) {
+            $this->assertStringContainsString('Failed to write AST cache file', $exception->getMessage());
+        }
+
+        Workspace::remove($writePath . '.tmp');
+        mkdir($writePath, 0777, true);
+
+        try {
+            $this->invokeMethod($store, 'writeAtomic', $writePath, ['ok' => true]);
+            self::fail('Expected AST cache finalize failure.');
+        } catch (\RuntimeException $exception) {
+            $this->assertStringContainsString('Failed to finalize AST cache file', $exception->getMessage());
+        }
+
+        $store->pruneTrees($this->workspace . '/missing-cache', []);
+        $this->assertDirectoryDoesNotExist($this->workspace . '/missing-cache/trees');
+    }
+
+    /**
+     * @return mixed
+     */
+    private function invokeMethod(object $object, string $method, mixed ...$arguments): mixed
+    {
+        $reflection = new \ReflectionMethod($object, $method);
+        $reflection->setAccessible(true);
+
+        return $reflection->invoke($object, ...$arguments);
+    }
 }

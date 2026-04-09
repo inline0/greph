@@ -312,12 +312,7 @@ final class TextIndexStore
         }
 
         Filesystem::remove($postingsDirectory);
-
-        if (!@rename($temporaryDirectory, $postingsDirectory)) {
-            Filesystem::remove($temporaryDirectory);
-
-            throw new \RuntimeException(sprintf('Failed to finalize index postings: %s', $indexPath));
-        }
+        $this->finalizePostingsDirectory($temporaryDirectory, $postingsDirectory, $indexPath);
 
         @unlink($this->postingsPath($indexPath));
     }
@@ -388,5 +383,14 @@ final class TextIndexStore
         }
 
         return $forward;
+    }
+
+    private function finalizePostingsDirectory(string $temporaryDirectory, string $postingsDirectory, string $indexPath): void
+    {
+        if (!@rename($temporaryDirectory, $postingsDirectory)) {
+            Filesystem::remove($temporaryDirectory);
+
+            throw new \RuntimeException(sprintf('Failed to finalize index postings: %s', $indexPath));
+        }
     }
 }

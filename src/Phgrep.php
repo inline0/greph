@@ -58,14 +58,7 @@ final class Phgrep
             $chunks,
             static fn (FileList $chunk): array => $searcher->searchFiles($chunk, $pattern, $options),
             $options->jobs,
-            static function (mixed $chunkResults) use ($codec): array {
-                if (!is_array($chunkResults)) {
-                    throw new \RuntimeException('Worker returned invalid text result set.');
-                }
-
-                /** @var list<TextFileResult> $chunkResults */
-                return $codec->encode($chunkResults);
-            },
+            static fn (mixed $chunkResults): array => self::encodeTextWorkerResults($chunkResults, $codec),
             static fn (mixed $payload): array => $codec->decode($payload),
         );
 
@@ -260,6 +253,19 @@ final class Phgrep
         }
 
         return $fileCount > $threshold;
+    }
+
+    /**
+     * @param list<TextFileResult> $chunkResults
+     * @return list<array<string, mixed>>
+     */
+    private static function encodeTextWorkerResults(mixed $chunkResults, TextResultCodec $codec): array
+    {
+        if (!is_array($chunkResults)) {
+            throw new \RuntimeException('Worker returned invalid text result set.');
+        }
+
+        return $codec->encode($chunkResults);
     }
 
     private static function shouldUseAstWorkers(int $jobs, int $fileCount): bool

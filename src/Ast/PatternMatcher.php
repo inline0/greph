@@ -161,19 +161,28 @@ final class PatternMatcher
                 continue;
             }
 
-            $serialized = [];
-
-            foreach ($subNodeValue as $item) {
-                $serialized[] = $item instanceof Node
-                    ? $this->fingerprintNode($item)
-                    : serialize($item);
-            }
-
-            $data[$subNodeName] = $serialized;
+            $data[$subNodeName] = $this->serializeSubNodeArray($subNodeValue);
         }
 
         $this->fingerprints[$cacheKey] = serialize($data);
 
         return $this->fingerprints[$cacheKey];
+    }
+
+    /**
+     * @param array<int, mixed> $subNodeValue
+     * @return list<string>
+     */
+    private function serializeSubNodeArray(array $subNodeValue): array
+    {
+        $serialized = [];
+
+        foreach ($subNodeValue as $item) {
+            $serialized[] = $item instanceof Node
+                ? $this->fingerprintNode($item)
+                : serialize($item);
+        }
+
+        return $serialized;
     }
 }

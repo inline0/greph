@@ -16,14 +16,7 @@ final class ToolResolver
     {
         $this->binaryLocator = $binaryLocator ?? static function (string $candidate): ?string {
             $path = shell_exec(sprintf('command -v %s 2>/dev/null', escapeshellarg($candidate)));
-
-            if (!is_string($path)) {
-                return null;
-            }
-
-            $path = trim($path);
-
-            return $path === '' ? null : $path;
+            return self::normalizeLocatedPath($path);
         };
     }
 
@@ -126,5 +119,16 @@ final class ToolResolver
         }
 
         return null;
+    }
+
+    private static function normalizeLocatedPath(mixed $path): ?string
+    {
+        if (!is_string($path)) {
+            return null;
+        }
+
+        $path = trim($path);
+
+        return $path === '' ? null : $path;
     }
 }

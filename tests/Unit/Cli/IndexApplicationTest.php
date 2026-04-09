@@ -178,6 +178,40 @@ final class IndexApplicationTest extends TestCase
         }
     }
 
+    #[Test]
+    public function itCoversIndexedPrivateParsingBranches(): void
+    {
+        $application = $this->newApplication()['application'];
+
+        $parsedFlags = $this->invokeMethod(
+            $application,
+            'parseSearchArguments',
+            ['-w', '-v', '-n', '-A', '2', '-B', '1', '-C', '3', '--type', 'php', '--type-not', 'txt', 'needle'],
+        );
+        $parsedTerminated = $this->invokeMethod(
+            $application,
+            'parseSearchArguments',
+            ['--', 'needle', 'single.txt', 'counts.txt'],
+        );
+        $displayNames = $this->invokeMethod(
+            $application,
+            'shouldDisplayFileNames',
+            ['paths' => ['single.txt', 'counts.txt'], 'showFileNames' => null],
+        );
+
+        $this->assertTrue($parsedFlags['wholeWord']);
+        $this->assertTrue($parsedFlags['invertMatch']);
+        $this->assertTrue($parsedFlags['showLineNumbers']);
+        $this->assertSame(2, $parsedFlags['afterContext']);
+        $this->assertSame(1, $parsedFlags['beforeContext']);
+        $this->assertSame(3, $parsedFlags['context']);
+        $this->assertSame(['php'], $parsedFlags['type']);
+        $this->assertSame(['txt'], $parsedFlags['typeNot']);
+        $this->assertSame('needle', $parsedTerminated['pattern']);
+        $this->assertSame(['single.txt', 'counts.txt'], $parsedTerminated['paths']);
+        $this->assertTrue($displayNames);
+    }
+
     /**
      * @return array{
      *   application: IndexApplication,
@@ -209,5 +243,16 @@ final class IndexApplicationTest extends TestCase
         rewind($stream);
 
         return (string) stream_get_contents($stream);
+    }
+
+    /**
+     * @return mixed
+     */
+    private function invokeMethod(object $object, string $method, mixed ...$arguments): mixed
+    {
+        $reflection = new \ReflectionMethod($object, $method);
+        $reflection->setAccessible(true);
+
+        return $reflection->invoke($object, ...$arguments);
     }
 }

@@ -140,4 +140,41 @@ final class AstIndexStoreTest extends TestCase
         $this->assertTrue($loaded->facts[1]['zero_arg_new']);
         $this->assertFileDoesNotExist($indexPath . '/queries/stale.txt');
     }
+
+    #[Test]
+    public function itCoversPrivateAstIndexWriteFailures(): void
+    {
+        $store = new AstIndexStore();
+        $path = $this->workspace . '/.phgrep-ast-index/custom.phpbin';
+
+        mkdir($path . '.tmp', 0777, true);
+
+        try {
+            $this->invokeMethod($store, 'writeAtomic', $path, ['ok' => true]);
+            self::fail('Expected AST index write failure.');
+        } catch (\RuntimeException $exception) {
+            $this->assertStringContainsString('Failed to write AST index file', $exception->getMessage());
+        }
+
+        Workspace::remove($path . '.tmp');
+        mkdir($path, 0777, true);
+
+        try {
+            $this->invokeMethod($store, 'writeAtomic', $path, ['ok' => true]);
+            self::fail('Expected AST index finalize failure.');
+        } catch (\RuntimeException $exception) {
+            $this->assertStringContainsString('Failed to finalize AST index file', $exception->getMessage());
+        }
+    }
+
+    /**
+     * @return mixed
+     */
+    private function invokeMethod(object $object, string $method, mixed ...$arguments): mixed
+    {
+        $reflection = new \ReflectionMethod($object, $method);
+        $reflection->setAccessible(true);
+
+        return $reflection->invoke($object, ...$arguments);
+    }
 }

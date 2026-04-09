@@ -79,7 +79,9 @@ final class AstPatternPrefilterTest extends TestCase
         $this->assertFalse($this->invokeMethod($prefilter, 'hasLongArraySyntax', "<?php\narray foo;\n"));
         $this->assertFalse($this->invokeMethod($prefilter, 'hasZeroArgumentNewExpression', "<?php\nnewvalue;\n"));
         $this->assertFalse($this->invokeMethod($prefilter, 'hasZeroArgumentNewExpression', "<?php\nnew"));
+        $this->assertFalse($this->invokeMethod($prefilter, 'hasZeroArgumentNewExpression', "<?php\nnew /* trailing */"));
         $this->assertTrue($this->invokeMethod($prefilter, 'hasZeroArgumentNewExpression', "<?php\nnew Foo {\n"));
+        $this->assertFalse($this->invokeMethod($prefilter, 'tokensContainZeroArgumentNewExpression', [[T_NEW, 'new', 1]]));
         $this->assertFalse($this->invokeMethod($prefilter, 'isLongArraySyntax', new \PhpParser\Node\Expr\Array_([])));
         $this->assertNull($this->invokeMethod($prefilter, 'nextSignificantTokenIndex', [[T_WHITESPACE, ' ', 1]], 0));
     }

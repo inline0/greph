@@ -156,4 +156,163 @@ final class WorkerPoolTest extends TestCase
 
         $pool->map([new FileList(['/tmp/one.php']), new FileList(['/tmp/two.php'])], static fn (): int => 1, 2);
     }
+
+    #[Test]
+    public function itThrowsWhenWaitingForAQueuedWorkerFails(): void
+    {
+        $paths = [
+            Workspace::writeFile($this->workspace, 'queued-a.txt', 'a'),
+            Workspace::writeFile($this->workspace, 'queued-b.txt', 'b'),
+            Workspace::writeFile($this->workspace, 'queued-c.txt', 'c'),
+        ];
+        $tempPath = $this->workspace . '/queued-buffer.tmp';
+        $forkCalls = 0;
+        $payload = serialize(['result' => 1]);
+
+        $pool = new WorkerPool(
+            fork: static function () use (&$forkCalls): int {
+                $forkCalls++;
+
+                return 100 + $forkCalls;
+            },
+            wait: static fn (int &$status): int => -1,
+            tempFileFactory: static fn (): string => $tempPath,
+            fileOpener: static function (string $path, string $mode) use ($payload) {
+                if ($mode === 'rb') {
+                    file_put_contents($path, $payload);
+                }
+
+                return fopen($path, $mode);
+            },
+        );
+
+        $this->expectException(\RuntimeException::class);
+        $this->expectExceptionMessage('Failed to wait for worker process.');
+
+        $pool->map(
+            [new FileList([$paths[0]]), new FileList([$paths[1]]), new FileList([$paths[2]])],
+            static fn (FileList $chunk): int => count($chunk),
+            2,
+        );
+    }
+
+    #[Test]
+    public function itIgnoresUnknownWorkerPidsBeforeCollectingQueuedResults(): void
+    {
+        $paths = [
+            Workspace::writeFile($this->workspace, 'queued-1.txt', '1'),
+            Workspace::writeFile($this->workspace, 'queued-2.txt', '2'),
+            Workspace::writeFile($this->workspace, 'queued-3.txt', '3'),
+        ];
+        $tempPaths = [
+            $this->workspace . '/queued-1.tmp',
+            $this->workspace . '/queued-2.tmp',
+            $this->workspace . '/queued-3.tmp',
+        ];
+        $tempIndex = 0;
+        $forkPids = [101, 102, 103];
+        $forkIndex = 0;
+        $waitPids = [999, 101, 102, 103];
+        $waitIndex = 0;
+
+        $pool = new WorkerPool(
+            fork: static function () use (&$forkIndex, $forkPids): int {
+                return $forkPids[$forkIndex++];
+            },
+            wait: static function (int &$status) use (&$waitIndex, $waitPids): int {
+                return $waitPids[$waitIndex++];
+            },
+            tempFileFactory: static function () use (&$tempIndex, $tempPaths): string {
+                return $tempPaths[$tempIndex++];
+            },
+            fileOpener: static function (string $path, string $mode) {
+                $payloads = [
+                    'queued-1.tmp' => serialize(['result' => 11]),
+                    'queued-2.tmp' => serialize(['result' => 22]),
+                    'queued-3.tmp' => serialize(['result' => 33]),
+                ];
+
+                if ($mode === 'rb') {
+                    file_put_contents($path, $payloads[basename($path)]);
+                }
+
+                return fopen($path, $mode);
+            },
+        );
+
+        $results = $pool->map(
+            [new FileList([$paths[0]]), new FileList([$paths[1]]), new FileList([$paths[2]])],
+            static fn (FileList $chunk): int => count($chunk),
+            2,
+        );
+
+        $this->assertSame([11, 22, 33], $results);
+    }
+
+    #[Test]
+    public function itThrowsWhenQueuedWorkerBufferCreationFails(): void
+    {
+        $pool = new WorkerPool(
+            tempFileFactory: static fn (): false => false,
+        );
+
+        $this->expectException(\RuntimeException::class);
+        $this->expectExceptionMessage('Failed to create worker buffer.');
+
+        $pool->map([new FileList(['/tmp/one.php']), new FileList(['/tmp/two.php']), new FileList(['/tmp/three.php'])], static fn (): int => 1, 2);
+    }
+
+    #[Test]
+    public function itThrowsWhenQueuedWorkerBuffersCannotBeOpened(): void
+    {
+        $tempPath = $this->workspace . '/queued-open.tmp';
+
+        $pool = new WorkerPool(
+            tempFileFactory: static fn (): string => $tempPath,
+            fileOpener: static fn (string $path, string $mode): false => false,
+        );
+
+        $this->expectException(\RuntimeException::class);
+        $this->expectExceptionMessage('Failed to open worker buffer.');
+
+        $pool->map([new FileList(['/tmp/one.php']), new FileList(['/tmp/two.php']), new FileList(['/tmp/three.php'])], static fn (): int => 1, 2);
+    }
+
+    #[Test]
+    public function itThrowsWhenQueuedWorkerForkingFails(): void
+    {
+        $tempPath = $this->workspace . '/queued-fork.tmp';
+
+        $pool = new WorkerPool(
+            tempFileFactory: static fn (): string => $tempPath,
+            fileOpener: static fn (string $path, string $mode) => fopen($path, $mode),
+            fork: static fn (): int => -1,
+        );
+
+        $this->expectException(\RuntimeException::class);
+        $this->expectExceptionMessage('Failed to fork worker process.');
+
+        $pool->map([new FileList(['/tmp/one.php']), new FileList(['/tmp/two.php']), new FileList(['/tmp/three.php'])], static fn (): int => 1, 2);
+    }
+
+    #[Test]
+    public function itInvokesQueuedWorkersInTheChildBranch(): void
+    {
+        $pool = new WorkerPool(
+            fork: static fn (): int => 0,
+            tempFileFactory: static fn (): string => '/tmp/phgrep-worker-child',
+            fileOpener: static fn (string $path, string $mode) => fopen('php://temp', 'w+'),
+            workerFactory: static fn (int $index, FileList $chunk): \Phgrep\Parallel\Worker => new \Phgrep\Parallel\Worker(
+                $index,
+                $chunk,
+                static function (int $exitCode): never {
+                    throw new WorkerTermination($exitCode);
+                },
+            ),
+        );
+
+        $this->expectException(WorkerTermination::class);
+
+        $pool->map([new FileList(['/tmp/one.php']), new FileList(['/tmp/two.php']), new FileList(['/tmp/three.php'])], static fn (): int => 1, 2);
+    }
 }

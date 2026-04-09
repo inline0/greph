@@ -103,6 +103,23 @@ final class QueryCacheStoreTest extends TestCase
         } catch (\RuntimeException $exception) {
             $this->assertStringContainsString('Indexed query cache is corrupt', $exception->getMessage());
         }
+
+        file_put_contents($path, 'not-gzip');
+        set_error_handler(static fn (): bool => true);
+
+        try {
+            try {
+                $store->load($index, 'function', $options);
+                self::fail('Expected invalid gzip payload to throw.');
+            } catch (\RuntimeException $exception) {
+                $this->assertStringContainsString('Indexed query cache is corrupt', $exception->getMessage());
+            }
+        } finally {
+            restore_error_handler();
+        }
+
+        file_put_contents($path, '');
+        $this->assertNull($store->load($index, 'function', $options));
     }
 
     #[Test]
@@ -154,6 +171,90 @@ final class QueryCacheStoreTest extends TestCase
 
         $store->clear($indexPath);
         $this->assertNull($store->load($indexPath, 123, 'array($$$ITEMS)', $options));
+
+        $store->save($indexPath, 123, 'array($$$ITEMS)', $options, [$match]);
+        $paths = glob($indexPath . '/queries/*.phpbin.gz') ?: [];
+        $path = $paths[0] ?? null;
+        $this->assertNotNull($path);
+
+        file_put_contents($path, '');
+        $this->assertNull($store->load($indexPath, 123, 'array($$$ITEMS)', $options));
+
+        file_put_contents($path, 'not-gzip');
+        set_error_handler(static fn (): bool => true);
+
+        try {
+            try {
+                $store->load($indexPath, 123, 'array($$$ITEMS)', $options);
+                self::fail('Expected invalid AST gzip payload to throw.');
+            } catch (\RuntimeException $exception) {
+                $this->assertStringContainsString('AST query cache is corrupt', $exception->getMessage());
+            }
+        } finally {
+            restore_error_handler();
+        }
+    }
+
+    #[Test]
+    public function itCoversTextAndAstCacheWriteFailureBranches(): void
+    {
+        $textStore = new TextQueryCacheStore();
+        $astStore = new AstQueryCacheStore();
+        $textIndex = $this->textIndex();
+        $textOptions = new TextSearchOptions(fixedString: true);
+        $astOptions = new AstSearchOptions();
+        $astIndexPath = $this->workspace . '/.phgrep-ast-index';
+        $textPath = $this->invokeMethod($textStore, 'cachePath', $textIndex->indexPath, 'function', $textOptions);
+        $astPath = $this->invokeMethod($astStore, 'cachePath', $astIndexPath, 'array($$$ITEMS)', $astOptions);
+
+        mkdir($textPath . '.tmp', 0777, true);
+
+        try {
+            $textStore->save($textIndex, 'function', $textOptions, [new TextFileResult('src/App.php', [], 1)]);
+            self::fail('Expected indexed query cache write failure.');
+        } catch (\RuntimeException $exception) {
+            $this->assertStringContainsString('Failed to write indexed query cache', $exception->getMessage());
+        }
+
+        Workspace::remove($textPath . '.tmp');
+        mkdir($textPath, 0777, true);
+
+        try {
+            $textStore->save($textIndex, 'function', $textOptions, [new TextFileResult('src/App.php', [], 1)]);
+            self::fail('Expected indexed query cache finalize failure.');
+        } catch (\RuntimeException $exception) {
+            $this->assertStringContainsString('Failed to finalize indexed query cache', $exception->getMessage());
+        }
+
+        mkdir($astPath . '.tmp', 0777, true);
+
+        try {
+            $astStore->save($astIndexPath, 123, 'array($$$ITEMS)', $astOptions, []);
+            self::fail('Expected AST query cache write failure.');
+        } catch (\RuntimeException $exception) {
+            $this->assertStringContainsString('Failed to write AST query cache', $exception->getMessage());
+        }
+
+        Workspace::remove($astPath . '.tmp');
+        mkdir($astPath, 0777, true);
+
+        try {
+            $astStore->save($astIndexPath, 123, 'array($$$ITEMS)', $astOptions, []);
+            self::fail('Expected AST query cache finalize failure.');
+        } catch (\RuntimeException $exception) {
+            $this->assertStringContainsString('Failed to finalize AST query cache', $exception->getMessage());
+        }
+    }
+
+    /**
+     * @return mixed
+     */
+    private function invokeMethod(object $object, string $method, mixed ...$arguments): mixed
+    {
+        $reflection = new \ReflectionMethod($object, $method);
+        $reflection->setAccessible(true);
+
+        return $reflection->invoke($object, ...$arguments);
     }
 
     private function textIndex(): TextIndex

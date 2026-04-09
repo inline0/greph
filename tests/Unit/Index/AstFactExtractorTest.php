@@ -57,7 +57,11 @@ PHP);
 
         $this->assertTrue($this->invokeMethod($extractor, 'hasOpeningParenthesis', ['(', ')'], 0));
         $this->assertFalse($this->invokeMethod($extractor, 'hasZeroArgumentNewExpression', [[T_NEW, 'new', 1]], 0));
+        $this->assertFalse($this->invokeMethod($extractor, 'hasZeroArgumentNewExpression', [[T_NEW, 'new', 1], [T_WHITESPACE, ' ', 1]], 0));
+        $this->assertTrue($this->invokeMethod($extractor, 'hasZeroArgumentNewExpression', token_get_all("<?php\nnew Foo /* comment */ ;\n"), 1));
+        $this->assertFalse($this->invokeMethod($extractor, 'hasZeroArgumentNewExpression', token_get_all("<?php\nnew Foo"), 1));
         $this->assertNull($this->invokeMethod($extractor, 'newTargetName', [[T_NEW, 'new', 1], ';'], 0));
+        $this->assertNull($this->invokeMethod($extractor, 'newTargetName', [[T_NEW, 'new', 1]], 0));
         $this->assertNull($this->invokeMethod($extractor, 'nameAt', $tokens, null));
         $this->assertNull($this->invokeMethod($extractor, 'nameAt', ['('], 0));
         $this->assertNull($this->invokeMethod($extractor, 'nextSignificantTokenIndex', [[T_WHITESPACE, ' ', 1]], 0));

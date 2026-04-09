@@ -16,6 +16,7 @@ use Phgrep\Walker\FileList;
 use PhpParser\ErrorHandler;
 use PhpParser\Node;
 use PhpParser\Node\Arg;
+use PhpParser\Node\ArrayItem;
 use PhpParser\Node\Expr;
 use PhpParser\Node\Name;
 use PHPUnit\Framework\Attributes\Test;
@@ -46,6 +47,7 @@ final class AstCoverageTest extends TestCase
 
         $this->assertTrue($this->invokePrivateWithArgs($matcher, 'matchValue', [1, 1, &$captures]));
         $this->assertFalse($this->invokePrivateWithArgs($matcher, 'matchValue', [1, 2, &$captures]));
+        $this->assertFalse($this->invokePrivateWithArgs($matcher, 'matchValue', [new Expr\ConstFetch(new Name('true')), new Expr\Variable('left'), &$captures]));
         $this->assertTrue($this->invokePrivateWithArgs($matcher, 'bindCapture', ['_', new Expr\Variable('ignored'), &$captures]));
         $this->assertFalse($this->invokePrivateWithArgs($matcher, 'matchArray', [[1], [], &$captures, 0, 0]));
         $this->assertFalse($this->invokePrivateWithArgs($matcher, 'matchArray', [[1], [2], &$captures, 0, 0]));
@@ -58,6 +60,12 @@ final class AstCoverageTest extends TestCase
 
         $this->assertFalse($this->invokePrivateWithArgs($matcher, 'matchArray', [$variadicPattern, $variadicCandidate, &$variadicCaptures, 0, 0]));
         $this->assertSame(serialize([serialize(1), serialize('two')]), $this->invokePrivate($matcher, 'fingerprint', [1, 'two']));
+        $this->assertIsString($this->invokePrivate($matcher, 'fingerprint', new Name(['App', 'Service'])));
+        $this->assertCount(2, $this->invokePrivate($matcher, 'serializeSubNodeArray', [new Expr\Variable('value'), 'literal']));
+        $this->assertIsString($this->invokePrivate($matcher, 'fingerprint', new Expr\Array_([
+            new ArrayItem(new Expr\Variable('value')),
+        ])));
+        $this->assertIsString($this->invokePrivate($matcher, 'fingerprintNode', new Name(['App', 'Service'])));
 
         $variable = new Expr\Variable('cached');
         $fingerprint = $this->invokePrivate($matcher, 'fingerprint', $variable);
@@ -80,9 +88,75 @@ final class AstCoverageTest extends TestCase
             1,
             $searcher->countParsedFiles(new FileList([$this->workspace . '/nested.php']), 'array($$$ITEMS)', new AstSearchOptions()),
         );
+        $this->assertSame(
+            0,
+            $searcher->countParsedFiles(new FileList([$this->workspace . '/missing.php']), 'array($$$ITEMS)', new AstSearchOptions()),
+        );
+        $this->assertSame(
+            0,
+            $searcher->countParsedFiles(new FileList([$this->workspace . '/function.php']), 'array($$$ITEMS)', new AstSearchOptions()),
+        );
+        $this->assertSame(
+            0,
+            $searcher->countParsedFiles(new FileList([$this->workspace . '/invalid.php']), 'function $NAME() {}', new AstSearchOptions(skipParseErrors: true)),
+        );
+
+        try {
+            $searcher->countParsedFiles(new FileList([$this->workspace . '/invalid.php']), 'function $NAME() {}', new AstSearchOptions(skipParseErrors: false));
+            self::fail('Expected countParsedFiles parse exception.');
+        } catch (ParseException $exception) {
+            $this->assertStringContainsString('Syntax error', $exception->getMessage());
+        }
 
         $this->expectException(ParseException::class);
         $searcher->searchFiles(new FileList([$this->workspace . '/invalid.php']), 'function $NAME() {}', $options);
+    }
+
+    #[Test]
+    public function itSearchesParsedStatementsWithLazySourceLoading(): void
+    {
+        $searcher = new AstSearcher();
+        $pattern = $searcher->compilePattern('array($$$ITEMS)', new AstSearchOptions());
+        $statements = (new PhpParser())->parseStatements("<?php\n\$value = array(1, 2, 3);\n");
+        $sourceLoads = 0;
+        $matches = $searcher->searchParsedStatements(
+            $this->workspace . '/parsed.php',
+            $statements,
+            $pattern,
+            static function () use (&$sourceLoads): string {
+                $sourceLoads++;
+
+                return "<?php\n\$value = array(1, 2, 3);\n";
+            },
+        );
+        $noMatches = $searcher->searchParsedStatements(
+            $this->workspace . '/parsed.php',
+            $statements,
+            $searcher->compilePattern('dispatch($EVENT)', new AstSearchOptions()),
+            static function () use (&$sourceLoads): string {
+                $sourceLoads++;
+
+                return "<?php\ndispatch(\$event);\n";
+            },
+        );
+        $stringSourceMatches = $searcher->searchParsedStatements(
+            $this->workspace . '/parsed.php',
+            $statements,
+            $pattern,
+            "<?php\n\$value = array(1, 2, 3);\n",
+        );
+        $stringLoadedMatches = $searcher->searchParsedStatements(
+            $this->workspace . '/parsed.php',
+            $statements,
+            $searcher->compilePattern('array($LEFT, $LEFT)', new AstSearchOptions()),
+            "<?php\n\$value = array(1, 2, 3);\n",
+        );
+
+        $this->assertCount(1, $matches);
+        $this->assertSame(1, $sourceLoads);
+        $this->assertSame([], $noMatches);
+        $this->assertCount(1, $stringSourceMatches);
+        $this->assertSame([], $stringLoadedMatches);
     }
 
     #[Test]
@@ -149,10 +223,17 @@ final class AstCoverageTest extends TestCase
             'class $NAME {}',
             new AstSearchOptions(dryRun: true),
         );
+        $mismatchResults = $rewriter->rewriteFiles(
+            new FileList([$this->workspace . '/nested.php']),
+            'array($LEFT, $LEFT)',
+            '[$LEFT, $LEFT]',
+            new AstSearchOptions(dryRun: true),
+        );
 
         $this->assertSame(1, $overlappingResults[0]->replacementCount);
         $this->assertStringContainsString('array([1])', $overlappingResults[0]->rewrittenContents);
         $this->assertStringContainsString('class demo', $statementResults[0]->rewrittenContents);
+        $this->assertSame(0, $mismatchResults[0]->replacementCount);
     }
 
     #[Test]
