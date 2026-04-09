@@ -94,7 +94,7 @@ final class IndexedTextSearcher
             }
         }
 
-        if ($this->canUseLiteralQueryCache($pattern, $options, $selection, $explicitSelections, $fallbackPaths)) {
+        if ($this->canUseQueryCache($pattern, $options, $selection, $explicitSelections, $fallbackPaths)) {
             $cachedResults = $this->queryCacheStore->load($index, $pattern, $options);
 
             if ($cachedResults !== null) {
@@ -135,7 +135,7 @@ final class IndexedTextSearcher
             $index,
         );
 
-        if ($this->canPopulateLiteralQueryCache($pattern, $options, $resolvedPaths, $explicitSelections, $fallbackPaths, $index)) {
+        if ($this->canPopulateQueryCache($pattern, $options, $resolvedPaths, $explicitSelections, $fallbackPaths, $index)) {
             $this->queryCacheStore->save($index, $pattern, $options, $results);
         }
 
@@ -240,14 +240,14 @@ final class IndexedTextSearcher
      * @param array<string, true> $explicitSelections
      * @param list<string> $fallbackPaths
      */
-    private function canUseLiteralQueryCache(
+    private function canUseQueryCache(
         string $pattern,
         TextSearchOptions $options,
         array $selection,
         array $explicitSelections,
         array $fallbackPaths,
     ): bool {
-        if (!$this->supportsLiteralQueryCache($pattern, $options)) {
+        if (!$this->supportsQueryCache($pattern, $options)) {
             return false;
         }
 
@@ -263,7 +263,7 @@ final class IndexedTextSearcher
      * @param array<string, true> $explicitSelections
      * @param list<string> $fallbackPaths
      */
-    private function canPopulateLiteralQueryCache(
+    private function canPopulateQueryCache(
         string $pattern,
         TextSearchOptions $options,
         array $resolvedPaths,
@@ -271,7 +271,7 @@ final class IndexedTextSearcher
         array $fallbackPaths,
         TextIndex $index,
     ): bool {
-        if (!$this->supportsLiteralQueryCache($pattern, $options)) {
+        if (!$this->supportsQueryCache($pattern, $options)) {
             return false;
         }
 
@@ -282,9 +282,9 @@ final class IndexedTextSearcher
         return $resolvedPaths[0] === $index->rootPath;
     }
 
-    private function supportsLiteralQueryCache(string $pattern, TextSearchOptions $options): bool
+    private function supportsQueryCache(string $pattern, TextSearchOptions $options): bool
     {
-        if ($pattern === '' || !$options->fixedString || $options->invertMatch) {
+        if ($pattern === '' || $options->invertMatch) {
             return false;
         }
 
