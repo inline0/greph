@@ -100,4 +100,37 @@ PHP,
         $this->assertCount(1, $refreshedMatches);
         $this->assertSame($this->workspace . '/src/Newer.php', $refreshedMatches[0]->file);
     }
+
+    #[Test]
+    public function itCachesRootAstIndexQueriesAndInvalidatesThemOnRefresh(): void
+    {
+        $initialMatches = Phgrep::searchAstIndexed(
+            'new $CLASS()',
+            $this->workspace,
+            new AstSearchOptions(),
+        );
+
+        $cacheFiles = glob($this->workspace . '/.phgrep-ast-index/queries/*.phpbin.gz') ?: [];
+
+        $this->assertNotSame([], $cacheFiles);
+        $this->assertCount(1, $initialMatches);
+        $this->assertSame($this->workspace . '/src/App.php', $initialMatches[0]->file);
+
+        sleep(1);
+        Workspace::writeFile($this->workspace, 'src/App.php', "<?php\n\$value = 1;\n");
+        Workspace::writeFile($this->workspace, 'src/Newer.php', "<?php\n\$fresh = new FreshThing();\n");
+        Phgrep::refreshAstIndex($this->workspace);
+
+        $refreshedMatches = Phgrep::searchAstIndexed(
+            'new $CLASS()',
+            $this->workspace,
+            new AstSearchOptions(),
+        );
+
+        $refreshedCacheFiles = glob($this->workspace . '/.phgrep-ast-index/queries/*.phpbin.gz') ?: [];
+
+        $this->assertNotSame([], $refreshedCacheFiles);
+        $this->assertCount(1, $refreshedMatches);
+        $this->assertSame($this->workspace . '/src/Newer.php', $refreshedMatches[0]->file);
+    }
 }

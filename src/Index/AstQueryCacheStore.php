@@ -15,9 +15,9 @@ final class AstQueryCacheStore
     /**
      * @return list<AstMatch>|null
      */
-    public function load(AstCache $cache, string $pattern, AstSearchOptions $options): ?array
+    public function load(string $indexPath, int $builtAt, string $pattern, AstSearchOptions $options): ?array
     {
-        $path = $this->cachePath($cache->indexPath, $pattern, $options);
+        $path = $this->cachePath($indexPath, $pattern, $options);
 
         if (!is_file($path)) {
             return null;
@@ -45,7 +45,7 @@ final class AstQueryCacheStore
             throw new \RuntimeException(sprintf('AST query cache is corrupt: %s', $path));
         }
 
-        if ($payload['built_at'] !== $cache->builtAt) {
+        if ($payload['built_at'] !== $builtAt) {
             return null;
         }
 
@@ -64,14 +64,14 @@ final class AstQueryCacheStore
     /**
      * @param list<AstMatch> $matches
      */
-    public function save(AstCache $cache, string $pattern, AstSearchOptions $options, array $matches): void
+    public function save(string $indexPath, int $builtAt, string $pattern, AstSearchOptions $options, array $matches): void
     {
-        $path = $this->cachePath($cache->indexPath, $pattern, $options);
+        $path = $this->cachePath($indexPath, $pattern, $options);
         $directory = dirname($path);
         Filesystem::ensureDirectory($directory);
         $temporaryPath = $path . '.tmp';
         $payload = gzencode(serialize([
-            'built_at' => $cache->builtAt,
+            'built_at' => $builtAt,
             'matches' => $matches,
         ]), 1);
 

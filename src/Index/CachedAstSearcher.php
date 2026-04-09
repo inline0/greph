@@ -71,7 +71,7 @@ final class CachedAstSearcher
         }
 
         if ($this->canUseQueryCache($resolvedPaths, $cache->rootPath, $options)) {
-            $cachedMatches = $this->queryCacheStore->load($cache, $pattern, $options);
+            $cachedMatches = $this->queryCacheStore->load($cache->indexPath, $cache->builtAt, $pattern, $options);
 
             if ($cachedMatches !== null) {
                 return $this->filterCachedMatches($cachedMatches, $selection);
@@ -121,7 +121,7 @@ final class CachedAstSearcher
         );
 
         if ($this->canPopulateQueryCache($resolvedPaths, $cache->rootPath, $options)) {
-            $this->queryCacheStore->save($cache, $pattern, $options, $matches);
+            $this->queryCacheStore->save($cache->indexPath, $cache->builtAt, $pattern, $options, $matches);
         }
 
         return $matches;

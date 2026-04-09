@@ -16,6 +16,13 @@ final class AstIndexStore
 
     private const FACTS_FILE = 'facts.phpbin';
 
+    private AstQueryCacheStore $queryCacheStore;
+
+    public function __construct(?AstQueryCacheStore $queryCacheStore = null)
+    {
+        $this->queryCacheStore = $queryCacheStore ?? new AstQueryCacheStore();
+    }
+
     public function defaultPath(string $rootPath): string
     {
         return Filesystem::normalizePath($rootPath) . '/.phgrep-ast-index';
@@ -117,6 +124,7 @@ final class AstIndexStore
         $this->writeAtomic($this->metadataPath($index->indexPath), $metadata);
         $this->writeAtomic($this->filesPath($index->indexPath), $index->files);
         $this->writeAtomic($this->factsPath($index->indexPath), $index->facts);
+        $this->queryCacheStore->clear($index->indexPath);
     }
 
     public function version(): int
