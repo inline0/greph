@@ -93,6 +93,9 @@ Current benchmark baseline commit: `e542ee4`
 - `4a57c04` `Add benchmark artifact fetch helper`
   - `bin/bench-run <run-id>` downloads the workflow artifact and prints the markdown comparison immediately
   - CI result inspection is now one command instead of a manual artifact download plus path hunt
+- `a8b84e8` `Add AST count-only benchmark path`
+  - `ast-internal` measures parse plus match cost without `AstMatch` construction or sorting
+  - the new category runs on both local and GitHub benchmark workflows
 
 ### Rejected Or Reverted
 
@@ -127,9 +130,9 @@ Current benchmark baseline commit: `e542ee4`
 
 ### In Flight
 
-- Add an internal AST count-only benchmark path
-  - measure parse plus matcher cost without `AstMatch` construction or result sorting
-  - use it to decide whether future AST work should target parser cost or match/materialization cost
+- Add an internal AST parse-only benchmark path
+  - measure parse cost after the existing AST prefilters, without candidate traversal or matching
+  - use it alongside `ast-internal` and full `ast` timings to separate parser cost from matcher cost
   - validate with local benchmarks and a CI workflow run for the new category
 
 ## Ordered Queue
@@ -178,7 +181,7 @@ Current benchmark baseline commit: `e542ee4`
 
 ## Immediate Next Steps
 
-1. Finish the internal AST count-only benchmark path and run it in CI.
-2. Use that signal to decide whether AST work should focus on parsing or matching.
+1. Finish the internal AST parse-only benchmark path and run it in CI.
+2. Use `ast-parse`, `ast-internal`, and full `ast` together to decide whether AST work should focus on parsing or matching.
 3. Keep rejecting changes that do not clearly beat runner noise.
 4. Keep every pass isolated and CI-verified.
