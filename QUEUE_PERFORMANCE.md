@@ -50,7 +50,7 @@ gh workflow run Benchmark \
 
 ## Current State
 
-Current benchmark baseline commit: `c94da50`
+Current benchmark baseline commit: `e542ee4`
 
 ### Accepted Wins
 
@@ -80,6 +80,10 @@ Current benchmark baseline commit: `c94da50`
   - `array($$$ITEMS)`: `-1.41%`
   - `new $CLASS()`: `-2.20%`
   - kept because both benchmark ops moved in the same direction with no regression signal
+- `e542ee4` `Memoize AST capture fingerprints`
+  - `array($$$ITEMS)`: `-2.69%`
+  - `new $CLASS()`: `-1.41%`
+  - kept because both AST ops moved in the right direction with no regression signal
 
 ### Accepted Benchmark Infrastructure
 
@@ -106,16 +110,16 @@ Current benchmark baseline commit: `c94da50`
 
 ### In Flight
 
-- AST capture fingerprint memoization
-  - reuse subtree fingerprints within one matcher invocation instead of reserializing the same nodes repeatedly
-  - target repeated metavariable equality checks in `PatternMatcher::bindCapture`
-  - validate on CI against `c94da50` with the `ast` category before keeping
+- Delay `AstMatch::code` materialization until output actually needs it
+  - store per-file source once and slice lazily for successful matches
+  - avoid per-match code extraction on AST scans that only need counts or comparisons
+  - validate on CI against `e542ee4` with the `ast` category before keeping
 
 ## Ordered Queue
 
 ### AST Search
 
-- [ ] Memoize fingerprints during one match attempt so repeated captures do not reserialize the same subtree.
+- [x] Memoize fingerprints during one match attempt so repeated captures do not reserialize the same subtree.
 - [ ] Short-circuit repeated-capture equality when the candidate node/value is the same instance as the previously captured value.
 - [ ] Add cheaper root checks for literal scalar subnodes that are common in benchmark patterns.
 - [ ] Add token-aware AST prefiltering for long-array vs short-array syntax before parsing.
@@ -156,7 +160,7 @@ Current benchmark baseline commit: `c94da50`
 
 ## Immediate Next Steps
 
-1. Finish the AST capture-fingerprint memoization pass and benchmark it against `c94da50`.
+1. Finish the lazy AST code-materialization pass and benchmark it against `e542ee4`.
 2. If the AST pass wins, stay in AST matcher-cost work until that surface flattens.
 3. If the AST pass is flat or negative, pivot back to text-path work or parser-cost isolation.
 4. Keep every pass isolated and CI-verified.
