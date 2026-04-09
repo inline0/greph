@@ -50,7 +50,7 @@ gh workflow run Benchmark \
 
 ## Current State
 
-Current benchmark baseline commit: `59f15d9`
+Current benchmark baseline commit: `693f5ec`
 
 ### Accepted Wins
 
@@ -68,6 +68,10 @@ Current benchmark baseline commit: `59f15d9`
   - `Regex array call`: `-22.01%`
   - `Regex new instance`: `-23.13%`
   - literal text ops stayed within runner noise
+- `693f5ec` `Prune zero-argument constructor candidates`
+  - `new $CLASS()`: `-6.47%`
+  - `array($$$ITEMS)`: `+0.53%`
+  - kept because the target operation moved materially and the sibling op stayed within noise
 
 ### Accepted Benchmark Infrastructure
 
@@ -94,10 +98,10 @@ Current benchmark baseline commit: `59f15d9`
 
 ### In Flight
 
-- AST zero-argument constructor pruning
-  - reject `new` candidates with non-empty argument lists when the pattern root requires empty constructor args
-  - keep the check in `AstRootMatcher` so candidate pruning happens before the full structural matcher
-  - validate on CI against `59f15d9` with the `ast` category before keeping
+- AST token-aware zero-argument `new` prefilter
+  - scan PHP tokens for `new` expressions that actually reach an empty `(...)` call before the full AST parse runs
+  - only apply this prefilter when the pattern root is `new ...()` with zero constructor args
+  - validate on CI against `693f5ec` with the `ast` category before keeping
 
 ## Ordered Queue
 
@@ -144,7 +148,7 @@ Current benchmark baseline commit: `59f15d9`
 
 ## Immediate Next Steps
 
-1. Finish the AST zero-argument `new` pruning pass and benchmark it against `59f15d9`.
-2. If the AST pass wins, stay in AST candidate pruning until that surface flattens.
+1. Finish the AST token-aware zero-argument `new` prefilter pass and benchmark it against `693f5ec`.
+2. If the AST pass wins, stay in AST pruning and prefilter work until that surface flattens.
 3. If the AST pass is flat or negative, pivot back to text-path work or parser-cost isolation.
 4. Keep every pass isolated and CI-verified.
