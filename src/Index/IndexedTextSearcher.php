@@ -21,16 +21,20 @@ final class IndexedTextSearcher
 
     private TextIndexStore $store;
 
+    private TextQueryCacheStore $queryCacheStore;
+
     public function __construct(
         ?TextSearcher $textSearcher = null,
         ?LiteralExtractor $literalExtractor = null,
         ?TrigramExtractor $trigramExtractor = null,
         ?TextIndexStore $store = null,
+        ?TextQueryCacheStore $queryCacheStore = null,
     ) {
         $this->textSearcher = $textSearcher ?? new TextSearcher();
         $this->literalExtractor = $literalExtractor ?? new LiteralExtractor();
         $this->trigramExtractor = $trigramExtractor ?? new TrigramExtractor();
         $this->store = $store ?? new TextIndexStore();
+        $this->queryCacheStore = $queryCacheStore ?? new TextQueryCacheStore();
     }
 
     /**
@@ -90,6 +94,14 @@ final class IndexedTextSearcher
             }
         }
 
+        if ($this->canUseLiteralQueryCache($pattern, $options, $selection, $explicitSelections, $fallbackPaths)) {
+            $cachedResults = $this->queryCacheStore->load($index, $pattern, $options);
+
+            if ($cachedResults !== null) {
+                return $this->filterCachedResults($cachedResults, $selectedPaths);
+            }
+        }
+
         if ($options->invertMatch) {
             return $this->mergeResults(
                 $selectedPaths,
@@ -114,7 +126,7 @@ final class IndexedTextSearcher
 
         $candidateIds = $this->candidateIds($index->indexPath, $seeds);
 
-        return $this->mergeResults(
+        $results = $this->mergeResults(
             $selectedPaths,
             $fallbackPaths,
             $pattern,
@@ -122,6 +134,12 @@ final class IndexedTextSearcher
             $candidateIds,
             $index,
         );
+
+        if ($this->canPopulateLiteralQueryCache($pattern, $options, $resolvedPaths, $explicitSelections, $fallbackPaths, $index)) {
+            $this->queryCacheStore->save($index, $pattern, $options, $results);
+        }
+
+        return $results;
     }
 
     /**
@@ -215,6 +233,98 @@ final class IndexedTextSearcher
         }
 
         return $options->countOnly || $options->filesWithMatches || $options->filesWithoutMatches;
+    }
+
+    /**
+     * @param array{files: array<string, true>, directories: list<string>} $selection
+     * @param array<string, true> $explicitSelections
+     * @param list<string> $fallbackPaths
+     */
+    private function canUseLiteralQueryCache(
+        string $pattern,
+        TextSearchOptions $options,
+        array $selection,
+        array $explicitSelections,
+        array $fallbackPaths,
+    ): bool {
+        if (!$this->supportsLiteralQueryCache($pattern, $options)) {
+            return false;
+        }
+
+        if ($explicitSelections !== [] || $fallbackPaths !== []) {
+            return false;
+        }
+
+        return $selection['directories'] !== [];
+    }
+
+    /**
+     * @param list<string> $resolvedPaths
+     * @param array<string, true> $explicitSelections
+     * @param list<string> $fallbackPaths
+     */
+    private function canPopulateLiteralQueryCache(
+        string $pattern,
+        TextSearchOptions $options,
+        array $resolvedPaths,
+        array $explicitSelections,
+        array $fallbackPaths,
+        TextIndex $index,
+    ): bool {
+        if (!$this->supportsLiteralQueryCache($pattern, $options)) {
+            return false;
+        }
+
+        if ($explicitSelections !== [] || $fallbackPaths !== [] || count($resolvedPaths) !== 1) {
+            return false;
+        }
+
+        return $resolvedPaths[0] === $index->rootPath;
+    }
+
+    private function supportsLiteralQueryCache(string $pattern, TextSearchOptions $options): bool
+    {
+        if ($pattern === '' || !$options->fixedString || $options->invertMatch) {
+            return false;
+        }
+
+        if ($options->beforeContext > 0 || $options->afterContext > 0 || $options->maxCount !== null) {
+            return false;
+        }
+
+        if (
+            $options->includeHidden
+            || !$options->respectIgnore
+            || $options->followSymlinks
+            || !$options->skipBinaryFiles
+            || $options->includeGitDirectory
+            || $options->fileTypeFilter !== null
+            || $options->globPatterns !== []
+            || $options->maxFileSizeBytes !== 10485760
+        ) {
+            return false;
+        }
+
+        return true;
+    }
+
+    /**
+     * @param list<TextFileResult> $cachedResults
+     * @param list<string> $selectedPaths
+     * @return list<TextFileResult>
+     */
+    private function filterCachedResults(array $cachedResults, array $selectedPaths): array
+    {
+        $selected = array_fill_keys($selectedPaths, true);
+        $results = [];
+
+        foreach ($cachedResults as $result) {
+            if (isset($selected[$result->file])) {
+                $results[] = $result;
+            }
+        }
+
+        return $results;
     }
 
     /**

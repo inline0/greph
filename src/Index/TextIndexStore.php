@@ -20,6 +20,8 @@ final class TextIndexStore
 
     private const POSTINGS_DIRECTORY = 'postings';
 
+    private const QUERIES_DIRECTORY = 'queries';
+
     public function defaultPath(string $rootPath): string
     {
         return Filesystem::normalizePath($rootPath) . '/.phgrep-index';
@@ -136,6 +138,7 @@ final class TextIndexStore
         $this->writeAtomic($this->filesPath($index->indexPath), $files);
         $this->writePostings($index->indexPath, $index->postings);
         $this->writeAtomic($this->forwardPath($index->indexPath), $index->forward);
+        Filesystem::remove($this->queriesDirectoryPath($index->indexPath));
     }
 
     public function version(): int
@@ -221,6 +224,11 @@ final class TextIndexStore
     private function forwardPath(string $indexPath): string
     {
         return Filesystem::normalizePath($indexPath) . '/' . self::FORWARD_FILE;
+    }
+
+    private function queriesDirectoryPath(string $indexPath): string
+    {
+        return Filesystem::normalizePath($indexPath) . '/' . self::QUERIES_DIRECTORY;
     }
 
     private function decodeFile(string $path): mixed
