@@ -139,9 +139,14 @@ final class IndexedTextSearcher
         ?TextIndex $index = null,
     ): array {
         $resultsByPath = [];
+        $canUseDirectLiteralSummary = $this->canUseDirectLiteralSummary($pattern, $options);
 
         if ($candidateIds === null || $index === null) {
-            foreach ($this->textSearcher->searchFiles(new FileList($selectedPaths), $pattern, $options) as $result) {
+            $searchResults = $canUseDirectLiteralSummary
+                ? $this->searchLiteralSummaryFiles($selectedPaths, $pattern, $options)
+                : $this->textSearcher->searchFiles(new FileList($selectedPaths), $pattern, $options);
+
+            foreach ($searchResults as $result) {
                 $resultsByPath[$result->file] = $result;
             }
         } else {
@@ -158,7 +163,11 @@ final class IndexedTextSearcher
                 $candidatePaths[] = $absolutePath;
             }
 
-            foreach ($this->textSearcher->searchFiles(new FileList($candidatePaths), $pattern, $options) as $result) {
+            $searchResults = $canUseDirectLiteralSummary
+                ? $this->searchLiteralSummaryFiles($candidatePaths, $pattern, $options)
+                : $this->textSearcher->searchFiles(new FileList($candidatePaths), $pattern, $options);
+
+            foreach ($searchResults as $result) {
                 $resultsByPath[$result->file] = $result;
             }
 
@@ -170,7 +179,11 @@ final class IndexedTextSearcher
         }
 
         if ($fallbackPaths !== []) {
-            foreach ($this->textSearcher->searchFiles(new FileList($fallbackPaths), $pattern, $options) as $result) {
+            $searchResults = $canUseDirectLiteralSummary
+                ? $this->searchLiteralSummaryFiles($fallbackPaths, $pattern, $options)
+                : $this->textSearcher->searchFiles(new FileList($fallbackPaths), $pattern, $options);
+
+            foreach ($searchResults as $result) {
                 $resultsByPath[$result->file] = $result;
             }
         }
@@ -185,6 +198,102 @@ final class IndexedTextSearcher
         }
 
         return $orderedResults;
+    }
+
+    private function canUseDirectLiteralSummary(string $pattern, TextSearchOptions $options): bool
+    {
+        if ($pattern === '') {
+            return false;
+        }
+
+        if (!$options->fixedString || $options->wholeWord || $options->invertMatch) {
+            return false;
+        }
+
+        if ($options->beforeContext > 0 || $options->afterContext > 0) {
+            return false;
+        }
+
+        return $options->countOnly || $options->filesWithMatches || $options->filesWithoutMatches;
+    }
+
+    /**
+     * @param list<string> $paths
+     * @return list<TextFileResult>
+     */
+    private function searchLiteralSummaryFiles(array $paths, string $pattern, TextSearchOptions $options): array
+    {
+        $results = [];
+
+        foreach ($paths as $path) {
+            $contents = @file_get_contents($path);
+
+            if ($contents === false) {
+                $results[] = new TextFileResult($path, [], 0);
+                continue;
+            }
+
+            if ($options->countOnly) {
+                $results[] = new TextFileResult(
+                    $path,
+                    [],
+                    $this->countLiteralMatchingLines($contents, $pattern, $options->caseInsensitive, $options->maxCount),
+                );
+                continue;
+            }
+
+            $matched = $this->contentsContainLiteral($contents, $pattern, $options->caseInsensitive);
+            $results[] = new TextFileResult($path, [], $matched ? 1 : 0);
+        }
+
+        return $results;
+    }
+
+    private function contentsContainLiteral(string $contents, string $pattern, bool $caseInsensitive): bool
+    {
+        return $caseInsensitive
+            ? stripos($contents, $pattern) !== false
+            : strpos($contents, $pattern) !== false;
+    }
+
+    private function countLiteralMatchingLines(
+        string $contents,
+        string $pattern,
+        bool $caseInsensitive,
+        ?int $maxCount,
+    ): int {
+        $count = 0;
+        $offset = 0;
+        $length = strlen($contents);
+
+        while ($offset < $length) {
+            $newlinePosition = strpos($contents, "\n", $offset);
+
+            if ($newlinePosition === false) {
+                $rawLine = substr($contents, $offset);
+                $offset = $length;
+            } else {
+                $rawLine = substr($contents, $offset, $newlinePosition - $offset);
+                $offset = $newlinePosition + 1;
+            }
+
+            $line = rtrim($rawLine, "\r");
+            $matched = $caseInsensitive
+                ? stripos($line, $pattern) !== false
+                : strpos($line, $pattern) !== false;
+
+            if (!$matched) {
+                continue;
+            }
+
+            $count++;
+
+            if ($maxCount !== null && $count >= $maxCount) {
+                break;
+            }
+        }
+
+        return $count;
     }
 
     /**

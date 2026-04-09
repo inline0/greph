@@ -74,7 +74,7 @@ final class BenchmarkRunner
         $fileCount = iterator_count(Phgrep::walk($corpusPath));
         $indexPath = $this->rootPath . '/build/benchmarks/indexes/' . $corpusName;
 
-        if (in_array($suite['category'], ['indexed-text', 'indexed-load'], true)) {
+        if (in_array($suite['category'], ['indexed-text', 'indexed-load', 'indexed-summary'], true)) {
             if (!(new TextIndexStore())->exists($indexPath)) {
                 (new TextIndexBuilder())->build($corpusPath, $indexPath);
             }
@@ -149,12 +149,16 @@ final class BenchmarkRunner
                 break;
 
             case 'indexed-text':
+            case 'indexed-summary':
                 $results = Phgrep::searchTextIndexed(
                     (string) $suite['pattern'],
                     $corpusPath,
                     new TextSearchOptions(
                         fixedString: (bool) ($suite['fixed'] ?? false),
                         caseInsensitive: (bool) ($suite['case_insensitive'] ?? false),
+                        countOnly: (bool) ($suite['count_only'] ?? false),
+                        filesWithMatches: (bool) ($suite['files_with_matches'] ?? false),
+                        filesWithoutMatches: (bool) ($suite['files_without_matches'] ?? false),
                     ),
                     $indexPath,
                 );
@@ -283,7 +287,7 @@ final class BenchmarkRunner
      */
     private function externalGrepCommand(array $suite, string $corpusPath): ?array
     {
-        if (!in_array($suite['category'], ['text', 'walker', 'parallel', 'indexed-text'], true)) {
+        if (!in_array($suite['category'], ['text', 'walker', 'parallel', 'indexed-text', 'indexed-summary'], true)) {
             return null;
         }
 
@@ -303,6 +307,18 @@ final class BenchmarkRunner
             $command[] = '-i';
         }
 
+        if (($suite['count_only'] ?? false) === true) {
+            $command[] = '-c';
+        }
+
+        if (($suite['files_with_matches'] ?? false) === true) {
+            $command[] = '-l';
+        }
+
+        if (($suite['files_without_matches'] ?? false) === true) {
+            $command[] = '-L';
+        }
+
         return array_merge($command, [(string) $suite['pattern'], $corpusPath]);
     }
 
@@ -312,7 +328,7 @@ final class BenchmarkRunner
      */
     private function externalRipgrepCommand(array $suite, string $corpusPath): ?array
     {
-        if (!in_array($suite['category'], ['text', 'walker', 'parallel', 'indexed-text'], true)) {
+        if (!in_array($suite['category'], ['text', 'walker', 'parallel', 'indexed-text', 'indexed-summary'], true)) {
             return null;
         }
 
@@ -328,6 +344,18 @@ final class BenchmarkRunner
 
         if (($suite['case_insensitive'] ?? false) === true) {
             $command[] = '-i';
+        }
+
+        if (($suite['count_only'] ?? false) === true) {
+            $command[] = '-c';
+        }
+
+        if (($suite['files_with_matches'] ?? false) === true) {
+            $command[] = '-l';
+        }
+
+        if (($suite['files_without_matches'] ?? false) === true) {
+            $command[] = '-L';
         }
 
         return array_merge($command, [(string) $suite['pattern'], $corpusPath]);
