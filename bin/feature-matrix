@@ -1,0 +1,30 @@
+#!/usr/bin/env php
+<?php
+
+declare(strict_types=1);
+
+require dirname(__DIR__) . '/vendor/autoload.php';
+
+use Phgrep\FeatureMatrix\FeatureMatrixGenerator;
+
+$rootPath = dirname(__DIR__);
+$markdownPath = $rootPath . '/FEATURE_MATRIX.md';
+$jsonPath = $rootPath . '/FEATURE_MATRIX.json';
+$stdoutOnly = in_array('--stdout', $argv, true);
+
+try {
+    $generator = new FeatureMatrixGenerator($rootPath);
+
+    if ($stdoutOnly) {
+        $report = $generator->generate();
+        fwrite(STDOUT, $generator->renderMarkdown($report));
+        exit(0);
+    }
+
+    $generator->write($markdownPath, $jsonPath);
+    fwrite(STDOUT, "Wrote FEATURE_MATRIX.md and FEATURE_MATRIX.json\n");
+    exit(0);
+} catch (Throwable $throwable) {
+    fwrite(STDERR, $throwable->getMessage() . PHP_EOL);
+    exit(2);
+}

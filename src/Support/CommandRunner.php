@@ -31,7 +31,7 @@ final class CommandRunner
      * @param list<string> $command
      * @param array<string, string> $environment
      */
-    public function run(array $command, ?string $workingDirectory = null, array $environment = []): ProcessResult
+    public function run(array $command, ?string $workingDirectory = null, array $environment = [], string $input = ''): ProcessResult
     {
         $descriptors = [
             0 => ['pipe', 'r'],
@@ -51,14 +51,15 @@ final class CommandRunner
             throw new \RuntimeException('Failed to start process.');
         }
 
-        /** @var resource $stdin */
-        $stdin = $pipes[0];
+        /** @var resource $stdinPipe */
+        $stdinPipe = $pipes[0];
         /** @var resource $stdoutPipe */
         $stdoutPipe = $pipes[1];
         /** @var resource $stderrPipe */
         $stderrPipe = $pipes[2];
 
-        fclose($stdin);
+        fwrite($stdinPipe, $input);
+        fclose($stdinPipe);
         $stdout = stream_get_contents($stdoutPipe);
         fclose($stdoutPipe);
         $stderr = stream_get_contents($stderrPipe);

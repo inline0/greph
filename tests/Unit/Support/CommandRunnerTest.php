@@ -33,6 +33,26 @@ final class CommandRunnerTest extends TestCase
     }
 
     #[Test]
+    public function itPassesInputToChildProcesses(): void
+    {
+        $runner = new CommandRunner();
+        $result = $runner->run(
+            [
+                PHP_BINARY,
+                '-r',
+                'fwrite(STDOUT, strtoupper(stream_get_contents(STDIN)));',
+            ],
+            null,
+            [],
+            "hello\n",
+        );
+
+        $this->assertSame(0, $result->exitCode);
+        $this->assertSame("HELLO\n", $result->stdout);
+        $this->assertSame('', $result->stderr);
+    }
+
+    #[Test]
     public function itThrowsWhenProcessesCannotStart(): void
     {
         $runner = new CommandRunner(

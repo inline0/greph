@@ -4,10 +4,16 @@ Pure PHP code search and structural refactoring tool.
 
 ## Modes
 
-- `bin/phgrep`: one-shot scan mode for text search, AST search, and AST rewrite.
+- `bin/rg`: ripgrep-style compatibility wrapper backed by the PHP engine.
+- `bin/sg`: ast-grep-style compatibility wrapper backed by the PHP engine.
+- `bin/phgrep`: native combined text + AST CLI.
 - `bin/phgrep-index`: separate indexed text mode. Build or refresh an on-disk trigram index, then run text searches against that index.
 
 Indexed mode is intentionally separate from scan mode, and the benchmark tables below keep those paths separate too.
+
+Compatibility note:
+- `rg` and `sg` are compatibility entrypoints for agent/tooling use, not full reimplementations of every upstream flag.
+- [FEATURE_MATRIX.md](FEATURE_MATRIX.md) tracks exactly what the PHP port implements, what is partial, and what is still out of scope.
 
 ## Quick Start
 
@@ -15,14 +21,28 @@ Indexed mode is intentionally separate from scan mode, and the benchmark tables 
 composer install
 composer verify
 
-bin/phgrep -F "function" src
-bin/phgrep --ast 'new $CLASS()' src
+bin/rg -F "function" src
+bin/sg -p 'new $CLASS()' src
 
 bin/phgrep-index build .
 bin/phgrep-index search -F "function" .
 ```
 
 By default, `bin/phgrep-index` stores its index in `.phgrep-index` under the indexed root.
+
+## Feature Matrix
+
+`FEATURE_MATRIX.md` is generated from live command probes, not maintained by hand.
+
+```bash
+bin/feature-matrix
+```
+
+That command refreshes:
+- `FEATURE_MATRIX.md`
+- `FEATURE_MATRIX.json`
+
+The Markdown file is the readable summary. The JSON file keeps raw command, exit code, stdout, stderr, and note data for each probe.
 
 ## Performance
 

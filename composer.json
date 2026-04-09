@@ -30,6 +30,8 @@
         "sort-packages": true
     },
     "bin": [
+        "bin/rg",
+        "bin/sg",
         "bin/phgrep",
         "bin/phgrep-index",
         "bin/oracle",
@@ -41,7 +43,8 @@
         "bin/bench",
         "bin/bench-aggregate",
         "bin/bench-series",
-        "bin/bench-compare"
+        "bin/bench-compare",
+        "bin/feature-matrix"
     ],
     "scripts": {
         "test": "phpunit",

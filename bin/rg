@@ -1,0 +1,15 @@
+#!/usr/bin/env php
+<?php
+
+declare(strict_types=1);
+
+require dirname(__DIR__) . '/vendor/autoload.php';
+
+use Phgrep\Cli\RipgrepApplication;
+
+try {
+    exit((new RipgrepApplication())->run($argv));
+} catch (Throwable $throwable) {
+    fwrite(STDERR, $throwable->getMessage() . PHP_EOL);
+    exit(2);
+}
