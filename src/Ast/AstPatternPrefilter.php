@@ -126,6 +126,10 @@ final class AstPatternPrefilter
 
     private function hasLongArraySyntax(string $contents): bool
     {
+        if (stripos($contents, 'array') === false) {
+            return false;
+        }
+
         if (preg_match('/\barray' . self::COMMENT_AWARE_GAP_PATTERN . '\(/is', $contents) !== 1) {
             return false;
         }
@@ -152,6 +156,10 @@ final class AstPatternPrefilter
 
     private function hasZeroArgumentNewExpression(string $contents): bool
     {
+        if (stripos($contents, 'new') === false) {
+            return false;
+        }
+
         if (
             preg_match(
                 '/\bnew\b(?:(?![;{]).)*?(?:\(\s*\)|(?=' . self::COMMENT_AWARE_GAP_PATTERN . '[;{]))/is',
