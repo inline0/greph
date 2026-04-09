@@ -133,12 +133,77 @@ Current benchmark baseline commit: `e542ee4`
 
 ### In Flight
 
-- Strengthen AST parser-side prefilters
-  - add cheap regex rejects before `token_get_all()` for long-array and zero-arg-`new` pattern gates
-  - cut obvious non-candidates before the token scan and parser ever run
-  - validate on CI with `ast`, then follow with `ast-parse` if the real search category wins
+- Refresh full WordPress CI benchmark baseline after accepted AST prefilter work
+  - run all categories, not just focused AST slices
+  - keep `2b9569c` only because the global run stayed flat to slightly positive
+  - use that run as the comparison point before starting indexed-mode work
 
 ## Ordered Queue
+
+### Indexed Mode And Trigram Search
+
+- [ ] Define the indexed-mode product shape.
+  - Decide whether this is `phgrep index build`, `phgrep search --index`, or both.
+- [ ] Decide the compatibility contract.
+  - Indexed mode must preserve normal output, exit codes, ignore behavior, and match semantics.
+- [ ] Define the on-disk index layout.
+  - Versioned directory, metadata file, postings store, file table, and temporary build area.
+- [ ] Add index versioning and invalidation rules.
+  - Any schema change, matcher semantic change, or incompatible CLI flag must force rebuild.
+- [ ] Add repository identity metadata.
+  - Root path, file count, file size totals, build timestamp, and source revision when available.
+- [ ] Add per-file metadata records.
+  - Stable file id, relative path, size, mtime, hash strategy, and file type.
+- [ ] Implement trigram extraction for text contents.
+  - Define normalization rules, minimum query length behavior, and binary-file exclusions.
+- [ ] Implement a file-id dictionary.
+  - Keep postings compact by storing integer ids instead of repeated paths.
+- [ ] Implement the trigram postings writer.
+  - Sort postings, deduplicate file ids, and keep build memory under control.
+- [ ] Choose a storage format for postings.
+  - Start simple, then measure whether packed binary or varint encoding is needed.
+- [ ] Add a literal-query planner that can use the trigram index.
+  - Break the literal into trigrams, intersect candidate file sets, then verify exact matches.
+- [ ] Add a short-query fallback path.
+  - Queries shorter than 3 bytes should bypass the trigram index and use the current scanner.
+- [ ] Add case-insensitive indexed search semantics.
+  - Decide whether to index normalized lowercased trigrams separately or normalize at query time.
+- [ ] Add regex planning for indexed mode.
+  - Extract required literal seeds from regexes and use trigrams only as a candidate reducer.
+- [ ] Detect regexes that cannot benefit from the index.
+  - If no safe literal seed exists, fall back to the current scan pipeline.
+- [ ] Add candidate verification after indexed filtering.
+  - The index must never be treated as proof of a match, only as a prefilter.
+- [ ] Add walker/ignore integration to the index builder.
+  - Respect `.gitignore`, `.phgrepignore`, hidden-file rules, type filters, and glob rules consistently.
+- [ ] Decide how explicit file inputs interact with the index.
+  - Direct file targets should bypass index surprises and still honor current CLI semantics.
+- [ ] Add incremental rebuild support.
+  - Detect changed, added, removed, and renamed files and update postings without full rebuild.
+- [ ] Add a cheap staleness check before indexed queries.
+  - Detect when the on-disk index is out of date and choose rebuild, refresh, or fallback behavior.
+- [ ] Add a cold-build benchmark category.
+  - Measure full index creation cost on WordPress and synthetic corpora.
+- [ ] Add a warm-query benchmark category.
+  - Measure repeated literal and regex queries using the index with no rebuild.
+- [ ] Add branch-vs-main CI benchmarks for indexed mode.
+  - Compare cold build, warm literal, warm regex, and fallback queries.
+- [ ] Add correctness tests for indexed text search.
+  - Indexed results must match current non-indexed results byte-for-byte after normalization.
+- [ ] Add oracle scenarios for indexed mode.
+  - Reuse the existing scenario corpus and compare indexed and non-indexed outputs directly.
+- [ ] Add corruption handling.
+  - Broken index files must fail cleanly and never silently return incomplete results.
+- [ ] Add locking and atomic index swaps.
+  - Prevent partially-written index state from being used during queries.
+- [ ] Add CLI surface for index maintenance.
+  - Build, refresh, inspect, and remove commands with clear exit codes.
+- [ ] Add index statistics output.
+  - Number of indexed files, postings count, size on disk, and last refresh time.
+- [ ] Document where indexed mode should and should not be used.
+  - One-shot grep-like searches should still default to the current non-indexed path.
+- [ ] Consider a future daemon or watcher only after the static index path proves its value.
+  - Do not add always-on complexity before warm-query wins are confirmed on CI.
 
 ### AST Search
 
@@ -184,7 +249,7 @@ Current benchmark baseline commit: `e542ee4`
 
 ## Immediate Next Steps
 
-1. Use `ast-parse`, `ast-internal`, and full `ast` together to target parser-side wins next.
-2. Land the benchmark report threshold annotations so CI calls out obvious wins and regressions directly.
-3. Keep rejecting changes that do not clearly beat runner noise.
-4. Keep every pass isolated and CI-verified.
+1. Keep the current WordPress full-suite CI run as the fresh baseline for the indexed-mode branch.
+2. Design the index layout and CLI contract before writing any storage code.
+3. Implement the smallest useful slice first: literal search backed by a trigram candidate index.
+4. Benchmark cold build cost and warm literal query speed on CI before expanding to regex support.

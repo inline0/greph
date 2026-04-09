@@ -135,6 +135,7 @@ jobs:
       - name: Run interleaved benchmark series
         shell: bash
         run: |
+          php_cmd=(php -d memory_limit=2G)
           head_run_dir="build/benchmarks/head-runs"
           base_run_dir="${{ steps.paths.outputs.base_worktree }}/build/benchmarks/base-runs"
           mkdir -p "$head_run_dir" "$base_run_dir"
@@ -145,27 +146,27 @@ jobs:
           fi
 
           for iteration in $(seq 1 "${{ steps.settings.outputs.warmup }}"); do
-            php bin/bench "${args[@]}" >/dev/null
-            php "${{ steps.paths.outputs.base_worktree }}/bin/bench" "${args[@]}" >/dev/null
+            "${php_cmd[@]}" bin/bench "${args[@]}" >/dev/null
+            "${php_cmd[@]}" "${{ steps.paths.outputs.base_worktree }}/bin/bench" "${args[@]}" >/dev/null
           done
 
           for iteration in $(seq 1 "${{ steps.settings.outputs.repeat }}"); do
             if (( iteration % 2 == 1 )); then
-              php bin/bench "${args[@]}" --output "$head_run_dir/run-$iteration.json" >/dev/null
-              php "${{ steps.paths.outputs.base_worktree }}/bin/bench" "${args[@]}" --output "$base_run_dir/run-$iteration.json" >/dev/null
+              "${php_cmd[@]}" bin/bench "${args[@]}" --output "$head_run_dir/run-$iteration.json" >/dev/null
+              "${php_cmd[@]}" "${{ steps.paths.outputs.base_worktree }}/bin/bench" "${args[@]}" --output "$base_run_dir/run-$iteration.json" >/dev/null
             else
-              php "${{ steps.paths.outputs.base_worktree }}/bin/bench" "${args[@]}" --output "$base_run_dir/run-$iteration.json" >/dev/null
-              php bin/bench "${args[@]}" --output "$head_run_dir/run-$iteration.json" >/dev/null
+              "${php_cmd[@]}" "${{ steps.paths.outputs.base_worktree }}/bin/bench" "${args[@]}" --output "$base_run_dir/run-$iteration.json" >/dev/null
+              "${php_cmd[@]}" bin/bench "${args[@]}" --output "$head_run_dir/run-$iteration.json" >/dev/null
             fi
           done
 
-          php bin/bench-aggregate --output "$HEAD_OUTPUT" "$head_run_dir"/run-*.json >/dev/null
-          php bin/bench-aggregate --output "${{ steps.paths.outputs.base_worktree }}/$BASE_OUTPUT" "$base_run_dir"/run-*.json >/dev/null
+          "${php_cmd[@]}" bin/bench-aggregate --output "$HEAD_OUTPUT" "$head_run_dir"/run-*.json >/dev/null
+          "${php_cmd[@]}" bin/bench-aggregate --output "${{ steps.paths.outputs.base_worktree }}/$BASE_OUTPUT" "$base_run_dir"/run-*.json >/dev/null
 
       - name: Compare benchmark series
         shell: bash
         run: |
-          php bin/bench-compare \
+          php -d memory_limit=2G bin/bench-compare \
             --base-label "${{ steps.settings.outputs.compare_ref }}" \
             --head-label "${GITHUB_SHA}" \
             --output "$COMPARE_OUTPUT" \

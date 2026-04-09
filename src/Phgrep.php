@@ -8,6 +8,9 @@ use Phgrep\Ast\AstMatch;
 use Phgrep\Ast\AstRewriter;
 use Phgrep\Ast\AstSearchOptions;
 use Phgrep\Ast\AstSearcher;
+use Phgrep\Index\IndexBuildResult;
+use Phgrep\Index\IndexedTextSearcher;
+use Phgrep\Index\TextIndexBuilder;
 use Phgrep\Ast\RewriteResult;
 use Phgrep\Parallel\WorkSplitter;
 use Phgrep\Parallel\WorkerPool;
@@ -69,6 +72,31 @@ final class Phgrep
         }
 
         return $searcher->sortResults($flattened, $files->paths());
+    }
+
+    public static function buildTextIndex(string $rootPath = '.', ?string $indexPath = null): IndexBuildResult
+    {
+        return (new TextIndexBuilder())->build($rootPath, $indexPath);
+    }
+
+    public static function refreshTextIndex(string $rootPath = '.', ?string $indexPath = null): IndexBuildResult
+    {
+        return (new TextIndexBuilder())->refresh($rootPath, $indexPath);
+    }
+
+    /**
+     * @param string|list<string> $paths
+     * @return list<TextFileResult>
+     */
+    public static function searchTextIndexed(
+        string $pattern,
+        string|array $paths,
+        ?TextSearchOptions $options = null,
+        ?string $indexPath = null,
+    ): array {
+        $options ??= new TextSearchOptions();
+
+        return (new IndexedTextSearcher())->search($pattern, $paths, $options, $indexPath);
     }
 
     /**

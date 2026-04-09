@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace Phgrep\Benchmarks;
 
 use Phgrep\Ast\AstSearchOptions;
+use Phgrep\Index\TextIndexBuilder;
+use Phgrep\Index\TextIndexStore;
 use Phgrep\Phgrep;
 use Phgrep\Support\CommandRunner;
 use Phgrep\Support\Filesystem;
@@ -69,6 +71,14 @@ final class BenchmarkRunner
     private function runPhgrepBenchmark(array $suite, string $corpusName, string $corpusPath): BenchmarkResult
     {
         $fileCount = iterator_count(Phgrep::walk($corpusPath));
+        $indexPath = $this->rootPath . '/build/benchmarks/indexes/' . $corpusName;
+
+        if ($suite['category'] === 'indexed-text') {
+            if (!(new TextIndexStore())->exists($indexPath)) {
+                (new TextIndexBuilder())->build($corpusPath, $indexPath);
+            }
+        }
+
         $memoryBefore = memory_get_usage(true);
         $start = hrtime(true);
         $matchCount = 0;
@@ -125,6 +135,28 @@ final class BenchmarkRunner
                     fixedString: (bool) ($suite['fixed'] ?? false),
                     jobs: (int) ($suite['jobs'] ?? 1),
                 ));
+
+                foreach ($results as $result) {
+                    $matchCount += $result->matchCount();
+                }
+                break;
+
+            case 'indexed-build':
+                Filesystem::remove($indexPath);
+                $result = (new TextIndexBuilder())->build($corpusPath, $indexPath);
+                $matchCount = $result->fileCount;
+                break;
+
+            case 'indexed-text':
+                $results = Phgrep::searchTextIndexed(
+                    (string) $suite['pattern'],
+                    $corpusPath,
+                    new TextSearchOptions(
+                        fixedString: (bool) ($suite['fixed'] ?? false),
+                        caseInsensitive: (bool) ($suite['case_insensitive'] ?? false),
+                    ),
+                    $indexPath,
+                );
 
                 foreach ($results as $result) {
                     $matchCount += $result->matchCount();
@@ -236,7 +268,7 @@ final class BenchmarkRunner
      */
     private function externalGrepCommand(array $suite, string $corpusPath): ?array
     {
-        if (!in_array($suite['category'], ['text', 'walker', 'parallel'], true)) {
+        if (!in_array($suite['category'], ['text', 'walker', 'parallel', 'indexed-text'], true)) {
             return null;
         }
 
@@ -265,7 +297,7 @@ final class BenchmarkRunner
      */
     private function externalRipgrepCommand(array $suite, string $corpusPath): ?array
     {
-        if (!in_array($suite['category'], ['text', 'walker', 'parallel'], true)) {
+        if (!in_array($suite['category'], ['text', 'walker', 'parallel', 'indexed-text'], true)) {
             return null;
         }
 
