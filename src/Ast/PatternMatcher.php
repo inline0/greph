@@ -66,18 +66,11 @@ final class PatternMatcher
      */
     private function matchArray(array $pattern, array $candidate, array &$captures, int $patternOffset = 0, int $candidateOffset = 0): bool
     {
-        $patternCount = count($pattern);
-        $candidateCount = count($candidate);
-
-        while ($patternOffset < $patternCount) {
+        while ($patternOffset < count($pattern)) {
             $variadicName = MetaVariable::variadicName($pattern[$patternOffset]);
 
             if ($variadicName !== null) {
-                if ($patternOffset === $patternCount - 1) {
-                    return $this->bindCapture($variadicName, array_slice($candidate, $candidateOffset), $captures);
-                }
-
-                for ($take = $candidateOffset; $take <= $candidateCount; $take++) {
+                for ($take = $candidateOffset; $take <= count($candidate); $take++) {
                     $trialCaptures = $captures;
                     $slice = array_slice($candidate, $candidateOffset, $take - $candidateOffset);
 
@@ -95,7 +88,7 @@ final class PatternMatcher
                 return false;
             }
 
-            if ($candidateOffset >= $candidateCount) {
+            if (!array_key_exists($candidateOffset, $candidate)) {
                 return false;
             }
 
@@ -107,7 +100,7 @@ final class PatternMatcher
             $candidateOffset++;
         }
 
-        return $candidateOffset === $candidateCount;
+        return $candidateOffset === count($candidate);
     }
 
     /**

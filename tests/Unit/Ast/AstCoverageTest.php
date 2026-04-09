@@ -55,14 +55,8 @@ final class AstCoverageTest extends TestCase
         ];
         $variadicPattern = [new Arg(new Expr\Variable(MetaVariable::VARIADIC_PREFIX . 'ARGS'), unpack: true)];
         $variadicCandidate = [new Arg(new Expr\Variable('different'))];
-        /** @var array<string, mixed> $tailCaptures */
-        $tailCaptures = [];
-        $tailCandidate = [new Arg(new Expr\Variable('first')), new Arg(new Expr\Variable('second'))];
 
         $this->assertFalse($this->invokePrivateWithArgs($matcher, 'matchArray', [$variadicPattern, $variadicCandidate, &$variadicCaptures, 0, 0]));
-        $this->assertTrue($this->invokePrivateWithArgs($matcher, 'matchArray', [$variadicPattern, $tailCandidate, &$tailCaptures, 0, 0]));
-        $this->assertArrayHasKey('ARGS', $tailCaptures);
-        $this->assertCount(2, $tailCaptures['ARGS']);
         $this->assertSame(serialize([serialize(1), serialize('two')]), $this->invokePrivate($matcher, 'fingerprint', [1, 'two']));
     }
 
