@@ -174,10 +174,28 @@ jobs:
             "$HEAD_OUTPUT"
           cat "$COMPARE_OUTPUT" >> "$GITHUB_STEP_SUMMARY"
 
-      - name: Upload benchmark artifacts
+      - name: Upload head benchmark artifact
+        id: upload_head
         uses: actions/upload-artifact@v4
         with:
-          name: benchmark-${{ github.run_id }}
+          name: benchmark-head-${{ github.run_id }}
           path: |
             build/benchmarks
-            ${{ steps.paths.outputs.base_worktree }}/${{ env.BASE_OUTPUT }}
+
+      - name: Upload base benchmark artifact
+        id: upload_base
+        uses: actions/upload-artifact@v4
+        with:
+          name: benchmark-base-${{ github.run_id }}
+          path: ${{ steps.paths.outputs.base_worktree }}/${{ env.BASE_OUTPUT }}
+
+      - name: Append artifact links
+        shell: bash
+        run: |
+          {
+            echo ""
+            echo "## Artifacts"
+            echo ""
+            echo "- [Head benchmark artifact](${{ steps.upload_head.outputs.artifact-url }})"
+            echo "- [Base benchmark artifact](${{ steps.upload_base.outputs.artifact-url }})"
+          } >> "$GITHUB_STEP_SUMMARY"

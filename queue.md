@@ -104,16 +104,22 @@ These are not queue items anymore; they are the current floor:
 ## Phase 0: Lock The New Performance Program
 
 - [ ] Run a fresh full WordPress CI benchmark from current `HEAD` and freeze it as the new comparison base for this queue.
-- [ ] Add a short performance log section to this file with:
+- [x] Add a short performance log section to this file with:
   - commit
   - benchmark run id
   - keep or revert
   - headline numbers
-- [ ] Decide one canonical repeat and warmup policy for this whole pass.
-- [ ] Make sure the workflow summary always links raw JSON artifacts for base and head.
+- [x] Decide one canonical repeat and warmup policy for this whole pass.
+- [x] Make sure the workflow summary always links raw JSON artifacts for base and head.
 - [ ] Keep `README.md` unchanged until the last pass is finished, then update it once with final tables.
 
 ## Performance Log
+
+- canonical workflow-dispatch policy for this pass:
+  - `repeat=5`
+  - `warmup=1`
+  - WordPress corpus
+  - category-isolated comparisons before broader sweeps
 
 - `bc9af40` keep
   - CI run: `24198078791`
@@ -164,6 +170,46 @@ These are not queue items anymore; they are the current floor:
   - note:
     - broad short fixed-string text searches now fall back to the faster single-process path
     - `1 worker` stayed flat at `-0.88%`
+
+- `78a4359` keep
+  - CI run: `24201916822`
+  - compare: `9200825` -> `78a4359` on `indexed-text`
+  - headline:
+    - `Indexed regex array call` `-70.00%`
+    - `Indexed regex new instance` `-94.33%`
+  - note:
+    - warm indexed query caching now covers regex searches as well as fixed strings
+    - `Indexed literal "function"` stayed slightly faster than `rg` at `150.04ms`
+
+- `dab53f2` keep
+  - CI run: `24202458355`
+  - compare: `af1bd30` -> `dab53f2` on `ast-indexed`
+  - headline:
+    - `Indexed new $CLASS()` `-99.00%`
+    - `Indexed array($$$ITEMS)` `-45.13%`
+  - note:
+    - warm query caching is a clear win for fact-indexed AST
+    - `Indexed new $CLASS()` dropped to `22.14ms` on WordPress
+
+- `a23d8ba` reject
+  - CI run: `24203193313`
+  - compare: `8123726` -> `a23d8ba` on `ast-cached`
+  - headline:
+    - `Cached array($$$ITEMS)` `+13.88%`
+    - `Cached new $CLASS()` `+2.20%`
+  - note:
+    - limiting cached AST query population by match count did not hold up on CI
+    - the local fresh-cache improvement was not enough to survive the median WordPress comparison
+
+- `d657c6d` reject
+  - CI run: `24203356711`
+  - compare: `a23d8ba` -> `d657c6d` on `indexed-text`
+  - headline:
+    - `Indexed regex array call` `+5.33%`
+    - `Indexed regex new instance` `+7.31%`
+  - note:
+    - the new `Indexed literal whole word` row was functional at `207.41ms`, but existing indexed regex paths regressed
+    - keep the idea for later, but do not keep this version on the perf branch
 
 ## Phase 1: Scan-Mode Text Search
 
@@ -344,11 +390,11 @@ Parallel work should only survive if it produces real CI wins after scan and ind
 
 ## Phase 7: Benchmark Infrastructure And Reporting
 
-- [ ] Add explicit spread reporting to CI summaries so small deltas can be interpreted faster.
-- [ ] Add a quick helper or convention for comparing the current branch against the last accepted performance commit.
+- [x] Add explicit spread reporting to CI summaries so small deltas can be interpreted faster.
+- [x] Add a quick helper or convention for comparing the current branch against the last accepted performance commit.
 - [ ] Make sure every new benchmark category has both local smoke support and CI support.
 - [x] Add cached/indexed AST categories to the workflow as soon as the first implementation slice exists.
-- [ ] Keep a compact accepted / rejected experiment log in this file so the final pass is auditable.
+- [x] Keep a compact accepted / rejected experiment log in this file so the final pass is auditable.
 - [ ] When this queue is exhausted, update `README.md` once with final:
   - scan-mode table
   - indexed-text table
