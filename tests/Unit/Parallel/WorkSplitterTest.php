@@ -57,30 +57,4 @@ final class WorkSplitterTest extends TestCase
 
         $splitter->split(new FileList([]), 0);
     }
-
-    #[Test]
-    public function itOversubscribesChunksForLargeFileSets(): void
-    {
-        $paths = [];
-
-        for ($index = 0; $index < 130; $index++) {
-            $paths[] = Workspace::writeFile($this->workspace, sprintf('many/%03d.txt', $index), str_repeat('x', $index + 1));
-        }
-
-        $chunks = (new WorkSplitter())->split(new FileList($paths), 2);
-        $allPaths = [];
-
-        $this->assertCount(8, $chunks);
-
-        foreach ($chunks as $chunk) {
-            foreach ($chunk->paths() as $path) {
-                $allPaths[] = $path;
-            }
-        }
-
-        sort($allPaths);
-        sort($paths);
-
-        $this->assertSame($paths, $allPaths);
-    }
 }

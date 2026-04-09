@@ -27,18 +27,20 @@ final class ResultCollector
     public function collectWorker(array $worker, bool $waitForExit = true): mixed
     {
         try {
-            if ($waitForExit) {
-                pcntl_waitpid($worker['pid'], $status);
-            }
-
             $metadata = stream_get_meta_data($worker['socket']);
+            $seekable = $metadata['seekable'] === true;
 
-            if ($metadata['seekable'] === true) {
+            if ($waitForExit && $seekable) {
+                pcntl_waitpid($worker['pid'], $status);
                 rewind($worker['socket']);
             }
 
             $data = stream_get_contents($worker['socket']);
             fclose($worker['socket']);
+
+            if ($waitForExit && !$seekable) {
+                pcntl_waitpid($worker['pid'], $status);
+            }
 
             if ($data === false || $data === '') {
                 throw new \RuntimeException(sprintf('Worker %d produced no output.', $worker['pid']));

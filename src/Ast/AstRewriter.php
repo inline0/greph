@@ -16,8 +16,6 @@ final class AstRewriter
 
     private PatternMatcher $patternMatcher;
 
-    private AstCandidateFinder $candidateFinder;
-
     private AstRootMatcher $rootMatcher;
 
     private ParserFactory $parserFactory;
@@ -27,13 +25,11 @@ final class AstRewriter
     public function __construct(
         ?PatternParser $patternParser = null,
         ?PatternMatcher $patternMatcher = null,
-        ?AstCandidateFinder $candidateFinder = null,
         ?AstRootMatcher $rootMatcher = null,
         ?ParserFactory $parserFactory = null,
     ) {
         $this->patternParser = $patternParser ?? new PatternParser();
         $this->patternMatcher = $patternMatcher ?? new PatternMatcher();
-        $this->candidateFinder = $candidateFinder ?? new AstCandidateFinder();
         $this->rootMatcher = $rootMatcher ?? new AstRootMatcher();
         $this->parserFactory = $parserFactory ?? new ParserFactory();
         $this->printer = new Standard();
@@ -71,22 +67,7 @@ final class AstRewriter
             }
 
             $matches = [];
-
-            foreach ($this->candidateFinder->find($statements, $search) as $candidate) {
-                $captures = $this->rootMatcher->mayMatch($search->root, $candidate)
-                    ? $this->patternMatcher->match($search->root, $candidate)
-                    : null;
-
-                if ($captures === null) {
-                    continue;
-                }
-
-                $matches[] = [
-                    'start' => $candidate->getStartFilePos(),
-                    'end' => $candidate->getEndFilePos(),
-                    'captures' => $captures,
-                ];
-            }
+            $this->visitStatements($statements, $search, $source, $matches);
 
             if ($matches === []) {
                 $results[] = new RewriteResult($file, $source, $source, 0);
@@ -139,6 +120,51 @@ final class AstRewriter
 
         return $results;
     }
+
+    /**
+     * @param list<Node> $nodes
+     * @param list<array{start: int, end: int, captures: array<string, mixed>}> $matches
+     */
+    private function visitStatements(array $nodes, Pattern $pattern, string $source, array &$matches): void
+    {
+        foreach ($nodes as $node) {
+            $this->visitNode($node, $pattern, $source, $matches);
+        }
+    }
+
+    /**
+     * @param list<array{start: int, end: int, captures: array<string, mixed>}> $matches
+     */
+    private function visitNode(Node $node, Pattern $pattern, string $source, array &$matches): void
+    {
+        $captures = $this->rootMatcher->mayMatch($pattern->root, $node)
+            ? $this->patternMatcher->match($pattern->root, $node)
+            : null;
+
+        if ($captures !== null) {
+            $matches[] = [
+                'start' => $node->getStartFilePos(),
+                'end' => $node->getEndFilePos(),
+                'captures' => $captures,
+            ];
+        }
+
+        foreach ($node->getSubNodeNames() as $subNodeName) {
+            /** @var mixed $subNode */
+            $subNode = $node->$subNodeName;
+
+            if ($subNode instanceof Node) {
+                $this->visitNode($subNode, $pattern, $source, $matches);
+            } elseif (is_array($subNode)) {
+                foreach ($subNode as $childNode) {
+                    if ($childNode instanceof Node) {
+                        $this->visitNode($childNode, $pattern, $source, $matches);
+                    }
+                }
+            }
+        }
+    }
+
     /**
      * @param array<string, mixed> $captures
      */

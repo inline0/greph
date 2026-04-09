@@ -8,9 +8,6 @@ use Phgrep\Walker\FileList;
 
 final class WorkSplitter
 {
-    private const EXTRA_CHUNK_MULTIPLIER = 4;
-    private const MIN_FILES_PER_WORKER_FOR_EXTRA_CHUNKS = 64;
-
     /**
      * @return list<FileList>
      */
@@ -27,8 +24,7 @@ final class WorkSplitter
         }
 
         $workerCount = min($workers, count($paths));
-        $bucketCount = $this->bucketCount(count($paths), $workerCount);
-        $buckets = array_fill(0, $bucketCount, ['size' => 0, 'paths' => []]);
+        $buckets = array_fill(0, $workerCount, ['size' => 0, 'paths' => []]);
 
         usort(
             $paths,
@@ -38,7 +34,7 @@ final class WorkSplitter
         foreach ($paths as $path) {
             $smallestBucketIndex = 0;
 
-            for ($index = 1; $index < $bucketCount; $index++) {
+            for ($index = 1; $index < $workerCount; $index++) {
                 if ($buckets[$index]['size'] < $buckets[$smallestBucketIndex]['size']) {
                     $smallestBucketIndex = $index;
                 }
@@ -61,14 +57,5 @@ final class WorkSplitter
         }
 
         return $chunks;
-    }
-
-    private function bucketCount(int $fileCount, int $workerCount): int
-    {
-        if ($fileCount < ($workerCount * self::MIN_FILES_PER_WORKER_FOR_EXTRA_CHUNKS)) {
-            return $workerCount;
-        }
-
-        return min($fileCount, max($workerCount, $workerCount * self::EXTRA_CHUNK_MULTIPLIER));
     }
 }
