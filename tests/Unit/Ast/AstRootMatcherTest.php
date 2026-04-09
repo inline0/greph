@@ -66,4 +66,16 @@ final class AstRootMatcherTest extends TestCase
         $this->assertTrue($this->matcher->mayMatch($longPattern->root, $longCandidate->root));
         $this->assertFalse($this->matcher->mayMatch($longPattern->root, $shortCandidate->root));
     }
+
+    #[Test]
+    public function itRejectsFixedArgumentArityMismatches(): void
+    {
+        $newPattern = $this->parser->parse('new $CLASS()');
+        $newCandidate = $this->parser->parse('new Foo($value)');
+        $callPattern = $this->parser->parse('dispatch($EVENT)');
+        $callCandidate = $this->parser->parse('dispatch($first, $second)');
+
+        $this->assertFalse($this->matcher->mayMatch($newPattern->root, $newCandidate->root));
+        $this->assertFalse($this->matcher->mayMatch($callPattern->root, $callCandidate->root));
+    }
 }
