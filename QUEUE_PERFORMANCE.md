@@ -50,7 +50,7 @@ gh workflow run Benchmark \
 
 ## Current State
 
-Current benchmark baseline commit: `2fa6111`
+Current benchmark baseline commit: `59f15d9`
 
 ### Accepted Wins
 
@@ -64,6 +64,10 @@ Current benchmark baseline commit: `2fa6111`
 - `02ba1ba` `Prune AST array syntax mismatches early`
   - `new $CLASS()`: `-1.53%`
   - `array($$$ITEMS)`: `-1.91%`
+- `59f15d9` `Scan regex candidate lines by seed literal`
+  - `Regex array call`: `-22.01%`
+  - `Regex new instance`: `-23.13%`
+  - literal text ops stayed within runner noise
 
 ### Accepted Benchmark Infrastructure
 
@@ -90,10 +94,10 @@ Current benchmark baseline commit: `2fa6111`
 
 ### In Flight
 
-- Regex seed-literal occurrence scanning
-  - use the existing required regex literal to jump straight to candidate lines in file contents
-  - run PCRE only on those candidate lines instead of on every line in the file
-  - validate on CI against `2fa6111` with the `text` category before keeping
+- AST zero-argument constructor pruning
+  - reject `new` candidates with non-empty argument lists when the pattern root requires empty constructor args
+  - keep the check in `AstRootMatcher` so candidate pruning happens before the full structural matcher
+  - validate on CI against `59f15d9` with the `ast` category before keeping
 
 ## Ordered Queue
 
@@ -111,7 +115,6 @@ Current benchmark baseline commit: `2fa6111`
 ### Text Search
 
 - [ ] Keep fixed-string work focused on literal and case-insensitive paths until they flatten on CI.
-- [ ] Use regex seed literals to jump directly to candidate lines before running PCRE.
 - [ ] Add anchored-regex fast paths where a regex reduces to prefix, suffix, or full-line literal checks.
 - [ ] Detect regexes that collapse to exact literal matches and route them to literal search.
 - [ ] Revisit `BufferedReader` and text chunk handling to reduce string copying for regex-heavy scans.
@@ -141,7 +144,7 @@ Current benchmark baseline commit: `2fa6111`
 
 ## Immediate Next Steps
 
-1. Finish the regex exact-literal collapse pass and benchmark it against `2fa6111`.
-2. If the text pass wins, stay in text mode and keep tightening regex-heavy scans.
-3. If the text pass is flat or negative, pivot back to AST fingerprint and capture-cost work.
+1. Finish the AST zero-argument `new` pruning pass and benchmark it against `59f15d9`.
+2. If the AST pass wins, stay in AST candidate pruning until that surface flattens.
+3. If the AST pass is flat or negative, pivot back to text-path work or parser-cost isolation.
 4. Keep every pass isolated and CI-verified.
