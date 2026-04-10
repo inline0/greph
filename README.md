@@ -46,7 +46,7 @@ The Markdown file is the readable summary. The JSON file keeps raw command, exit
 
 ## Performance
 
-Benchmark tables below are always sourced from GitHub Actions CI, never from local runs. Current baseline: run [`24212668592`](https://github.com/inline0/phgrep/actions/runs/24212668592) on the WordPress corpus, using `ubuntu-latest`, PHP `8.4`, `5` measured runs, and `1` warmup run. Tables below show the merged `main` head snapshot from that run.
+Benchmark tables below are always sourced from GitHub Actions CI, never from local runs. Current completed `main` baseline: run [`24234526655`](https://github.com/inline0/phgrep/actions/runs/24234526655) on the WordPress corpus, using `ubuntu-latest`, PHP `8.4`, `5` measured runs, and `1` warmup run. Tables below show the merged `main` head snapshot from that run.
 
 Comparison tools:
 - `rg`: ripgrep
@@ -57,35 +57,35 @@ Comparison tools:
 
 | Operation | phgrep | rg | grep |
 | --- | ---: | ---: | ---: |
-| `Literal "function"` | `437.44ms` | `138.28ms` | `223.46ms` |
-| `Literal case insensitive` | `456.33ms` | `145.66ms` | `288.99ms` |
-| `Regex new instance` | `455.91ms` | `68.09ms` | `194.42ms` |
-| `Regex array call` | `404.52ms` | `80.51ms` | `213.37ms` |
-| `Full traversal` | `45.99ms` | `20.28ms` | `55.40ms` |
+| `Literal "function"` | `446.57ms` | `144.78ms` | `223.46ms` |
+| `Literal case insensitive` | `450.35ms` | `156.00ms` | `288.99ms` |
+| `Regex new instance` | `456.58ms` | `80.76ms` | `194.42ms` |
+| `Regex array call` | `398.65ms` | `85.92ms` | `213.37ms` |
+| `Full traversal` | `45.63ms` | `20.18ms` | `55.40ms` |
 
 ### Scan Mode: Parallel Text
 
 | Operation | phgrep | rg | grep |
 | --- | ---: | ---: | ---: |
-| `1 worker` | `463.83ms` | `137.08ms` | `223.35ms` |
-| `2 workers` | `448.87ms` | `137.73ms` | `223.39ms` |
-| `4 workers` | `451.85ms` | `136.46ms` | `223.62ms` |
+| `1 worker` | `456.99ms` | `143.65ms` | `223.35ms` |
+| `2 workers` | `446.09ms` | `147.18ms` | `223.39ms` |
+| `4 workers` | `448.29ms` | `144.22ms` | `223.62ms` |
 
 ### Scan Mode: AST
 
 | Operation | phgrep | sg |
 | --- | ---: | ---: |
-| `new $CLASS()` | `3064.48ms` | `8141.68ms` |
-| `array($$$ITEMS)` | `6024.89ms` | `8226.80ms` |
+| `new $CLASS()` | `3436.26ms` | `8564.72ms` |
+| `array($$$ITEMS)` | `6669.04ms` | `8652.00ms` |
 
 ### Indexed Text Mode
 
 | Operation | phgrep | rg | grep |
 | --- | ---: | ---: | ---: |
-| `Indexed literal "function"` | `485.46ms` | `137.97ms` | `223.19ms` |
-| `Indexed literal case insensitive` | `498.68ms` | `144.80ms` | `289.34ms` |
-| `Indexed regex new instance` | `171.54ms` | `68.50ms` | `194.05ms` |
-| `Indexed regex array call` | `190.82ms` | `80.30ms` | `213.71ms` |
+| `Indexed literal "function"` | `282.41ms` | `146.33ms` | `223.19ms` |
+| `Indexed literal case insensitive` | `299.89ms` | `155.58ms` | `289.34ms` |
+| `Indexed regex new instance` | `179.69ms` | `80.44ms` | `194.05ms` |
+| `Indexed regex array call` | `163.27ms` | `85.78ms` | `213.71ms` |
 
 The CLI-exposed indexed mode is text-first today. CI also tracks separate indexed/cached AST search modes below.
 
@@ -93,23 +93,23 @@ The CLI-exposed indexed mode is text-first today. CI also tracks separate indexe
 
 | Operation | phgrep | rg | grep |
 | --- | ---: | ---: | ---: |
-| `Indexed count "function"` | `272.46ms` | `99.41ms` | `181.37ms` |
-| `Indexed files with "function"` | `68.63ms` | `91.33ms` | `121.04ms` |
-| `Indexed files without "function"` | `68.66ms` | `139.90ms` | `121.59ms` |
+| `Indexed count "function"` | `277.81ms` | `109.83ms` | `181.37ms` |
+| `Indexed files with "function"` | `81.44ms` | `100.21ms` | `121.04ms` |
+| `Indexed files without "function"` | `81.91ms` | `139.90ms` | `107.87ms` |
 
 ### Indexed / Cached AST
 
 | Operation | phgrep | sg |
 | --- | ---: | ---: |
-| `Indexed new $CLASS()` | `2415.77ms` | `8163.51ms` |
-| `Indexed array($$$ITEMS)` | `6383.69ms` | `8237.89ms` |
-| `Cached new $CLASS()` | `1627.95ms` | `8149.28ms` |
-| `Cached array($$$ITEMS)` | `4466.96ms` | `8211.55ms` |
+| `Indexed new $CLASS()` | `2724.44ms` | `8554.87ms` |
+| `Indexed array($$$ITEMS)` | `6178.27ms` | `8642.14ms` |
+| `Cached new $CLASS()` | `1688.84ms` | `8572.19ms` |
+| `Cached array($$$ITEMS)` | `3861.60ms` | `8668.03ms` |
 
 ### Build Costs
 
 | Operation | phgrep |
 | --- | ---: |
-| `Build trigram index` | `9552.51ms` |
-| `Build AST fact index` | `1323.92ms` |
-| `Build cached AST store` | `9463.32ms` |
+| `Build trigram index` | `10403.94ms` |
+| `Build AST fact index` | `1418.25ms` |
+| `Build cached AST store` | `10381.02ms` |
