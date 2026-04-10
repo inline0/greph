@@ -74,6 +74,10 @@ final class CachedAstSearcher
             $cachedMatches = $this->queryCacheStore->load($cache->indexPath, $cache->builtAt, $pattern, $options);
 
             if ($cachedMatches !== null) {
+                if ($this->canPopulateQueryCache($resolvedPaths, $cache->rootPath, $options)) {
+                    return $cachedMatches;
+                }
+
                 return $this->filterCachedMatches($cachedMatches, $selection);
             }
         }

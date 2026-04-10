@@ -327,6 +327,22 @@ final class IndexedTextSearcherTest extends TestCase
         $this->assertSame([], $emptyRegexSeeds);
     }
 
+    #[Test]
+    public function itUsesCachedResultsForWarmRootQueries(): void
+    {
+        $pattern = 'function';
+        $options = new TextSearchOptions(fixedString: true, countOnly: true);
+
+        $rootResults = $this->searcher->search($pattern, $this->workspace, $options);
+        $cachedRootResults = $this->searcher->search($pattern, $this->workspace, $options);
+
+        $this->assertCount(3, $rootResults);
+        $this->assertSame(
+            array_map(static fn (TextFileResult $result): int => $result->matchCount(), $rootResults),
+            array_map(static fn (TextFileResult $result): int => $result->matchCount(), $cachedRootResults),
+        );
+    }
+
     /**
      * @return mixed
      */

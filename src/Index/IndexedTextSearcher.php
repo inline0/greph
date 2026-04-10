@@ -98,6 +98,10 @@ final class IndexedTextSearcher
             $cachedResults = $this->queryCacheStore->load($index, $pattern, $options);
 
             if ($cachedResults !== null) {
+                if ($this->canPopulateQueryCache($pattern, $options, $resolvedPaths, $explicitSelections, $fallbackPaths, $index)) {
+                    return $cachedResults;
+                }
+
                 return $this->filterCachedResults($cachedResults, $selectedPaths);
             }
         }
