@@ -40,26 +40,37 @@ $outputDirectory ??= $phgrepRoot . '/build/benchmarks/runs/' . $runId;
 Filesystem::remove($outputDirectory);
 Filesystem::ensureDirectory($outputDirectory);
 
+$locator = new BenchmarkArtifactLocator();
 $runner = new CommandRunner();
 $toolResolver = new ToolResolver();
-$download = $runner->run([
-    ...$toolResolver->githubCli(),
-    'run',
-    'download',
-    $runId,
-    '--repo',
-    $repo,
-    '-n',
-    'benchmark-' . $runId,
-    '-D',
-    $outputDirectory,
-], $phgrepRoot);
+$artifactNames = [
+    $locator->headArtifactName($runId),
+    $locator->baseArtifactName($runId),
+];
 
-if (!$download->successful()) {
-    throw new RuntimeException(trim($download->output()) !== '' ? trim($download->output()) : 'Failed to download benchmark artifact.');
+foreach ($artifactNames as $artifactName) {
+    $download = $runner->run([
+        ...$toolResolver->githubCli(),
+        'run',
+        'download',
+        $runId,
+        '--repo',
+        $repo,
+        '-n',
+        $artifactName,
+        '-D',
+        $outputDirectory,
+    ], $phgrepRoot);
+
+    if (!$download->successful()) {
+        throw new RuntimeException(
+            trim($download->output()) !== ''
+                ? trim($download->output())
+                : sprintf('Failed to download benchmark artifact: %s', $artifactName),
+        );
+    }
 }
 
-$locator = new BenchmarkArtifactLocator();
 $comparisonPath = $locator->findComparisonReport($outputDirectory);
 $headSeriesPath = $locator->findHeadSeries($outputDirectory);
 $baseSeriesPath = $locator->findBaseSeries($outputDirectory);
