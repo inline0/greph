@@ -8,6 +8,7 @@ use Phgrep\Ast\AstMatch;
 use Phgrep\Ast\AstSearchOptions;
 use Phgrep\Ast\AstSearcher;
 use Phgrep\Ast\PatternParser;
+use Phgrep\Ast\Parsers\ParserFactory;
 use Phgrep\Support\Filesystem;
 
 final class CachedAstSearcher
@@ -29,9 +30,15 @@ final class CachedAstSearcher
         ?AstFactQuery $factQuery = null,
         ?AstQueryCacheStore $queryCacheStore = null,
     ) {
+        $sharedParserFactory = null;
+
+        if ($astSearcher === null && $patternParser === null) {
+            $sharedParserFactory = new ParserFactory();
+        }
+
         $this->store = $store ?? new AstCacheStore();
-        $this->astSearcher = $astSearcher ?? new AstSearcher();
-        $this->patternParser = $patternParser ?? new PatternParser();
+        $this->astSearcher = $astSearcher ?? new AstSearcher(parserFactory: $sharedParserFactory);
+        $this->patternParser = $patternParser ?? new PatternParser($sharedParserFactory);
         $this->factQuery = $factQuery ?? new AstFactQuery();
         $this->queryCacheStore = $queryCacheStore ?? new AstQueryCacheStore();
     }
