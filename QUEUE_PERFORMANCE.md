@@ -286,6 +286,100 @@ These are not queue items anymore; they are the current floor:
     - the same compact query-cache payload change materially improved warm cached-AST queries
     - both AST warm modes now serve wide match sets much more cheaply
 
+- `75c1298` keep
+  - CI runs: `24237035140`, `24237035144`, `24237035132`
+  - compare: `main` -> `75c1298`
+  - headline:
+    - `indexed-text` `Indexed regex array call` `-4.08%`
+    - `indexed-text` `Indexed regex new instance` `-3.20%`
+    - `ast-indexed` `Indexed array($$$ITEMS)` `-4.78%`
+    - `ast-cached` `Cached array($$$ITEMS)` `-4.91%`
+  - note:
+    - exact root-query cache hits now return cached payloads directly instead of re-filtering and copying them
+    - literal indexed rows stayed flat-to-better
+    - merged to `main` in `3f56293`
+
+- `879685f` reject
+  - CI runs: `24237436677`, `24237436678`, `24237436687`
+  - compare: `main` -> `879685f`
+  - headline:
+    - `ast-indexed` flat noise
+    - `ast-cached` flat noise
+    - `ast` `new $CLASS()` `+3.44%`
+  - note:
+    - removing post-collection AST result sorting did not hold up on the cold scan path
+    - do not carry this optimization forward
+
+- `fe1ff52` keep
+  - CI runs: `24237890861`, `24237890920`, `24237890902`
+  - compare: `main` -> `fe1ff52`
+  - headline:
+    - `ast-indexed` `Indexed new $CLASS()` `-5.28%`
+    - `ast` flat noise
+    - `ast-cached` flat noise
+  - note:
+    - shared parser factories are a safe keep because they improve the indexed AST hot path without regressing the other AST modes
+    - merged to `main` in `c36c4c8`
+
+- `4bb09c9` reject
+  - CI runs: `24238259469`, `24238259504`
+  - compare: `main` -> `4bb09c9`
+  - headline:
+    - `text` pure noise
+    - `parallel` pure noise
+  - note:
+    - avoiding `substr()` for exact-case literal matched text did not move the real benchmark
+    - do not carry this micro-optimization forward
+
+## Remaining Execution Queue
+
+This is the remaining work from here onward. Execute it in this order unless a fresh full
+WordPress CI run clearly changes the next hotspot.
+
+1. Wait for full `main` run `24238187631` to complete and refresh `README.md` from that CI artifact.
+2. Re-freeze the benchmark baseline in this file from the newest merged `main` run.
+3. Finish the remaining scan-mode text planner work that still targets benchmarked paths:
+   - anchored-regex prefix fast path
+   - anchored-regex suffix fast path
+   - full-line regex-to-literal fast path
+   - regex-to-literal collapse detection
+   - whole-word literal planning
+4. Finish the remaining scan-mode text plumbing work:
+   - short-query strategy for 1-2 byte literals
+   - no-context regex string-splitting/copying reduction
+   - existence-only fast path
+   - formatting-cost re-measure after search-path wins
+5. If scan-mode text stops moving, switch to indexed-text planner work:
+   - best-seed selection by rarest postings
+   - short-query indexed fallback
+   - whole-word indexed planning
+   - case-folded planner rules
+6. If planner-only indexed work flattens out, implement the first sharper index structure:
+   - word / identifier postings
+   - case-folded word postings
+   - cheap frequency metadata
+7. After that, test the first direct-serving indexed path:
+   - line-offset tables
+   - fixed-string occurrence blocks
+   - direct fixed-string normal-output path
+8. Keep scan-mode AST focused only on CI-proven cold-path ideas:
+   - re-run `ast`, `ast-internal`, and `ast-parse` together after any accepted AST scan win
+   - stop AST cold-path work if it stays noise across two isolated experiments
+9. Move cached/indexed AST toward fuller fact-table pruning only after text work plateaus:
+   - broader file-level structural facts
+   - optional identifier postings
+   - candidate-node pruning from facts
+10. Revisit parallel only after any accepted scan/indexed change materially shifts single-process cost.
+11. Finish the remaining storage and refresh work only after search-path wins flatten:
+   - dirty-refresh benchmarks
+   - compaction rules
+   - stronger staleness policy
+   - locking / atomic swap hardening
+12. Finish benchmark/reporting cleanup last:
+   - ensure every new benchmark category has local smoke support plus CI coverage
+   - refresh final README tables from the last accepted full `main` run
+   - mark every still-open queue item as shipped, rejected, or explicitly deferred
+
 ## Phase 1: Scan-Mode Text Search
 
 The goal here is to finish the remaining one-shot grep-style optimizations before moving deeper into index-only work.
@@ -373,7 +467,7 @@ AST is already in a good place relative to `sg`, but parser cost still dominates
 - [x] Add cheaper scalar and literal-subnode root checks before the full structural matcher runs.
 - [x] Delay expensive capture or code materialization until output actually needs it.
 - [x] Add a count-only / existence-focused AST internal path where full match objects are unnecessary.
-- [ ] Test parser reuse or pooled parser state if the parser library allows it without correctness risk.
+- [x] Test parser reuse or pooled parser state if the parser library allows it without correctness risk.
 - [ ] Re-run `ast`, `ast-internal`, and `ast-parse` together after every accepted AST scan win so parser and matcher effects stay separated.
 
 ## Phase 4: Cached / Indexed AST Mode
