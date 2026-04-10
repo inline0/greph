@@ -37,14 +37,18 @@ final class TextIndexStoreTest extends TestCase
 
         $index = $store->load($result->indexPath, includeForward: true, includePostings: true);
         $selected = $store->loadSelectedPostings($result->indexPath, ['fun', 'xyz']);
+        $selectedWords = $store->loadSelectedWordPostings($result->indexPath, ['function', 'missing']);
 
         $this->assertSame($this->workspace . '/.phgrep-index', $store->defaultPath($this->workspace));
         $this->assertSame($result->indexPath, $store->locateFrom($this->workspace . '/src/App.php'));
         $this->assertTrue($store->exists($result->indexPath));
         $this->assertSame($store->version(), $index->version);
         $this->assertNotSame([], $index->postings);
+        $this->assertNotSame([], $index->wordPostings);
         $this->assertArrayHasKey('fun', $selected);
+        $this->assertSame($index->wordPostings['function'], $selectedWords['function']);
         $this->assertSame([], $store->loadSelectedPostings($result->indexPath, []));
+        $this->assertSame([], $store->loadSelectedWordPostings($result->indexPath, []));
 
         file_put_contents($result->indexPath . '/postings.phpbin', serialize(['t:fun' => [1, 2]]));
         Workspace::remove($result->indexPath . '/postings');
@@ -54,6 +58,7 @@ final class TextIndexStoreTest extends TestCase
 
         $this->assertSame([1, 2], $legacySelected['fun']);
         $this->assertSame([1, 2], $legacyIndex->postings['fun']);
+        $this->assertSame($index->wordPostings, $legacyIndex->wordPostings);
 
         Workspace::writeFile($this->workspace, '.phgrep-index/files.phpbin', serialize([
             ['id' => 1, 'p' => 'src/App.php', 's' => 10, 'm' => 1, 'h' => false, 'g' => false, 't' => ['fun', 99], 'o' => 0],
@@ -140,6 +145,8 @@ final class TextIndexStoreTest extends TestCase
             ],
             postings: ['fun' => [1]],
             forward: [1 => ['fun']],
+            wordPostings: ['function' => [1]],
+            wordForward: [1 => ['function']],
         );
 
         $store->save($index);
@@ -147,6 +154,8 @@ final class TextIndexStoreTest extends TestCase
 
         $this->assertSame(['fun' => [1]], $loaded->postings);
         $this->assertSame([1 => ['fun']], $loaded->forward);
+        $this->assertSame(['function' => [1]], $loaded->wordPostings);
+        $this->assertSame([1 => ['function']], $loaded->wordForward);
         $this->assertFileDoesNotExist($indexPath . '/queries/stale.txt');
     }
 

@@ -116,19 +116,25 @@ final class IndexedTextSearcher
             );
         }
 
-        $seeds = $this->querySeeds($pattern, $options);
+        $wholeWordToken = $this->indexedWholeWordToken($pattern, $options);
 
-        if ($seeds === []) {
-            return $this->mergeResults(
-                $selectedPaths,
-                $fallbackPaths,
-                $pattern,
-                $options,
-                null,
-            );
+        if ($wholeWordToken !== null) {
+            $candidateIds = $this->candidateIdsFromWordPostings($index->indexPath, $wholeWordToken);
+        } else {
+            $seeds = $this->querySeeds($pattern, $options);
+
+            if ($seeds === []) {
+                return $this->mergeResults(
+                    $selectedPaths,
+                    $fallbackPaths,
+                    $pattern,
+                    $options,
+                    null,
+                );
+            }
+
+            $candidateIds = $this->candidateIds($index->indexPath, $seeds);
         }
-
-        $candidateIds = $this->candidateIds($index->indexPath, $seeds);
 
         $results = $this->mergeResults(
             $selectedPaths,
@@ -504,6 +510,21 @@ final class IndexedTextSearcher
     }
 
     /**
+     * @return array<int, true>
+     */
+    private function candidateIdsFromWordPostings(string $indexPath, string $word): array
+    {
+        $postings = $this->store->loadSelectedWordPostings($indexPath, [$word]);
+        $fileIds = $postings[$word] ?? [];
+
+        if ($fileIds === []) {
+            return [];
+        }
+
+        return array_fill_keys($fileIds, true);
+    }
+
+    /**
      * @return list<string>
      */
     private function querySeeds(string $pattern, TextSearchOptions $options): array
@@ -525,6 +546,19 @@ final class IndexedTextSearcher
         }
 
         return array_slice($segments, 0, 3);
+    }
+
+    private function indexedWholeWordToken(string $pattern, TextSearchOptions $options): ?string
+    {
+        if (!$options->fixedString || !$options->wholeWord || $pattern === '') {
+            return null;
+        }
+
+        if (preg_match('/^[A-Za-z0-9_]+$/', $pattern) !== 1) {
+            return null;
+        }
+
+        return strtolower($pattern);
     }
 
     /**

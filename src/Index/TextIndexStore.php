@@ -18,7 +18,11 @@ final class TextIndexStore
 
     private const FORWARD_FILE = 'forward.phpbin';
 
+    private const WORD_FORWARD_FILE = 'word-forward.phpbin';
+
     private const POSTINGS_DIRECTORY = 'postings';
+
+    private const WORD_POSTINGS_DIRECTORY = 'word-postings';
 
     private const QUERIES_DIRECTORY = 'queries';
 
@@ -68,15 +72,22 @@ final class TextIndexStore
         $metadata = $this->decodeFile($this->metadataPath($indexPath));
         $files = $this->decodeFile($this->filesPath($indexPath));
         $postings = $includePostings ? $this->loadAllPostings($indexPath) : [];
+        $wordPostings = $includePostings ? $this->loadAllWordPostings($indexPath) : [];
         $forward = [];
+        $wordForward = [];
 
         if ($includeForward) {
             $forwardPath = $this->forwardPath($indexPath);
+            $wordForwardPath = $this->wordForwardPath($indexPath);
 
             if (is_file($forwardPath)) {
                 $forward = $this->decodeFile($forwardPath);
             } else {
                 $forward = $this->forwardFromLegacyFiles($files);
+            }
+
+            if (is_file($wordForwardPath)) {
+                $wordForward = $this->decodeFile($wordForwardPath);
             }
         }
 
@@ -88,6 +99,7 @@ final class TextIndexStore
             || !is_int($metadata['nextFileId'] ?? null)
             || !is_array($files)
             || !is_array($forward)
+            || !is_array($wordForward)
         ) {
             throw new \RuntimeException(sprintf('Index is corrupt: %s', $indexPath));
         }
@@ -107,6 +119,8 @@ final class TextIndexStore
             files: $files,
             postings: $postings,
             forward: $forward,
+            wordPostings: $wordPostings,
+            wordForward: $wordForward,
         );
     }
 
@@ -138,6 +152,8 @@ final class TextIndexStore
         $this->writeAtomic($this->filesPath($index->indexPath), $files);
         $this->writePostings($index->indexPath, $index->postings);
         $this->writeAtomic($this->forwardPath($index->indexPath), $index->forward);
+        $this->writeWordPostings($index->indexPath, $index->wordPostings);
+        $this->writeAtomic($this->wordForwardPath($index->indexPath), $index->wordForward);
         Filesystem::remove($this->queriesDirectoryPath($index->indexPath));
     }
 
@@ -201,6 +217,44 @@ final class TextIndexStore
         return $selected;
     }
 
+    /**
+     * @param list<string> $words
+     * @return array<string, list<int>>
+     */
+    public function loadSelectedWordPostings(string $indexPath, array $words): array
+    {
+        if ($words === []) {
+            return [];
+        }
+
+        $selected = [];
+        $bucketedWords = [];
+
+        foreach (array_values(array_unique($words)) as $word) {
+            $bucket = $this->bucketName($word);
+            $bucketedWords[$bucket] ??= [];
+            $bucketedWords[$bucket][] = $word;
+        }
+
+        foreach ($bucketedWords as $bucket => $bucketWords) {
+            $path = $this->wordPostingsDirectoryPath($indexPath) . '/' . $bucket . '.phpbin';
+
+            if (!is_file($path)) {
+                continue;
+            }
+
+            $postings = $this->normalizePostingsPayload($this->decodeFile($path), $indexPath);
+
+            foreach ($bucketWords as $word) {
+                if (isset($postings[$word])) {
+                    $selected[$word] = $postings[$word];
+                }
+            }
+        }
+
+        return $selected;
+    }
+
     private function metadataPath(string $indexPath): string
     {
         return Filesystem::normalizePath($indexPath) . '/' . self::METADATA_FILE;
@@ -221,9 +275,19 @@ final class TextIndexStore
         return Filesystem::normalizePath($indexPath) . '/' . self::POSTINGS_DIRECTORY;
     }
 
+    private function wordPostingsDirectoryPath(string $indexPath): string
+    {
+        return Filesystem::normalizePath($indexPath) . '/' . self::WORD_POSTINGS_DIRECTORY;
+    }
+
     private function forwardPath(string $indexPath): string
     {
         return Filesystem::normalizePath($indexPath) . '/' . self::FORWARD_FILE;
+    }
+
+    private function wordForwardPath(string $indexPath): string
+    {
+        return Filesystem::normalizePath($indexPath) . '/' . self::WORD_FORWARD_FILE;
     }
 
     private function queriesDirectoryPath(string $indexPath): string
@@ -288,19 +352,70 @@ final class TextIndexStore
     }
 
     /**
+     * @return array<string, list<int>>
+     */
+    private function loadAllWordPostings(string $indexPath): array
+    {
+        $postings = [];
+        $directory = $this->wordPostingsDirectoryPath($indexPath);
+
+        if (!is_dir($directory)) {
+            return [];
+        }
+
+        foreach (glob($directory . '/*.phpbin') ?: [] as $path) {
+            $bucket = $this->normalizePostingsPayload($this->decodeFile($path), $indexPath);
+
+            foreach ($bucket as $word => $fileIds) {
+                $postings[$word] = $fileIds;
+            }
+        }
+
+        ksort($postings);
+
+        return $postings;
+    }
+
+    /**
      * @param array<string, list<int>> $postings
      */
     private function writePostings(string $indexPath, array $postings): void
     {
-        $postingsDirectory = $this->postingsDirectoryPath($indexPath);
-        $temporaryDirectory = $postingsDirectory . '.tmp';
+        $this->writeShardedPostings(
+            $indexPath,
+            $postings,
+            $this->postingsDirectoryPath($indexPath),
+            true,
+        );
+        @unlink($this->postingsPath($indexPath));
+    }
+
+    /**
+     * @param array<string, list<int>> $postings
+     */
+    private function writeWordPostings(string $indexPath, array $postings): void
+    {
+        $this->writeShardedPostings(
+            $indexPath,
+            $postings,
+            $this->wordPostingsDirectoryPath($indexPath),
+            false,
+        );
+    }
+
+    /**
+     * @param array<string, list<int>> $postings
+     */
+    private function writeShardedPostings(string $indexPath, array $postings, string $directory, bool $prefixTerms): void
+    {
+        $temporaryDirectory = $directory . '.tmp';
         $bucketedPostings = [];
 
-        foreach ($postings as $trigram => $fileIds) {
-            $trigram = (string) $trigram;
-            $bucket = $this->bucketName($trigram);
+        foreach ($postings as $term => $fileIds) {
+            $term = (string) $term;
+            $bucket = $this->bucketName($term);
             $bucketedPostings[$bucket] ??= [];
-            $bucketedPostings[$bucket][$this->postingKey($trigram)] = $fileIds;
+            $bucketedPostings[$bucket][$prefixTerms ? $this->postingKey($term) : $term] = $fileIds;
         }
 
         Filesystem::remove($temporaryDirectory);
@@ -311,10 +426,8 @@ final class TextIndexStore
             $this->writeAtomic($temporaryDirectory . '/' . $bucket . '.phpbin', $bucketPostings);
         }
 
-        Filesystem::remove($postingsDirectory);
-        $this->finalizePostingsDirectory($temporaryDirectory, $postingsDirectory, $indexPath);
-
-        @unlink($this->postingsPath($indexPath));
+        Filesystem::remove($directory);
+        $this->finalizePostingsDirectory($temporaryDirectory, $directory, $indexPath);
     }
 
     private function hasLegacyPostings(string $indexPath): bool

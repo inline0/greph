@@ -149,6 +149,28 @@ final class IndexedTextSearchTest extends TestCase
     }
 
     #[Test]
+    public function itUsesWholeWordFilteringWithIndexedCandidates(): void
+    {
+        Workspace::writeFile($this->workspace, 'src/Subword.php', "<?php\n\$label = 'dysfunction';\n");
+        Phgrep::refreshTextIndex($this->workspace);
+
+        $results = Phgrep::searchTextIndexed(
+            'function',
+            $this->workspace,
+            new TextSearchOptions(fixedString: true, wholeWord: true),
+        );
+
+        $matchedFiles = array_values(array_map(
+            static fn ($result): string => basename($result->file),
+            array_filter($results, static fn ($result): bool => $result->hasMatches()),
+        ));
+
+        $this->assertContains('App.php', $matchedFiles);
+        $this->assertContains('Util.php', $matchedFiles);
+        $this->assertNotContains('Subword.php', $matchedFiles);
+    }
+
+    #[Test]
     public function itCachesRootLiteralQueriesAndInvalidatesThemOnRefresh(): void
     {
         $initialResults = Phgrep::searchTextIndexed(
