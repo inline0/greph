@@ -37,6 +37,15 @@ final class BenchmarkArtifactLocatorTest extends TestCase
     }
 
     #[Test]
+    public function itBuildsArtifactNamesFromRunIds(): void
+    {
+        $locator = new BenchmarkArtifactLocator();
+
+        $this->assertSame('benchmark-head-123', $locator->headArtifactName(123));
+        $this->assertSame('benchmark-base-abc', $locator->baseArtifactName('abc'));
+    }
+
+    #[Test]
     public function itThrowsWhenRequiredArtifactFilesAreMissing(): void
     {
         $locator = new BenchmarkArtifactLocator();

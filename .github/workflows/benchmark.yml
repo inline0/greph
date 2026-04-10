@@ -95,6 +95,25 @@ jobs:
             fi
             if [[ "$compare_ref" == "main" ]]; then
               compare_ref="origin/main"
+            else
+              git fetch --no-tags origin '+refs/heads/*:refs/remotes/origin/*'
+
+              if git rev-parse --verify --quiet "${compare_ref}^{commit}" >/dev/null; then
+                :
+              elif git rev-parse --verify --quiet "origin/${compare_ref}^{commit}" >/dev/null; then
+                compare_ref="origin/$compare_ref"
+              else
+                resolved_ref="$(git rev-list --all | grep -m1 "^${compare_ref}" || true)"
+
+                if [[ -n "$resolved_ref" ]]; then
+                  compare_ref="$resolved_ref"
+                fi
+              fi
+            fi
+
+            if ! git rev-parse --verify --quiet "${compare_ref}^{commit}" >/dev/null; then
+              echo "::error::Unable to resolve compare_ref: $compare_ref"
+              exit 1
             fi
             echo "compare_ref=$compare_ref" >> "$GITHUB_OUTPUT"
             echo "repeat=${{ inputs.repeat }}" >> "$GITHUB_OUTPUT"

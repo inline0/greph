@@ -6,6 +6,16 @@ namespace Phgrep\Benchmarks;
 
 final class BenchmarkArtifactLocator
 {
+    public function headArtifactName(string|int $runId): string
+    {
+        return 'benchmark-head-' . $runId;
+    }
+
+    public function baseArtifactName(string|int $runId): string
+    {
+        return 'benchmark-base-' . $runId;
+    }
+
     public function findComparisonReport(string $rootPath): string
     {
         return $this->findSingle($rootPath, 'comparison.md');
