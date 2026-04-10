@@ -7,7 +7,7 @@ Pure PHP code search and structural refactoring tool.
 - `bin/rg`: ripgrep-style compatibility wrapper backed by the PHP engine.
 - `bin/sg`: ast-grep-style compatibility wrapper backed by the PHP engine.
 - `bin/phgrep`: native combined text + AST CLI.
-- `bin/phgrep-index`: separate indexed text mode. Build or refresh an on-disk trigram index, then run text searches against that index.
+- `bin/phgrep-index`: separate indexed text mode. Build or refresh an on-disk text index, then run text searches against that index.
 
 Indexed mode is intentionally separate from scan mode, and the benchmark tables below keep those paths separate too.
 
@@ -29,6 +29,7 @@ bin/phgrep-index search -F "function" .
 ```
 
 By default, `bin/phgrep-index` stores its index in `.phgrep-index` under the indexed root.
+The current index is still trigram-first, with auxiliary whole-word / identifier postings used by the sharper indexed paths.
 
 ## Feature Matrix
 
@@ -63,6 +64,30 @@ Current broader non-text baseline on `main`:
 Current indexed-text baseline on `main`:
 - run [`24243036470`](https://github.com/inline0/phgrep/actions/runs/24243036470)
 - used for the indexed-text table below after the short-query cache merge
+
+Recent indexed-text outcome notes:
+- accepted and merged:
+  - whole-word / identifier postings via `01ffad9`
+  - short root-query caching via `fa272da`
+  - cold indexed-text benchmark coverage via `1312a20`
+- rejected after CI:
+  - full-content bigram postings `75689a6`
+    - `Cold indexed literal short "wp"` `-7.10%`
+    - but `indexed-build` regressed `+48.03%`
+    - run set:
+      - [`24244083711`](https://github.com/inline0/phgrep/actions/runs/24244083711)
+      - [`24244083716`](https://github.com/inline0/phgrep/actions/runs/24244083716)
+      - [`24244113910`](https://github.com/inline0/phgrep/actions/runs/24244113910)
+  - cheaper word-fragment bigram postings `1706f76`
+    - `Cold indexed literal short "wp"` `-6.18%`
+    - `Indexed regex array call` `-3.74%`
+    - but `indexed-build` still regressed `+11.01%`
+    - run set:
+      - [`24244442955`](https://github.com/inline0/phgrep/actions/runs/24244442955)
+      - [`24244442934`](https://github.com/inline0/phgrep/actions/runs/24244442934)
+      - [`24244442948`](https://github.com/inline0/phgrep/actions/runs/24244442948)
+
+So the published indexed-text table below is still the latest accepted `main` baseline, while the rejected short-query experiments are documented here instead of being mixed into the baseline claims.
 
 Comparison tools:
 - `rg`: ripgrep
@@ -116,6 +141,8 @@ Comparison tools:
 | `Indexed regex array call` | `18.82ms` | `78.25ms` | `192.38ms` |
 
 The CLI-exposed indexed mode is text-first today. CI also tracks separate indexed/cached AST search modes below.
+
+CI also tracks `indexed-text-cold` as a separate category for cold-query behavior, but those rows are not published as the default baseline table unless they come from accepted `main` work.
 
 ### Indexed Summary Queries
 
