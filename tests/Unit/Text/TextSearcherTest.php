@@ -29,6 +29,7 @@ final class TextSearcherTest extends TestCase
         Workspace::writeFile($this->workspace, 'final-line.txt', "alpha\r\nmatch");
         Workspace::writeFile($this->workspace, 'literal-scan.txt', "noise\nprefix match suffix match\nskip\nMATCH again\n");
         Workspace::writeFile($this->workspace, 'regex-scan.txt', "noise\n\$foo = new Bar()\n\$foo = new Bar(); \$bar = new Baz()\nvalue = old Bar()\n");
+        Workspace::writeFile($this->workspace, 'anchored-scan.txt', "function alpha()\ncall(); more();\n}\n");
     }
 
     protected function tearDown(): void
@@ -147,6 +148,43 @@ final class TextSearcherTest extends TestCase
     }
 
     #[Test]
+    public function itUsesOccurrenceScanningForAnchoredRegexLiterals(): void
+    {
+        $searcher = new TextSearcher();
+
+        $prefixResults = $searcher->searchFiles(
+            new FileList([$this->workspace . '/anchored-scan.txt']),
+            '^function ',
+            new TextSearchOptions(),
+        );
+        $suffixResults = $searcher->searchFiles(
+            new FileList([$this->workspace . '/anchored-scan.txt']),
+            '\);$',
+            new TextSearchOptions(),
+        );
+        $fullLineResults = $searcher->searchFiles(
+            new FileList([$this->workspace . '/anchored-scan.txt']),
+            '^\}$',
+            new TextSearchOptions(),
+        );
+
+        $this->assertSame(1, $prefixResults[0]->matchCount());
+        $this->assertSame(1, $prefixResults[0]->matches[0]->line);
+        $this->assertSame(1, $prefixResults[0]->matches[0]->column);
+        $this->assertSame('function ', $prefixResults[0]->matches[0]->matchedText);
+
+        $this->assertSame(1, $suffixResults[0]->matchCount());
+        $this->assertSame(2, $suffixResults[0]->matches[0]->line);
+        $this->assertSame(14, $suffixResults[0]->matches[0]->column);
+        $this->assertSame(');', $suffixResults[0]->matches[0]->matchedText);
+
+        $this->assertSame(1, $fullLineResults[0]->matchCount());
+        $this->assertSame(3, $fullLineResults[0]->matches[0]->line);
+        $this->assertSame(1, $fullLineResults[0]->matches[0]->column);
+        $this->assertSame('}', $fullLineResults[0]->matches[0]->matchedText);
+    }
+
+    #[Test]
     public function itCoversStreamAndContentsFallbackPaths(): void
     {
         $searcher = new TextSearcher();
@@ -254,6 +292,12 @@ final class TextSearcherTest extends TestCase
             new RegexSearcher('new [A-Za-z]+', false, false, 'new '),
             new TextSearchOptions(),
         );
+        $anchoredFastPath = $this->invokeMethod(
+            $searcher,
+            'shouldUseContentsFastPath',
+            new AnchoredLiteralSearcher('function ', AnchoredLiteralSearcher::MODE_PREFIX),
+            new TextSearchOptions(),
+        );
         $literalRegexMatcher = $this->invokeMethod(
             $searcher,
             'createMatcher',
@@ -283,15 +327,26 @@ final class TextSearcherTest extends TestCase
             new LiteralSearcher('needle'),
             new TextSearchOptions(countOnly: true, maxCount: 1, fixedString: true),
         );
+        $anchoredLiteralResult = $this->invokeMethod(
+            $searcher,
+            'searchContentsByAnchoredLiteral',
+            'memory.txt',
+            "function demo()\ncall(); more();\n}\n",
+            new AnchoredLiteralSearcher(');', AnchoredLiteralSearcher::MODE_SUFFIX),
+            new TextSearchOptions(),
+        );
 
         $this->assertFalse($shouldUseFastPath);
         $this->assertTrue($shouldUseFastPathForFilesWithout);
         $this->assertTrue($literalFastPath);
         $this->assertTrue($regexFastPath);
+        $this->assertTrue($anchoredFastPath);
         $this->assertInstanceOf(LiteralSearcher::class, $literalRegexMatcher);
         $this->assertInstanceOf(AnchoredLiteralSearcher::class, $prefixRegexMatcher);
         $this->assertSame(1, $regexPrefilterResult->matchCount());
         $this->assertSame(1, $literalResult->matchCount());
+        $this->assertSame(1, $anchoredLiteralResult->matchCount());
+        $this->assertSame(2, $anchoredLiteralResult->matches[0]->line);
     }
 
     #[Test]

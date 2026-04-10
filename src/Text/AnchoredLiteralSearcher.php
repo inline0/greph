@@ -41,6 +41,44 @@ final class AnchoredLiteralSearcher implements TextMatcher
         };
     }
 
+    public function supportsOccurrenceScan(): bool
+    {
+        return $this->literal !== '';
+    }
+
+    public function findInContents(string $contents, int $offset = 0): int|false
+    {
+        return $this->caseInsensitive
+            ? stripos($contents, $this->literal, $offset)
+            : strpos($contents, $this->literal, $offset);
+    }
+
+    public function matchesAtPosition(string $contents, int $position): bool
+    {
+        $beforePosition = $position - 1;
+        $afterPosition = $position + $this->literalLength;
+        $atLineStart = $position === 0 || $contents[$beforePosition] === "\n";
+        $atLineEnd = $afterPosition >= strlen($contents)
+            || $contents[$afterPosition] === "\n"
+            || $contents[$afterPosition] === "\r";
+
+        return match ($this->mode) {
+            self::MODE_PREFIX => $atLineStart,
+            self::MODE_SUFFIX => $atLineEnd,
+            self::MODE_FULL_LINE => $atLineStart && $atLineEnd,
+            default => false,
+        };
+    }
+
+    public function matchedTextAt(string $contents, int $offset): string
+    {
+        if (!$this->caseInsensitive) {
+            return $this->literal;
+        }
+
+        return substr($contents, $offset, $this->literalLength);
+    }
+
     private function matchPrefix(string $line): ?LineMatch
     {
         if ($this->literalLength > strlen($line)) {

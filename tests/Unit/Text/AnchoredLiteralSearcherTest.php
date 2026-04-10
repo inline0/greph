@@ -59,4 +59,32 @@ final class AnchoredLiteralSearcherTest extends TestCase
         $this->assertTrue($searcher->mayMatchContents("x\nfunction demo()\n"));
         $this->assertFalse($searcher->mayMatchContents("x\ndemo()\n"));
     }
+
+    #[Test]
+    public function itSupportsOccurrenceScanningAcrossContents(): void
+    {
+        $prefix = new AnchoredLiteralSearcher('function ', AnchoredLiteralSearcher::MODE_PREFIX, true);
+        $suffix = new AnchoredLiteralSearcher(');', AnchoredLiteralSearcher::MODE_SUFFIX);
+        $fullLine = new AnchoredLiteralSearcher('}', AnchoredLiteralSearcher::MODE_FULL_LINE);
+
+        $contents = "FUNCTION demo()\ncall(); more();\n}\n";
+
+        $this->assertTrue($prefix->supportsOccurrenceScan());
+        $this->assertSame(0, $prefix->findInContents($contents));
+        $this->assertTrue($prefix->matchesAtPosition($contents, 0));
+        $this->assertSame('FUNCTION ', $prefix->matchedTextAt($contents, 0));
+
+        $firstSuffixPosition = $suffix->findInContents($contents);
+        $this->assertIsInt($firstSuffixPosition);
+        $this->assertFalse($suffix->matchesAtPosition($contents, $firstSuffixPosition));
+        $suffixPosition = $suffix->findInContents($contents, $firstSuffixPosition + 1);
+        $this->assertIsInt($suffixPosition);
+        $this->assertTrue($suffix->matchesAtPosition($contents, $suffixPosition));
+        $this->assertSame(');', $suffix->matchedTextAt($contents, $suffixPosition));
+
+        $fullLinePosition = $fullLine->findInContents($contents);
+        $this->assertIsInt($fullLinePosition);
+        $this->assertTrue($fullLine->matchesAtPosition($contents, $fullLinePosition));
+        $this->assertSame('}', $fullLine->matchedTextAt($contents, $fullLinePosition));
+    }
 }
