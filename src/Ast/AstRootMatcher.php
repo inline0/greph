@@ -16,7 +16,7 @@ final class AstRootMatcher
             return true;
         }
 
-        if ($patternRoot::class !== $candidate::class) {
+        if ($patternRoot->getType() !== $candidate->getType()) {
             return false;
         }
 

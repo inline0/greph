@@ -157,7 +157,7 @@ final class IndexedTextSearchTest extends TestCase
             new TextSearchOptions(fixedString: true),
         );
 
-        $cacheFiles = glob($this->workspace . '/.phgrep-index/queries/*.phpbin.gz') ?: [];
+        $cacheFiles = glob($this->workspace . '/.phgrep-index/queries/*.phpbin*') ?: [];
         $initialMatchedFiles = array_values(array_map(
             static fn ($result): string => basename($result->file),
             array_filter($initialResults, static fn ($result): bool => $result->hasMatches()),
@@ -176,7 +176,7 @@ final class IndexedTextSearchTest extends TestCase
             new TextSearchOptions(fixedString: true),
         );
 
-        $refreshedCacheFiles = glob($this->workspace . '/.phgrep-index/queries/*.phpbin.gz') ?: [];
+        $refreshedCacheFiles = glob($this->workspace . '/.phgrep-index/queries/*.phpbin*') ?: [];
         $refreshedMatchedFiles = array_values(array_map(
             static fn ($result): string => basename($result->file),
             array_filter($refreshedResults, static fn ($result): bool => $result->hasMatches()),

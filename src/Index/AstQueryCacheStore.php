@@ -12,14 +12,18 @@ final class AstQueryCacheStore
 {
     private const DIRECTORY = 'queries';
 
+    private const EXTENSION = '.phpbin';
+
+    private const LEGACY_EXTENSION = '.phpbin.gz';
+
     /**
      * @return list<AstMatch>|null
      */
     public function load(string $indexPath, int $builtAt, string $pattern, AstSearchOptions $options): ?array
     {
-        $path = $this->cachePath($indexPath, $pattern, $options);
+        $path = $this->locateCachePath($indexPath, $pattern, $options);
 
-        if (!is_file($path)) {
+        if ($path === null) {
             return null;
         }
 
@@ -29,13 +33,7 @@ final class AstQueryCacheStore
             return null;
         }
 
-        $decoded = gzdecode($contents);
-
-        if ($decoded === false) {
-            throw new \RuntimeException(sprintf('AST query cache is corrupt: %s', $path));
-        }
-
-        $payload = unserialize($decoded, ['allowed_classes' => true]);
+        $payload = $this->decodePayload($contents, $path);
 
         if (
             !is_array($payload)
@@ -70,12 +68,13 @@ final class AstQueryCacheStore
         $directory = dirname($path);
         Filesystem::ensureDirectory($directory);
         $temporaryPath = $path . '.tmp';
-        $payload = gzencode(serialize([
+        $legacyPath = $this->legacyCachePath($indexPath, $pattern, $options);
+        $payload = serialize([
             'built_at' => $builtAt,
             'matches' => $matches,
-        ]), 1);
+        ]);
 
-        if ($payload === false || @file_put_contents($temporaryPath, $payload) === false) {
+        if (@file_put_contents($temporaryPath, $payload) === false) {
             throw new \RuntimeException(sprintf('Failed to write AST query cache: %s', $path));
         }
 
@@ -84,6 +83,8 @@ final class AstQueryCacheStore
 
             throw new \RuntimeException(sprintf('Failed to finalize AST query cache: %s', $path));
         }
+
+        @unlink($legacyPath);
     }
 
     public function clear(string $indexPath): void
@@ -96,6 +97,19 @@ final class AstQueryCacheStore
         return Filesystem::normalizePath($indexPath) . '/' . self::DIRECTORY;
     }
 
+    private function locateCachePath(string $indexPath, string $pattern, AstSearchOptions $options): ?string
+    {
+        $path = $this->cachePath($indexPath, $pattern, $options);
+
+        if (is_file($path)) {
+            return $path;
+        }
+
+        $legacyPath = $this->legacyCachePath($indexPath, $pattern, $options);
+
+        return is_file($legacyPath) ? $legacyPath : null;
+    }
+
     private function cachePath(string $indexPath, string $pattern, AstSearchOptions $options): string
     {
         $key = sha1(json_encode([
@@ -103,6 +117,24 @@ final class AstQueryCacheStore
             'language' => $options->language,
         ], JSON_THROW_ON_ERROR));
 
-        return $this->directoryPath($indexPath) . '/' . $key . '.phpbin.gz';
+        return $this->directoryPath($indexPath) . '/' . $key . self::EXTENSION;
+    }
+
+    private function legacyCachePath(string $indexPath, string $pattern, AstSearchOptions $options): string
+    {
+        return substr($this->cachePath($indexPath, $pattern, $options), 0, -strlen(self::EXTENSION)) . self::LEGACY_EXTENSION;
+    }
+
+    private function decodePayload(string $contents, string $path): mixed
+    {
+        if (str_ends_with($path, self::LEGACY_EXTENSION)) {
+            $contents = gzdecode($contents);
+
+            if ($contents === false) {
+                throw new \RuntimeException(sprintf('AST query cache is corrupt: %s', $path));
+            }
+        }
+
+        return unserialize($contents, ['allowed_classes' => true]);
     }
 }

@@ -13,6 +13,10 @@ final class TextQueryCacheStore
 {
     private const DIRECTORY = 'queries';
 
+    private const EXTENSION = '.phpbin';
+
+    private const LEGACY_EXTENSION = '.phpbin.gz';
+
     private TextResultCodec $codec;
 
     public function __construct(?TextResultCodec $codec = null)
@@ -25,9 +29,9 @@ final class TextQueryCacheStore
      */
     public function load(TextIndex $index, string $pattern, TextSearchOptions $options): ?array
     {
-        $path = $this->cachePath($index->indexPath, $pattern, $options);
+        $path = $this->locateCachePath($index->indexPath, $pattern, $options);
 
-        if (!is_file($path)) {
+        if ($path === null) {
             return null;
         }
 
@@ -37,13 +41,7 @@ final class TextQueryCacheStore
             return null;
         }
 
-        $decoded = gzdecode($contents);
-
-        if ($decoded === false) {
-            throw new \RuntimeException(sprintf('Indexed query cache is corrupt: %s', $path));
-        }
-
-        $payload = unserialize($decoded, ['allowed_classes' => false]);
+        $payload = $this->decodePayload($contents, $path);
 
         if (
             !is_array($payload)
@@ -69,12 +67,13 @@ final class TextQueryCacheStore
         $directory = dirname($path);
         Filesystem::ensureDirectory($directory);
         $temporaryPath = $path . '.tmp';
-        $payload = gzencode(serialize([
+        $legacyPath = $this->legacyCachePath($index->indexPath, $pattern, $options);
+        $payload = serialize([
             'built_at' => $index->builtAt,
             'results' => $this->codec->encode($results),
-        ]), 1);
+        ]);
 
-        if ($payload === false || @file_put_contents($temporaryPath, $payload) === false) {
+        if (@file_put_contents($temporaryPath, $payload) === false) {
             throw new \RuntimeException(sprintf('Failed to write indexed query cache: %s', $path));
         }
 
@@ -83,6 +82,8 @@ final class TextQueryCacheStore
 
             throw new \RuntimeException(sprintf('Failed to finalize indexed query cache: %s', $path));
         }
+
+        @unlink($legacyPath);
     }
 
     public function clear(string $indexPath): void
@@ -93,6 +94,19 @@ final class TextQueryCacheStore
     private function directoryPath(string $indexPath): string
     {
         return Filesystem::normalizePath($indexPath) . '/' . self::DIRECTORY;
+    }
+
+    private function locateCachePath(string $indexPath, string $pattern, TextSearchOptions $options): ?string
+    {
+        $path = $this->cachePath($indexPath, $pattern, $options);
+
+        if (is_file($path)) {
+            return $path;
+        }
+
+        $legacyPath = $this->legacyCachePath($indexPath, $pattern, $options);
+
+        return is_file($legacyPath) ? $legacyPath : null;
     }
 
     private function cachePath(string $indexPath, string $pattern, TextSearchOptions $options): string
@@ -107,6 +121,24 @@ final class TextQueryCacheStore
             'files_without_matches' => $options->filesWithoutMatches,
         ], JSON_THROW_ON_ERROR));
 
-        return $this->directoryPath($indexPath) . '/' . $key . '.phpbin.gz';
+        return $this->directoryPath($indexPath) . '/' . $key . self::EXTENSION;
+    }
+
+    private function legacyCachePath(string $indexPath, string $pattern, TextSearchOptions $options): string
+    {
+        return substr($this->cachePath($indexPath, $pattern, $options), 0, -strlen(self::EXTENSION)) . self::LEGACY_EXTENSION;
+    }
+
+    private function decodePayload(string $contents, string $path): mixed
+    {
+        if (str_ends_with($path, self::LEGACY_EXTENSION)) {
+            $contents = gzdecode($contents);
+
+            if ($contents === false) {
+                throw new \RuntimeException(sprintf('Indexed query cache is corrupt: %s', $path));
+            }
+        }
+
+        return unserialize($contents, ['allowed_classes' => false]);
     }
 }

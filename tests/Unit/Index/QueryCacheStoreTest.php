@@ -49,7 +49,7 @@ final class QueryCacheStoreTest extends TestCase
 
         $loaded = $store->load($index, 'function', $normalOptions);
         $summaryLoaded = $store->load($index, 'function', $summaryOptions);
-        $cacheFiles = glob($this->workspace . '/.phgrep-index/queries/*.phpbin.gz') ?: [];
+        $cacheFiles = glob($this->workspace . '/.phgrep-index/queries/*.phpbin*') ?: [];
 
         $this->assertCount(2, $cacheFiles);
         $this->assertNotNull($loaded);
@@ -83,10 +83,18 @@ final class QueryCacheStoreTest extends TestCase
         $options = new TextSearchOptions(fixedString: true);
 
         $store->save($index, 'function', $options, [new TextFileResult('src/App.php', [], 1)]);
-        $path = (glob($this->workspace . '/.phgrep-index/queries/*.phpbin.gz') ?: [])[0] ?? null;
+        $path = (glob($this->workspace . '/.phgrep-index/queries/*.phpbin*') ?: [])[0] ?? null;
 
         $this->assertNotNull($path);
-        file_put_contents($path, gzencode(serialize('bad')) ?: '');
+        $rawPayload = file_get_contents($path);
+        $legacyPath = $this->invokeMethod($store, 'legacyCachePath', $index->indexPath, 'function', $options);
+
+        $this->assertNotFalse($rawPayload);
+        unlink($path);
+        file_put_contents($legacyPath, gzencode($rawPayload) ?: '');
+        $this->assertNotNull($store->load($index, 'function', $options));
+
+        file_put_contents($path, serialize('bad'));
 
         try {
             $store->load($index, 'function', $options);
@@ -95,7 +103,7 @@ final class QueryCacheStoreTest extends TestCase
             $this->assertStringContainsString('Indexed query cache is corrupt', $exception->getMessage());
         }
 
-        file_put_contents($path, gzencode(serialize(['built_at' => 'bad', 'results' => []])) ?: '');
+        file_put_contents($path, serialize(['built_at' => 'bad', 'results' => []]));
 
         try {
             $store->load($index, 'function', $options);
@@ -104,7 +112,8 @@ final class QueryCacheStoreTest extends TestCase
             $this->assertStringContainsString('Indexed query cache is corrupt', $exception->getMessage());
         }
 
-        file_put_contents($path, 'not-gzip');
+        unlink($path);
+        file_put_contents($legacyPath, 'not-gzip');
         set_error_handler(static fn (): bool => true);
 
         try {
@@ -148,10 +157,18 @@ final class QueryCacheStoreTest extends TestCase
         $this->assertSame('array(1, 2, 3)', $loaded[0]->code);
         $this->assertNull($store->load($indexPath, 124, 'array($$$ITEMS)', $options));
 
-        $path = (glob($indexPath . '/queries/*.phpbin.gz') ?: [])[0] ?? null;
+        $path = (glob($indexPath . '/queries/*.phpbin*') ?: [])[0] ?? null;
         $this->assertNotNull($path);
 
-        file_put_contents($path, gzencode(serialize(['built_at' => 123, 'matches' => ['bad']])) ?: '');
+        $rawPayload = file_get_contents($path);
+        $legacyPath = $this->invokeMethod($store, 'legacyCachePath', $indexPath, 'array($$$ITEMS)', $options);
+
+        $this->assertNotFalse($rawPayload);
+        unlink($path);
+        file_put_contents($legacyPath, gzencode($rawPayload) ?: '');
+        $this->assertNotNull($store->load($indexPath, 123, 'array($$$ITEMS)', $options));
+
+        file_put_contents($path, serialize(['built_at' => 123, 'matches' => ['bad']]));
 
         try {
             $store->load($indexPath, 123, 'array($$$ITEMS)', $options);
@@ -160,7 +177,7 @@ final class QueryCacheStoreTest extends TestCase
             $this->assertStringContainsString('AST query cache is corrupt', $exception->getMessage());
         }
 
-        file_put_contents($path, gzencode(serialize('bad')) ?: '');
+        file_put_contents($path, serialize('bad'));
 
         try {
             $store->load($indexPath, 123, 'array($$$ITEMS)', $options);
@@ -173,14 +190,15 @@ final class QueryCacheStoreTest extends TestCase
         $this->assertNull($store->load($indexPath, 123, 'array($$$ITEMS)', $options));
 
         $store->save($indexPath, 123, 'array($$$ITEMS)', $options, [$match]);
-        $paths = glob($indexPath . '/queries/*.phpbin.gz') ?: [];
+        $paths = glob($indexPath . '/queries/*.phpbin*') ?: [];
         $path = $paths[0] ?? null;
         $this->assertNotNull($path);
 
         file_put_contents($path, '');
         $this->assertNull($store->load($indexPath, 123, 'array($$$ITEMS)', $options));
 
-        file_put_contents($path, 'not-gzip');
+        unlink($path);
+        file_put_contents($legacyPath, 'not-gzip');
         set_error_handler(static fn (): bool => true);
 
         try {

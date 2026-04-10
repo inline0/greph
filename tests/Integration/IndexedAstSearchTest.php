@@ -110,7 +110,7 @@ PHP,
             new AstSearchOptions(),
         );
 
-        $cacheFiles = glob($this->workspace . '/.phgrep-ast-index/queries/*.phpbin.gz') ?: [];
+        $cacheFiles = glob($this->workspace . '/.phgrep-ast-index/queries/*.phpbin*') ?: [];
 
         $this->assertNotSame([], $cacheFiles);
         $this->assertCount(1, $initialMatches);
@@ -127,7 +127,7 @@ PHP,
             new AstSearchOptions(),
         );
 
-        $refreshedCacheFiles = glob($this->workspace . '/.phgrep-ast-index/queries/*.phpbin.gz') ?: [];
+        $refreshedCacheFiles = glob($this->workspace . '/.phgrep-ast-index/queries/*.phpbin*') ?: [];
 
         $this->assertNotSame([], $refreshedCacheFiles);
         $this->assertCount(1, $refreshedMatches);
