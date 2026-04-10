@@ -19,14 +19,6 @@ return [
     [
         'suite' => 'indexed-text',
         'category' => 'indexed-text',
-        'name' => 'Indexed literal whole word',
-        'pattern' => 'function',
-        'fixed' => true,
-        'whole_word' => true,
-    ],
-    [
-        'suite' => 'indexed-text',
-        'category' => 'indexed-text',
         'name' => 'Indexed regex new instance',
         'pattern' => '\$[A-Za-z_][A-Za-z0-9_]* = new [A-Za-z_][A-Za-z0-9_]*\(\)',
     ],
@@ -35,5 +27,13 @@ return [
         'category' => 'indexed-text',
         'name' => 'Indexed regex array call',
         'pattern' => 'array\([^)]+\)',
+    ],
+    [
+        'suite' => 'indexed-text',
+        'category' => 'indexed-text',
+        'name' => 'Indexed literal whole word',
+        'pattern' => 'function',
+        'fixed' => true,
+        'whole_word' => true,
     ],
 ];
