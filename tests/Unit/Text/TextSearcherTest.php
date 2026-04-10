@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Phgrep\Tests\Unit\Text;
 
+use Phgrep\Text\AnchoredLiteralSearcher;
 use Phgrep\Text\LineMatch;
 use Phgrep\Text\LiteralSearcher;
 use Phgrep\Text\RegexSearcher;
@@ -253,6 +254,18 @@ final class TextSearcherTest extends TestCase
             new RegexSearcher('new [A-Za-z]+', false, false, 'new '),
             new TextSearchOptions(),
         );
+        $literalRegexMatcher = $this->invokeMethod(
+            $searcher,
+            'createMatcher',
+            'function',
+            new TextSearchOptions(),
+        );
+        $prefixRegexMatcher = $this->invokeMethod(
+            $searcher,
+            'createMatcher',
+            '^function ',
+            new TextSearchOptions(),
+        );
 
         $regexPrefilterResult = $this->invokeMethod(
             $searcher,
@@ -275,6 +288,8 @@ final class TextSearcherTest extends TestCase
         $this->assertTrue($shouldUseFastPathForFilesWithout);
         $this->assertTrue($literalFastPath);
         $this->assertTrue($regexFastPath);
+        $this->assertInstanceOf(LiteralSearcher::class, $literalRegexMatcher);
+        $this->assertInstanceOf(AnchoredLiteralSearcher::class, $prefixRegexMatcher);
         $this->assertSame(1, $regexPrefilterResult->matchCount());
         $this->assertSame(1, $literalResult->matchCount());
     }

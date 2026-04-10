@@ -60,6 +60,22 @@ final class TextSearcher
             return new LiteralSearcher($pattern, $options->caseInsensitive, $options->wholeWord);
         }
 
+        $literalPlan = $this->literalExtractor->extractRegexLiteralPlan($pattern);
+
+        if ($literalPlan !== null) {
+            if ($literalPlan['type'] === 'literal') {
+                return new LiteralSearcher($literalPlan['literal'], $options->caseInsensitive, $options->wholeWord);
+            }
+
+            if (!$options->wholeWord) {
+                return new AnchoredLiteralSearcher(
+                    $literalPlan['literal'],
+                    $literalPlan['type'],
+                    $options->caseInsensitive,
+                );
+            }
+        }
+
         return new RegexSearcher(
             $pattern,
             $options->caseInsensitive,
