@@ -31,7 +31,11 @@ final class AstRewriter
         ?AstRootMatcher $rootMatcher = null,
         ?ParserFactory $parserFactory = null,
     ) {
-        $this->patternParser = $patternParser ?? new PatternParser();
+        if ($parserFactory === null && $patternParser === null) {
+            $parserFactory = new ParserFactory();
+        }
+
+        $this->patternParser = $patternParser ?? new PatternParser($parserFactory);
         $this->patternMatcher = $patternMatcher ?? new PatternMatcher();
         $this->candidateFinder = $candidateFinder ?? new AstCandidateFinder();
         $this->rootMatcher = $rootMatcher ?? new AstRootMatcher();
