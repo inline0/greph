@@ -24,12 +24,26 @@ final class IndexApplicationTest extends TestCase
         Workspace::writeFile($this->workspace, '.gitignore', "vendor/\n");
         Workspace::writeFile($this->workspace, 'src/App.php', "<?php\nfunction indexed(): void {}\n");
         Workspace::writeFile($this->workspace, 'src/Other.txt', "function other\n");
+        Workspace::writeFile(
+            $this->workspace,
+            'src/Ast.php',
+            <<<'PHP'
+<?php
+
+$service = new Service();
+$items = array(1, 2, 3);
+render_widget();
+PHP,
+        );
         Workspace::writeFile($this->workspace, 'single.txt', "alpha\nneedle\nNEEDLE\n");
         Workspace::writeFile($this->workspace, 'counts.txt', "needle\nneedle\n");
         Workspace::writeFile($this->workspace, 'context.txt', "before\nneedle\nafter\n");
         Workspace::writeFile($this->workspace, 'invert.txt', "needle\nhay\n");
         Workspace::writeFile($this->workspace, '.hidden/secret.txt', "secret needle\n");
         Workspace::writeFile($this->workspace, 'vendor/ignored.txt', "ignored needle\n");
+        Workspace::writeFile($this->workspace, '.hidden/Hidden.php', "<?php\n\$hidden = new HiddenThing();\n");
+        Workspace::writeFile($this->workspace, 'vendor/Ignored.php', "<?php\n\$ignored = array(1);\n");
+        Workspace::writeFile($this->workspace, 'broken.php', "<?php\nif (\n");
         Workspace::writeFile($this->workspace, 'plain.txt', "plain text\n");
     }
 
@@ -135,7 +149,81 @@ final class IndexApplicationTest extends TestCase
         $this->assertSame(0, $buildExit);
         $this->assertSame(0, $searchExit);
         $this->assertStringContainsString('phgrep-index build [path] [--index-dir DIR]', $stdout);
+        $this->assertStringContainsString('phgrep-index ast-index build [path] [--index-dir DIR]', $stdout);
+        $this->assertStringContainsString('phgrep-index ast-cache search [options] pattern [path...]', $stdout);
         $this->assertStringContainsString('.custom-index', $stdout);
+    }
+
+    #[Test]
+    public function itBuildsRefreshesAndSearchesAstIndexesAndCaches(): void
+    {
+        $harness = $this->newApplication();
+        $application = $harness['application'];
+
+        $indexBuildExit = $application->run(['phgrep-index', 'ast-index', 'build', '.']);
+        $indexSearchExit = $application->run(['phgrep-index', 'ast-index', 'search', 'new $CLASS()', '.']);
+        $indexJsonExit = $application->run(['phgrep-index', 'ast-index', 'search', '--json', 'array($$$ITEMS)', '.']);
+        $indexFilesExit = $application->run(['phgrep-index', 'ast-index', 'search', '-l', 'render_widget()', '.']);
+        $indexHiddenExit = $application->run(['phgrep-index', 'ast-index', 'search', '--hidden', 'new $CLASS()', '.']);
+        $indexIgnoredExit = $application->run(['phgrep-index', 'ast-index', 'search', '--no-ignore', 'array($$$ITEMS)', '.']);
+        $indexFallbackExit = $application->run(['phgrep-index', 'ast-index', 'search', '--index-dir', '.missing-ast-index', '--fallback', 'scan', 'new $CLASS()', 'src/Ast.php']);
+        $cacheBuildExit = $application->run(['phgrep-index', 'ast-cache', 'build', '.']);
+        $cacheSearchExit = $application->run(['phgrep-index', 'ast-cache', 'search', 'new $CLASS()', '.']);
+        $cacheJsonExit = $application->run(['phgrep-index', 'ast-cache', 'search', '--json', 'array($$$ITEMS)', '.']);
+        $cacheFilesExit = $application->run(['phgrep-index', 'ast-cache', 'search', '--files-with-matches', 'render_widget()', '.']);
+        $cacheStrictExit = $application->run([
+            'phgrep-index',
+            'ast-cache',
+            'search',
+            '--index-dir',
+            '.missing-ast-cache',
+            '--fallback',
+            'scan',
+            '--strict-parse',
+            'if ($COND) { $$$BODY }',
+            'broken.php',
+        ]);
+
+        sleep(1);
+        Workspace::writeFile($this->workspace, 'src/Ast.php', "<?php\n\$value = 1;\n");
+        Workspace::writeFile($this->workspace, 'src/Newer.php', "<?php\n\$fresh = new FreshThing();\n");
+
+        $indexRefreshExit = $application->run(['phgrep-index', 'ast-index', 'refresh', '.']);
+        $indexRefreshedSearchExit = $application->run(['phgrep-index', 'ast-index', 'search', 'new $CLASS()', '.']);
+        $cacheRefreshExit = $application->run(['phgrep-index', 'ast-cache', 'refresh', '.']);
+        $cacheRefreshedSearchExit = $application->run(['phgrep-index', 'ast-cache', 'search', 'new $CLASS()', '.']);
+
+        $stdout = $this->readStream($harness['stdout']);
+
+        $this->assertSame(0, $indexBuildExit);
+        $this->assertSame(0, $indexSearchExit);
+        $this->assertSame(0, $indexJsonExit);
+        $this->assertSame(0, $indexFilesExit);
+        $this->assertSame(0, $indexHiddenExit);
+        $this->assertSame(0, $indexIgnoredExit);
+        $this->assertSame(0, $indexFallbackExit);
+        $this->assertSame(0, $cacheBuildExit);
+        $this->assertSame(0, $cacheSearchExit);
+        $this->assertSame(0, $cacheJsonExit);
+        $this->assertSame(0, $cacheFilesExit);
+        $this->assertSame(2, $cacheStrictExit);
+        $this->assertSame(0, $indexRefreshExit);
+        $this->assertSame(0, $indexRefreshedSearchExit);
+        $this->assertSame(0, $cacheRefreshExit);
+        $this->assertSame(0, $cacheRefreshedSearchExit);
+        $this->assertStringContainsString('Built AST index for', $stdout);
+        $this->assertStringContainsString('src/Ast.php:3:$service = new Service();', $stdout);
+        $this->assertStringContainsString('"code": "array(1, 2, 3)"', $stdout);
+        $this->assertStringContainsString("src/Ast.php\n", $stdout);
+        $this->assertStringContainsString('.hidden/Hidden.php:2:$hidden = new HiddenThing();', $stdout);
+        $this->assertStringContainsString('vendor/Ignored.php:2:$ignored = array(1);', $stdout);
+        $this->assertStringContainsString('Built AST cache for', $stdout);
+        $this->assertStringContainsString('Refreshed AST index for', $stdout);
+        $this->assertStringContainsString('src/Newer.php:2:$fresh = new FreshThing();', $stdout);
+        $this->assertStringContainsString('Refreshed AST cache for', $stdout);
+
+        $stderr = $this->readStream($harness['stderr']);
+        $this->assertStringContainsString('Syntax error', $stderr);
     }
 
     #[Test]
@@ -176,6 +264,15 @@ final class IndexApplicationTest extends TestCase
         } catch (\InvalidArgumentException $exception) {
             $this->assertSame('Unknown argument: --bogus', $exception->getMessage());
         }
+
+        $astSearchUnknown = $this->newApplication()['application'];
+
+        try {
+            $astSearchUnknown->run(['phgrep-index', 'ast-index', 'search', '--fallback', 'bogus', 'new $CLASS()', '.']);
+            self::fail('Expected unknown AST fallback mode.');
+        } catch (\InvalidArgumentException $exception) {
+            $this->assertSame('Unknown fallback mode: bogus', $exception->getMessage());
+        }
     }
 
     #[Test]
@@ -193,6 +290,11 @@ final class IndexApplicationTest extends TestCase
             'parseSearchArguments',
             ['--', 'needle', 'single.txt', 'counts.txt'],
         );
+        $parsedAst = $this->invokeMethod(
+            $application,
+            'parseAstSearchArguments',
+            ['--json', '--hidden', '--strict-parse', '-l', '--glob', '*.php', '--type', 'php', '--type-not', 'txt', '--index-dir', '.ast', '--lang', 'php', '-j', '4', '--fallback', 'scan', 'new $CLASS()', 'src/Ast.php'],
+        );
         $displayNames = $this->invokeMethod(
             $application,
             'shouldDisplayFileNames',
@@ -209,6 +311,19 @@ final class IndexApplicationTest extends TestCase
         $this->assertSame(['txt'], $parsedFlags['typeNot']);
         $this->assertSame('needle', $parsedTerminated['pattern']);
         $this->assertSame(['single.txt', 'counts.txt'], $parsedTerminated['paths']);
+        $this->assertTrue($parsedAst['json']);
+        $this->assertTrue($parsedAst['hidden']);
+        $this->assertTrue($parsedAst['strictParse']);
+        $this->assertTrue($parsedAst['filesWithMatches']);
+        $this->assertSame(['*.php'], $parsedAst['glob']);
+        $this->assertSame(['php'], $parsedAst['type']);
+        $this->assertSame(['txt'], $parsedAst['typeNot']);
+        $this->assertSame('.ast', $parsedAst['indexDir']);
+        $this->assertSame('php', $parsedAst['lang']);
+        $this->assertSame(4, $parsedAst['jobs']);
+        $this->assertSame('scan', $parsedAst['fallback']);
+        $this->assertSame('new $CLASS()', $parsedAst['pattern']);
+        $this->assertSame(['src/Ast.php'], $parsedAst['paths']);
         $this->assertTrue($displayNames);
     }
 

@@ -7,7 +7,7 @@ Pure PHP code search and structural refactoring tool.
 - `bin/rg`: ripgrep-style compatibility wrapper backed by the PHP engine.
 - `bin/sg`: ast-grep-style compatibility wrapper backed by the PHP engine.
 - `bin/phgrep`: native combined text + AST CLI.
-- `bin/phgrep-index`: separate indexed text mode. Build or refresh an on-disk text index, then run text searches against that index.
+- `bin/phgrep-index`: separate indexed mode. Build or refresh on-disk text indexes, AST fact indexes, and cached AST stores, then run searches against those warmed artifacts.
 
 Indexed mode is intentionally separate from scan mode, and the benchmark tables below keep those paths separate too.
 
@@ -26,10 +26,15 @@ bin/sg -p 'new $CLASS()' src
 
 bin/phgrep-index build .
 bin/phgrep-index search -F "function" .
+bin/phgrep-index ast-index build .
+bin/phgrep-index ast-index search 'new $CLASS()' src
+bin/phgrep-index ast-cache build .
+bin/phgrep-index ast-cache search 'array($$$ITEMS)' src
 ```
 
 By default, `bin/phgrep-index` stores its index in `.phgrep-index` under the indexed root.
-The current index is still trigram-first, with auxiliary whole-word / identifier postings used by the sharper indexed paths.
+The current text index is still trigram-first, with auxiliary whole-word / identifier postings used by the sharper indexed paths.
+AST fact indexes default to `.phgrep-ast-index`, and cached AST trees default to `.phgrep-ast-cache`.
 
 ## Feature Matrix
 
@@ -140,7 +145,11 @@ Comparison tools:
 | `Indexed regex new instance` | `6.67ms` | `67.46ms` | `169.57ms` |
 | `Indexed regex array call` | `18.82ms` | `78.25ms` | `192.38ms` |
 
-The CLI-exposed indexed mode is text-first today. CI also tracks separate indexed/cached AST search modes below.
+`bin/phgrep-index` now exposes both AST fast paths directly:
+- `ast-index`: fact-backed AST narrowing with on-disk query caches
+- `ast-cache`: cached parsed trees with the same AST search surface
+
+Both support `build`, `refresh`, and `search`, plus shared search flags like `--json`, `--glob`, `--type`, `--hidden`, `--no-ignore`, and `--fallback scan` when you want missing warmed state to fall back to cold AST scanning.
 
 CI also tracks `indexed-text-cold` as a separate category for cold-query behavior, but those rows are not published as the default baseline table unless they come from accepted `main` work.
 

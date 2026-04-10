@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Phgrep\Cli;
 
+use Phgrep\Ast\AstMatch;
+use Phgrep\Ast\AstSearchOptions;
 use Phgrep\Output\GrepFormatter;
 use Phgrep\Phgrep;
 use Phgrep\Support\Filesystem;
@@ -25,6 +27,11 @@ final class IndexApplication
      * @var resource
      */
     private $errorOutput;
+
+    /**
+     * @var array<string, list<string>>
+     */
+    private array $lineCache = [];
 
     /**
      * @param resource|null $output
@@ -56,7 +63,31 @@ final class IndexApplication
             'search' => in_array('--help', $arguments, true)
                 ? $this->runHelp()
                 : $this->runSearch($this->parseSearchArguments($arguments)),
+            'ast-index' => $this->runAstCommand('index', $arguments),
+            'ast-cache' => $this->runAstCommand('cache', $arguments),
             default => throw new \InvalidArgumentException(sprintf('Unknown subcommand: %s', $command)),
+        };
+    }
+
+    /**
+     * @param list<string> $arguments
+     */
+    private function runAstCommand(string $mode, array $arguments): int
+    {
+        $command = array_shift($arguments);
+
+        return match ($command) {
+            null, 'help', '--help' => $this->runHelp(),
+            'build' => in_array('--help', $arguments, true)
+                ? $this->runHelp()
+                : $this->runAstBuild($mode, $this->parseBuildArguments($arguments), false),
+            'refresh' => in_array('--help', $arguments, true)
+                ? $this->runHelp()
+                : $this->runAstBuild($mode, $this->parseBuildArguments($arguments), true),
+            'search' => in_array('--help', $arguments, true)
+                ? $this->runHelp()
+                : $this->runAstSearch($mode, $this->parseAstSearchArguments($arguments)),
+            default => throw new \InvalidArgumentException(sprintf('Unknown %s subcommand: %s', $mode === 'index' ? 'ast-index' : 'ast-cache', $command)),
         };
     }
 
@@ -76,6 +107,50 @@ final class IndexApplication
             $result->fileCount,
             $this->displayPath($result->indexPath),
             $result->trigramCount,
+            $result->addedFiles,
+            $result->updatedFiles,
+            $result->deletedFiles,
+            $result->unchangedFiles,
+        ));
+
+        return 0;
+    }
+
+    /**
+     * @param array{root: string, indexDir: ?string} $arguments
+     */
+    private function runAstBuild(string $mode, array $arguments, bool $refresh): int
+    {
+        if ($mode === 'index') {
+            $result = $refresh
+                ? Phgrep::refreshAstIndex($arguments['root'], $arguments['indexDir'])
+                : Phgrep::buildAstIndex($arguments['root'], $arguments['indexDir']);
+
+            $this->writeOutput(sprintf(
+                '%s AST index for %d files in %s (%d fact rows, +%d ~%d -%d =%d)' . PHP_EOL,
+                $refresh ? 'Refreshed' : 'Built',
+                $result->fileCount,
+                $this->displayPath($result->indexPath),
+                $result->factCount,
+                $result->addedFiles,
+                $result->updatedFiles,
+                $result->deletedFiles,
+                $result->unchangedFiles,
+            ));
+
+            return 0;
+        }
+
+        $result = $refresh
+            ? Phgrep::refreshAstCache($arguments['root'], $arguments['indexDir'])
+            : Phgrep::buildAstCache($arguments['root'], $arguments['indexDir']);
+
+        $this->writeOutput(sprintf(
+            '%s AST cache for %d files in %s (%d cached trees, +%d ~%d -%d =%d)' . PHP_EOL,
+            $refresh ? 'Refreshed' : 'Built',
+            $result->fileCount,
+            $this->displayPath($result->indexPath),
+            $result->cachedTreeCount,
             $result->addedFiles,
             $result->updatedFiles,
             $result->deletedFiles,
@@ -188,6 +263,90 @@ final class IndexApplication
         }
 
         return 1;
+    }
+
+    /**
+     * @param array{
+     *   json: bool,
+     *   noIgnore: bool,
+     *   hidden: bool,
+     *   strictParse: bool,
+     *   filesWithMatches: bool,
+     *   glob: list<string>,
+     *   type: list<string>,
+     *   typeNot: list<string>,
+     *   indexDir: ?string,
+     *   lang: string,
+     *   jobs: int,
+     *   fallback: string,
+     *   pattern: ?string,
+     *   paths: list<string>
+     * } $arguments
+     */
+    private function runAstSearch(string $mode, array $arguments): int
+    {
+        if ($arguments['pattern'] === null) {
+            $this->writeError("Missing AST pattern.\n");
+
+            return 2;
+        }
+
+        $fileTypeFilter = $this->createFileTypeFilter($arguments['type'], $arguments['typeNot']) ?? new FileTypeFilter(['php']);
+        $options = new AstSearchOptions(
+            language: $arguments['lang'],
+            jobs: $arguments['jobs'],
+            respectIgnore: !$arguments['noIgnore'],
+            includeHidden: $arguments['hidden'],
+            fileTypeFilter: $fileTypeFilter,
+            globPatterns: $arguments['glob'],
+            skipParseErrors: !$arguments['strictParse'],
+            jsonOutput: $arguments['json'],
+        );
+
+        try {
+            try {
+                $matches = $mode === 'index'
+                    ? Phgrep::searchAstIndexed($arguments['pattern'], $arguments['paths'], $options, $arguments['indexDir'])
+                    : Phgrep::searchAstCached($arguments['pattern'], $arguments['paths'], $options, $arguments['indexDir']);
+            } catch (\RuntimeException $exception) {
+                if (
+                    $arguments['fallback'] === 'scan'
+                    && (
+                        $exception->getMessage() === 'No AST index found for the requested paths. Build one first.'
+                        || $exception->getMessage() === 'No AST cache found for the requested paths. Build one first.'
+                        || str_starts_with($exception->getMessage(), 'AST index does not exist: ')
+                        || str_starts_with($exception->getMessage(), 'AST cache does not exist: ')
+                    )
+                ) {
+                    $matches = Phgrep::searchAst($arguments['pattern'], $arguments['paths'], $options);
+                } else {
+                    throw $exception;
+                }
+            }
+        } catch (\RuntimeException $exception) {
+            $this->writeError($exception->getMessage() . PHP_EOL);
+
+            return 2;
+        }
+
+        if ($arguments['filesWithMatches']) {
+            return $this->writeAstMatchFiles($matches);
+        }
+
+        if ($arguments['json']) {
+            $this->writeOutput($this->formatAstJsonMatches($matches));
+        } else {
+            foreach ($matches as $match) {
+                $this->writeOutput(sprintf(
+                    '%s:%d:%s',
+                    $this->displayPath($match->file),
+                    $match->startLine,
+                    $this->displayAstLine($match),
+                ) . PHP_EOL);
+            }
+        }
+
+        return $matches === [] ? 1 : 0;
     }
 
     private function runHelp(): int
@@ -385,6 +544,125 @@ final class IndexApplication
 
     /**
      * @param list<string> $arguments
+     * @return array{
+     *   json: bool,
+     *   noIgnore: bool,
+     *   hidden: bool,
+     *   strictParse: bool,
+     *   filesWithMatches: bool,
+     *   glob: list<string>,
+     *   type: list<string>,
+     *   typeNot: list<string>,
+     *   indexDir: ?string,
+     *   lang: string,
+     *   jobs: int,
+     *   fallback: string,
+     *   pattern: ?string,
+     *   paths: list<string>
+     * }
+     */
+    private function parseAstSearchArguments(array $arguments): array
+    {
+        $parsed = [
+            'json' => false,
+            'noIgnore' => false,
+            'hidden' => false,
+            'strictParse' => false,
+            'filesWithMatches' => false,
+            'glob' => [],
+            'type' => [],
+            'typeNot' => [],
+            'indexDir' => null,
+            'lang' => 'php',
+            'jobs' => 1,
+            'fallback' => 'fail',
+            'pattern' => null,
+            'paths' => [],
+        ];
+
+        while ($arguments !== []) {
+            /** @var string $argument */
+            $argument = array_shift($arguments);
+
+            if ($argument === '--') {
+                break;
+            }
+
+            if ($argument === '' || $argument[0] !== '-') {
+                if ($parsed['pattern'] === null) {
+                    $parsed['pattern'] = $argument;
+                } else {
+                    $parsed['paths'][] = $argument;
+                }
+
+                continue;
+            }
+
+            switch ($argument) {
+                case '--json':
+                    $parsed['json'] = true;
+                    break;
+                case '--no-ignore':
+                    $parsed['noIgnore'] = true;
+                    break;
+                case '--hidden':
+                    $parsed['hidden'] = true;
+                    break;
+                case '--strict-parse':
+                    $parsed['strictParse'] = true;
+                    break;
+                case '-l':
+                case '--files-with-matches':
+                    $parsed['filesWithMatches'] = true;
+                    break;
+                case '--glob':
+                    $parsed['glob'][] = $this->shiftValue($arguments, $argument);
+                    break;
+                case '--type':
+                    $parsed['type'][] = $this->shiftValue($arguments, $argument);
+                    break;
+                case '--type-not':
+                    $parsed['typeNot'][] = $this->shiftValue($arguments, $argument);
+                    break;
+                case '--index-dir':
+                    $parsed['indexDir'] = $this->shiftValue($arguments, $argument);
+                    break;
+                case '--lang':
+                    $parsed['lang'] = $this->shiftValue($arguments, $argument);
+                    break;
+                case '-j':
+                case '--jobs':
+                    $parsed['jobs'] = max(1, (int) $this->shiftValue($arguments, $argument));
+                    break;
+                case '--fallback':
+                    $parsed['fallback'] = $this->shiftValue($arguments, $argument);
+                    break;
+                default:
+                    throw new \InvalidArgumentException(sprintf('Unknown argument: %s', $argument));
+            }
+        }
+
+        foreach ($arguments as $argument) {
+            if ($parsed['pattern'] === null) {
+                $parsed['pattern'] = $argument;
+            } else {
+                $parsed['paths'][] = $argument;
+            }
+        }
+
+        if (!in_array($parsed['fallback'], ['fail', 'scan'], true)) {
+            throw new \InvalidArgumentException(sprintf('Unknown fallback mode: %s', $parsed['fallback']));
+        }
+
+        if ($parsed['paths'] === []) {
+            $parsed['paths'] = ['.'];
+        }
+
+        return $parsed;
+    }
+
+    /**
+     * @param list<string> $arguments
      */
     private function shiftValue(array &$arguments, string $argument): string
     {
@@ -471,6 +749,80 @@ final class IndexApplication
         return Filesystem::relativePath(getcwd() ?: '.', $path);
     }
 
+    /**
+     * @param list<AstMatch> $matches
+     */
+    private function writeAstMatchFiles(array $matches): int
+    {
+        if ($matches === []) {
+            return 1;
+        }
+
+        $files = [];
+
+        foreach ($matches as $match) {
+            $files[$this->displayPath($match->file)] = true;
+        }
+
+        $this->writeOutput(implode(PHP_EOL, array_keys($files)) . PHP_EOL);
+
+        return 0;
+    }
+
+    /**
+     * @param list<AstMatch> $matches
+     */
+    private function formatAstJsonMatches(array $matches): string
+    {
+        $payload = array_map(
+            fn (AstMatch $match): array => [
+                'file' => $this->displayPath($match->file),
+                'start_line' => $match->startLine,
+                'end_line' => $match->endLine,
+                'start_file_pos' => $match->startFilePos,
+                'end_file_pos' => $match->endFilePos,
+                'code' => $match->code,
+            ],
+            $matches,
+        );
+
+        return (string) json_encode($payload, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES) . PHP_EOL;
+    }
+
+    private function displayAstLine(AstMatch $match): string
+    {
+        $lines = $this->fileLines($match->file);
+        $line = $lines[$match->startLine - 1] ?? null;
+
+        if ($line !== null) {
+            return rtrim($line, "\r\n");
+        }
+
+        return trim(preg_replace('/\s+/', ' ', $match->code) ?? $match->code);
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function fileLines(string $path): array
+    {
+        if (isset($this->lineCache[$path])) {
+            return $this->lineCache[$path];
+        }
+
+        $contents = @file($path);
+
+        if (!is_array($contents)) {
+            $this->lineCache[$path] = [];
+
+            return [];
+        }
+
+        $this->lineCache[$path] = $contents;
+
+        return $this->lineCache[$path];
+    }
+
     private function usage(): string
     {
         return <<<TEXT
@@ -478,6 +830,12 @@ Usage:
   phgrep-index build [path] [--index-dir DIR]
   phgrep-index refresh [path] [--index-dir DIR]
   phgrep-index search [options] pattern [path...]
+  phgrep-index ast-index build [path] [--index-dir DIR]
+  phgrep-index ast-index refresh [path] [--index-dir DIR]
+  phgrep-index ast-index search [options] pattern [path...]
+  phgrep-index ast-cache build [path] [--index-dir DIR]
+  phgrep-index ast-cache refresh [path] [--index-dir DIR]
+  phgrep-index ast-cache search [options] pattern [path...]
 
 Search Options:
   -F              Fixed-string search.
@@ -502,6 +860,22 @@ Search Options:
   --hidden        Include hidden files.
   --index-dir DIR Use a non-default index directory.
   --help          Show this help.
+
+AST Search Options:
+  --lang LANG             AST language. Default: php.
+  -j N, --jobs N          Number of workers for AST scans.
+  -l, --files-with-matches
+                          List matching files.
+  --glob GLOB             Include only files whose paths match GLOB.
+  --type NAME             Include a file type.
+  --type-not NAME         Exclude a file type.
+  --json                  Emit JSON output.
+  --no-ignore             Ignore .gitignore and .phgrepignore rules.
+  --hidden                Include hidden files.
+  --strict-parse          Fail on parse errors instead of skipping them.
+  --fallback MODE         Missing-index behavior: fail|scan.
+  --index-dir DIR         Use a non-default AST index/cache directory.
+  --help                  Show this help.
 
 TEXT;
     }
