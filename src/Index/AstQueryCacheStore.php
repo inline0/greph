@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Phgrep\Index;
 
 use Phgrep\Ast\AstMatch;
+use Phgrep\Ast\AstMatchCodec;
 use Phgrep\Ast\AstSearchOptions;
 use Phgrep\Support\Filesystem;
 
@@ -15,6 +16,13 @@ final class AstQueryCacheStore
     private const EXTENSION = '.phpbin';
 
     private const LEGACY_EXTENSION = '.phpbin.gz';
+
+    private AstMatchCodec $codec;
+
+    public function __construct(?AstMatchCodec $codec = null)
+    {
+        $this->codec = $codec ?? new AstMatchCodec();
+    }
 
     /**
      * @return list<AstMatch>|null
@@ -49,14 +57,26 @@ final class AstQueryCacheStore
 
         $matches = $payload['matches'];
 
-        foreach ($matches as $match) {
-            if (!$match instanceof AstMatch) {
-                throw new \RuntimeException(sprintf('AST query cache is corrupt: %s', $path));
-            }
+        if ($matches === []) {
+            return [];
         }
 
-        /** @var list<AstMatch> $matches */
-        return $matches;
+        if ($matches[0] instanceof AstMatch) {
+            foreach ($matches as $match) {
+                if (!$match instanceof AstMatch) {
+                    throw new \RuntimeException(sprintf('AST query cache is corrupt: %s', $path));
+                }
+            }
+
+            /** @var list<AstMatch> $matches */
+            return $matches;
+        }
+
+        try {
+            return $this->codec->decode($matches);
+        } catch (\RuntimeException $exception) {
+            throw new \RuntimeException(sprintf('AST query cache is corrupt: %s', $path), 0, $exception);
+        }
     }
 
     /**
@@ -71,7 +91,7 @@ final class AstQueryCacheStore
         $legacyPath = $this->legacyCachePath($indexPath, $pattern, $options);
         $payload = serialize([
             'built_at' => $builtAt,
-            'matches' => $matches,
+            'matches' => $this->codec->encode($matches),
         ]);
 
         if (@file_put_contents($temporaryPath, $payload) === false) {
