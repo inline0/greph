@@ -36,10 +36,11 @@ final class TextIndexBuilder
         $scannedFiles = $this->scanFiles($rootPath, $indexPath);
         $files = [];
         $forward = [];
+        $wordForward = [];
         $nextFileId = 1;
 
         foreach ($scannedFiles as $scan) {
-            $trigrams = $this->extractFileTrigrams($scan['absolutePath']);
+            ['trigrams' => $trigrams, 'words' => $words] = $this->extractFileTerms($scan['absolutePath']);
             $files[] = [
                 'id' => $nextFileId,
                 'p' => $scan['relativePath'],
@@ -50,6 +51,7 @@ final class TextIndexBuilder
                 'o' => $scan['order'],
             ];
             $forward[$nextFileId] = $trigrams;
+            $wordForward[$nextFileId] = $words;
             $nextFileId++;
         }
 
@@ -62,6 +64,8 @@ final class TextIndexBuilder
             files: $files,
             postings: $this->buildPostings($forward),
             forward: $forward,
+            wordPostings: $this->buildPostings($wordForward),
+            wordForward: $wordForward,
         );
         $this->store->save($index);
 
@@ -99,6 +103,7 @@ final class TextIndexBuilder
         $scannedFiles = $this->scanFiles($rootPath, $indexPath);
         $existingByPath = [];
         $existingForward = $existingIndex->forward;
+        $existingWordForward = $existingIndex->wordForward;
 
         foreach ($existingIndex->files as $file) {
             $existingByPath[$file['p']] = $file;
@@ -106,6 +111,7 @@ final class TextIndexBuilder
 
         $files = [];
         $forward = [];
+        $wordForward = [];
         $nextFileId = $existingIndex->nextFileId;
         $addedFiles = 0;
         $updatedFiles = 0;
@@ -128,14 +134,16 @@ final class TextIndexBuilder
                     'g' => $scan['ignored'],
                     'o' => $scan['order'],
                 ];
-                $forward[$existing['id']] = $existingForward[$existing['id']] ?? $this->extractFileTrigrams($scan['absolutePath']);
+                ['trigrams' => $trigrams, 'words' => $words] = $this->extractFileTerms($scan['absolutePath']);
+                $forward[$existing['id']] = $existingForward[$existing['id']] ?? $trigrams;
+                $wordForward[$existing['id']] = $existingWordForward[$existing['id']] ?? $words;
                 $unchangedFiles++;
                 unset($existingByPath[$scan['relativePath']]);
                 continue;
             }
 
             $fileId = is_array($existing) ? $existing['id'] : $nextFileId++;
-            $trigrams = $this->extractFileTrigrams($scan['absolutePath']);
+            ['trigrams' => $trigrams, 'words' => $words] = $this->extractFileTerms($scan['absolutePath']);
             $files[] = [
                 'id' => $fileId,
                 'p' => $scan['relativePath'],
@@ -146,6 +154,7 @@ final class TextIndexBuilder
                 'o' => $scan['order'],
             ];
             $forward[$fileId] = $trigrams;
+            $wordForward[$fileId] = $words;
 
             if (is_array($existing)) {
                 $updatedFiles++;
@@ -165,6 +174,8 @@ final class TextIndexBuilder
             files: $files,
             postings: $this->buildPostings($forward),
             forward: $forward,
+            wordPostings: $this->buildPostings($wordForward),
+            wordForward: $wordForward,
         );
         $this->store->save($index);
 
@@ -282,15 +293,36 @@ final class TextIndexBuilder
     /**
      * @return list<string>
      */
-    private function extractFileTrigrams(string $path): array
+    /**
+     * @return array{trigrams: list<string>, words: list<string>}
+     */
+    private function extractFileTerms(string $path): array
     {
         $contents = @file_get_contents($path);
 
         if ($contents === false) {
+            return ['trigrams' => [], 'words' => []];
+        }
+
+        return [
+            'trigrams' => $this->trigramExtractor->extract($contents),
+            'words' => $this->extractFileWords($contents),
+        ];
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function extractFileWords(string $contents): array
+    {
+        if (!preg_match_all('/[A-Za-z0-9_]+/', strtolower($contents), $matches)) {
             return [];
         }
 
-        return $this->trigramExtractor->extract($contents);
+        $words = array_values(array_unique($matches[0]));
+        sort($words);
+
+        return $words;
     }
 
     private function isHiddenPath(string $relativePath): bool

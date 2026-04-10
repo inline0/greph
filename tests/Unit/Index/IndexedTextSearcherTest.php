@@ -100,6 +100,31 @@ final class IndexedTextSearcherTest extends TestCase
     }
 
     #[Test]
+    public function itUsesWordPostingsForIndexedWholeWordQueries(): void
+    {
+        Workspace::writeFile($this->workspace, 'src/Subword.php', "<?php\n\$label = 'dysfunction';\n");
+        Phgrep::refreshTextIndex($this->workspace);
+
+        $results = $this->searcher->search(
+            'function',
+            $this->workspace,
+            new TextSearchOptions(fixedString: true, wholeWord: true),
+        );
+
+        $matches = [];
+
+        foreach ($results as $result) {
+            if ($result->hasMatches()) {
+                $matches[] = basename($result->file);
+            }
+        }
+
+        $this->assertContains('App.php', $matches);
+        $this->assertContains('Util.php', $matches);
+        $this->assertNotContains('Subword.php', $matches);
+    }
+
+    #[Test]
     public function itRejectsMissingPathsAndMissingIndexes(): void
     {
         try {
@@ -144,6 +169,24 @@ final class IndexedTextSearcherTest extends TestCase
             'candidateIds',
             $this->workspace . '/.phgrep-index',
             ['function'],
+        );
+        $candidateIdsFromWords = $this->invokeMethod(
+            $this->searcher,
+            'candidateIdsFromWordPostings',
+            $this->workspace . '/.phgrep-index',
+            'function',
+        );
+        $wholeWordToken = $this->invokeMethod(
+            $this->searcher,
+            'indexedWholeWordToken',
+            'Function',
+            new TextSearchOptions(fixedString: true, wholeWord: true),
+        );
+        $invalidWholeWordToken = $this->invokeMethod(
+            $this->searcher,
+            'indexedWholeWordToken',
+            'function()',
+            new TextSearchOptions(fixedString: true, wholeWord: true),
         );
         $directSummaryAllowed = $this->invokeMethod(
             $this->searcher,
@@ -241,6 +284,9 @@ final class IndexedTextSearcherTest extends TestCase
         $this->assertSame([], $shortFixedSeeds);
         $this->assertSame([], $candidateIdsWithoutTrigrams);
         $this->assertArrayHasKey(1, $candidateIdsWithTrigrams);
+        $this->assertArrayHasKey(1, $candidateIdsFromWords);
+        $this->assertSame('function', $wholeWordToken);
+        $this->assertNull($invalidWholeWordToken);
         $this->assertTrue($directSummaryAllowed);
         $this->assertFalse($directSummaryRejected);
         $this->assertTrue($cacheSupported);

@@ -28,4 +28,12 @@ return [
         'name' => 'Indexed regex array call',
         'pattern' => 'array\([^)]+\)',
     ],
+    [
+        'suite' => 'indexed-text',
+        'category' => 'indexed-text',
+        'name' => 'Indexed literal whole word',
+        'pattern' => 'function',
+        'fixed' => true,
+        'whole_word' => true,
+    ],
 ];

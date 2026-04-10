@@ -35,7 +35,7 @@ final class TextIndexBuilderTest extends TestCase
         $store = new TextIndexStore();
 
         $buildResult = $builder->build($this->workspace);
-        $index = $store->load($buildResult->indexPath, true);
+        $index = $store->load($buildResult->indexPath, true, true);
 
         $this->assertSame(4, $buildResult->fileCount);
         $this->assertGreaterThan(0, $buildResult->trigramCount);
@@ -53,6 +53,11 @@ final class TextIndexBuilderTest extends TestCase
         $this->assertTrue($recordsByPath['.hidden/Secret.php']['h']);
         $this->assertTrue($recordsByPath['ignored.php']['g']);
         $this->assertContains('fun', $index->forward[$recordsByPath['src/App.php']['id']]);
+        $this->assertContains('function', $index->wordForward[$recordsByPath['src/App.php']['id']]);
+        $this->assertSame(
+            [$recordsByPath['.hidden/Secret.php']['id'], $recordsByPath['ignored.php']['id'], $recordsByPath['src/App.php']['id']],
+            $index->wordPostings['function'],
+        );
 
         sleep(1);
         Workspace::writeFile($this->workspace, 'src/App.php', "<?php\nfunction changed(): void {}\n");
@@ -102,7 +107,8 @@ final class TextIndexBuilderTest extends TestCase
         $relativeIndexPath = $this->invokeMethod($builder, 'resolveIndexPath', $this->workspace, '.alt-index');
         $scannedFiles = $this->invokeMethod($builder, 'scanFiles', $this->workspace, $this->workspace . '/.phgrep-index');
         $postings = $this->invokeMethod($builder, 'buildPostings', [3 => ['ghi', 'abc'], 1 => ['abc', 'def']]);
-        $missingTrigrams = $this->invokeMethod($builder, 'extractFileTrigrams', $this->workspace . '/missing.txt');
+        $missingTerms = $this->invokeMethod($builder, 'extractFileTerms', $this->workspace . '/missing.txt');
+        $words = $this->invokeMethod($builder, 'extractFileWords', "<?php\nFunction function OTHER\n");
         $hidden = $this->invokeMethod($builder, 'isHiddenPath', '.hidden/Secret.php');
         $visible = $this->invokeMethod($builder, 'isHiddenPath', 'src/App.php');
 
@@ -110,7 +116,8 @@ final class TextIndexBuilderTest extends TestCase
         $this->assertSame($this->workspace . '/.alt-index', $relativeIndexPath);
         $this->assertCount(4, $scannedFiles);
         $this->assertSame([1, 3], $postings['abc']);
-        $this->assertSame([], $missingTrigrams);
+        $this->assertSame(['trigrams' => [], 'words' => []], $missingTerms);
+        $this->assertSame(['function', 'other', 'php'], $words);
         $this->assertTrue($hidden);
         $this->assertFalse($visible);
 
