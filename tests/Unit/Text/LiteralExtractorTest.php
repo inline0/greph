@@ -41,4 +41,30 @@ final class LiteralExtractorTest extends TestCase
             )),
         );
     }
+
+    #[Test]
+    public function itExtractsConservativeRegexLiteralPlans(): void
+    {
+        $extractor = new LiteralExtractor();
+
+        $this->assertSame(
+            ['type' => 'literal', 'literal' => 'function'],
+            $extractor->extractRegexLiteralPlan('function'),
+        );
+        $this->assertSame(
+            ['type' => 'prefix', 'literal' => 'function '],
+            $extractor->extractRegexLiteralPlan('^function '),
+        );
+        $this->assertSame(
+            ['type' => 'suffix', 'literal' => ');'],
+            $extractor->extractRegexLiteralPlan('\);$'),
+        );
+        $this->assertSame(
+            ['type' => 'full-line', 'literal' => '}'],
+            $extractor->extractRegexLiteralPlan('^\}$'),
+        );
+        $this->assertNull($extractor->extractRegexLiteralPlan('^function\s+[a-z_]+'));
+        $this->assertNull($extractor->extractRegexLiteralPlan('foo|bar'));
+        $this->assertNull($extractor->extractRegexLiteralPlan('\d+'));
+    }
 }

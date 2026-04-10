@@ -13,4 +13,28 @@ return [
         'name' => 'Regex array call',
         'pattern' => 'array\([^)]+\)',
     ],
+    [
+        'suite' => 'text-regex',
+        'category' => 'text',
+        'name' => 'Regex prefix literal',
+        'pattern' => '^function ',
+    ],
+    [
+        'suite' => 'text-regex',
+        'category' => 'text',
+        'name' => 'Regex suffix literal',
+        'pattern' => '\);$',
+    ],
+    [
+        'suite' => 'text-regex',
+        'category' => 'text',
+        'name' => 'Regex exact line literal',
+        'pattern' => '^\}$',
+    ],
+    [
+        'suite' => 'text-regex',
+        'category' => 'text',
+        'name' => 'Regex literal collapse',
+        'pattern' => 'function',
+    ],
 ];
