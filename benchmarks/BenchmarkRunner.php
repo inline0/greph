@@ -11,6 +11,7 @@ use Phgrep\Index\AstIndexBuilder;
 use Phgrep\Index\AstIndexStore;
 use Phgrep\Index\TextIndexBuilder;
 use Phgrep\Index\TextIndexStore;
+use Phgrep\Index\TextQueryCacheStore;
 use Phgrep\Index\TrigramExtractor;
 use Phgrep\Phgrep;
 use Phgrep\Support\CommandRunner;
@@ -80,7 +81,7 @@ final class BenchmarkRunner
         $astIndexPath = $this->rootPath . '/build/benchmarks/ast-indexes/' . $corpusName;
         $astCachePath = $this->rootPath . '/build/benchmarks/ast-caches/' . $corpusName;
 
-        if (in_array($suite['category'], ['indexed-text', 'indexed-load', 'indexed-summary'], true)) {
+        if (in_array($suite['category'], ['indexed-text', 'indexed-text-cold', 'indexed-load', 'indexed-summary'], true)) {
             if (!(new TextIndexStore())->exists($indexPath)) {
                 (new TextIndexBuilder())->build($corpusPath, $indexPath);
             }
@@ -207,7 +208,12 @@ final class BenchmarkRunner
                 break;
 
             case 'indexed-text':
+            case 'indexed-text-cold':
             case 'indexed-summary':
+                if ($suite['category'] === 'indexed-text-cold') {
+                    (new TextQueryCacheStore())->clear($indexPath);
+                }
+
                 $results = Phgrep::searchTextIndexed(
                     (string) $suite['pattern'],
                     $corpusPath,
@@ -346,7 +352,7 @@ final class BenchmarkRunner
      */
     private function externalGrepCommand(array $suite, string $corpusPath): ?array
     {
-        if (!in_array($suite['category'], ['text', 'walker', 'parallel', 'indexed-text', 'indexed-summary'], true)) {
+        if (!in_array($suite['category'], ['text', 'walker', 'parallel', 'indexed-text', 'indexed-text-cold', 'indexed-summary'], true)) {
             return null;
         }
 
@@ -391,7 +397,7 @@ final class BenchmarkRunner
      */
     private function externalRipgrepCommand(array $suite, string $corpusPath): ?array
     {
-        if (!in_array($suite['category'], ['text', 'walker', 'parallel', 'indexed-text', 'indexed-summary'], true)) {
+        if (!in_array($suite['category'], ['text', 'walker', 'parallel', 'indexed-text', 'indexed-text-cold', 'indexed-summary'], true)) {
             return null;
         }
 
