@@ -5,10 +5,10 @@ declare(strict_types=1);
 
 require __DIR__ . '/_bootstrap.php';
 
-use Phgrep\Benchmarks\BenchmarkReport;
-use Phgrep\Benchmarks\BenchmarkResult;
-use Phgrep\Benchmarks\BenchmarkSeriesRunner;
-use Phgrep\Support\Json;
+use Greph\Benchmarks\BenchmarkReport;
+use Greph\Benchmarks\BenchmarkResult;
+use Greph\Benchmarks\BenchmarkSeriesRunner;
+use Greph\Support\Json;
 
 $category = null;
 $corpus = null;
@@ -44,7 +44,7 @@ while ($arguments !== []) {
     }
 }
 
-$series = (new BenchmarkSeriesRunner($phgrepRoot))->run($repeat, $warmup, $category, $corpus, $compareTools);
+$series = (new BenchmarkSeriesRunner($grephRoot))->run($repeat, $warmup, $category, $corpus, $compareTools);
 
 if (is_string($outputPath) && $outputPath !== '') {
     Json::encodeFile($outputPath, $series);

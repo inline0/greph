@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace Phgrep\Ast\Parsers;
+namespace Greph\Ast\Parsers;
 
-use Phgrep\Exceptions\ParseException;
+use Greph\Exceptions\ParseException;
 use PhpParser\Error;
 use PhpParser\Node\Expr;
 use PhpParser\Node\Stmt;

@@ -5,7 +5,7 @@ declare(strict_types=1);
 
 require dirname(__DIR__) . '/vendor/autoload.php';
 
-use Phgrep\FeatureMatrix\FeatureMatrixGenerator;
+use Greph\FeatureMatrix\FeatureMatrixGenerator;
 
 $rootPath = dirname(__DIR__);
 $markdownPath = $rootPath . '/FEATURE_MATRIX.md';

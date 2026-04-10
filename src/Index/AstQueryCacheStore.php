@@ -2,12 +2,12 @@
 
 declare(strict_types=1);
 
-namespace Phgrep\Index;
+namespace Greph\Index;
 
-use Phgrep\Ast\AstMatch;
-use Phgrep\Ast\AstMatchCodec;
-use Phgrep\Ast\AstSearchOptions;
-use Phgrep\Support\Filesystem;
+use Greph\Ast\AstMatch;
+use Greph\Ast\AstMatchCodec;
+use Greph\Ast\AstSearchOptions;
+use Greph\Support\Filesystem;
 
 final class AstQueryCacheStore
 {

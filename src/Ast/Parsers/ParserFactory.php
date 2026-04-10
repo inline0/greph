@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Phgrep\Ast\Parsers;
+namespace Greph\Ast\Parsers;
 
 final class ParserFactory
 {

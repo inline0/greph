@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Phgrep\Walker;
+namespace Greph\Walker;
 
 final class FileTypeFilter
 {

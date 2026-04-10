@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace Phgrep\Tests\Unit\Walker;
+namespace Greph\Tests\Unit\Walker;
 
-use Phgrep\Walker\FileList;
+use Greph\Walker\FileList;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 

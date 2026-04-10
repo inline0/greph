@@ -5,6 +5,6 @@ declare(strict_types=1);
 
 require dirname(__DIR__, 3) . '/vendor/autoload.php';
 
-(new \Phgrep\Benchmarks\SyntheticCorpusGenerator(__DIR__))->ensure();
+(new \Greph\Benchmarks\SyntheticCorpusGenerator(__DIR__))->ensure();
 
 fwrite(STDOUT, "Synthetic corpora generated.\n");

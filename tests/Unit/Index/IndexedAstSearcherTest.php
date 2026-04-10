@@ -2,15 +2,15 @@
 
 declare(strict_types=1);
 
-namespace Phgrep\Tests\Unit\Index;
+namespace Greph\Tests\Unit\Index;
 
-use Phgrep\Ast\AstMatch;
-use Phgrep\Ast\AstSearchOptions;
-use Phgrep\Ast\PatternParser;
-use Phgrep\Index\IndexedAstSearcher;
-use Phgrep\Phgrep;
-use Phgrep\Tests\Support\Workspace;
-use Phgrep\Walker\FileTypeFilter;
+use Greph\Ast\AstMatch;
+use Greph\Ast\AstSearchOptions;
+use Greph\Ast\PatternParser;
+use Greph\Index\IndexedAstSearcher;
+use Greph\Greph;
+use Greph\Tests\Support\Workspace;
+use Greph\Walker\FileTypeFilter;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
@@ -35,7 +35,7 @@ final class IndexedAstSearcherTest extends TestCase
         $this->externalWorkspace = Workspace::createDirectory('indexed-ast-searcher-external');
         Workspace::writeFile($this->externalWorkspace, 'external.php', "<?php\n\$external = new ExternalThing();\n");
 
-        Phgrep::buildAstIndex($this->workspace);
+        Greph::buildAstIndex($this->workspace);
 
         $this->searcher = new IndexedAstSearcher();
         $this->parser = new PatternParser();
@@ -61,7 +61,7 @@ final class IndexedAstSearcherTest extends TestCase
             'new $CLASS()',
             $this->externalWorkspace . '/external.php',
             new AstSearchOptions(),
-            $this->workspace . '/.phgrep-ast-index',
+            $this->workspace . '/.greph-ast-index',
         );
         $broadMatches = $this->searcher->search(
             'if ($ready) { render_widget(); }',
@@ -99,7 +99,7 @@ final class IndexedAstSearcherTest extends TestCase
     {
         $pattern = $this->parser->parse('new $CLASS()');
         $unsupportedPattern = $this->parser->parse('if ($ready) { render_widget(); }');
-        $index = (new \Phgrep\Index\AstIndexStore())->load($this->workspace . '/.phgrep-ast-index');
+        $index = (new \Greph\Index\AstIndexStore())->load($this->workspace . '/.greph-ast-index');
 
         $selection = $this->invokeMethod(
             $this->searcher,
@@ -213,7 +213,7 @@ final class IndexedAstSearcherTest extends TestCase
             $this->searcher,
             'resolveIndexPath',
             [$this->workspace],
-            $this->workspace . '/.phgrep-ast-index',
+            $this->workspace . '/.greph-ast-index',
         );
         $missingIndexPath = $this->invokeMethod(
             $this->searcher,
@@ -235,7 +235,7 @@ final class IndexedAstSearcherTest extends TestCase
         $this->assertTrue($matchesGlob);
         $this->assertFalse($missesGlob);
         $this->assertFalse($filterMiss);
-        $this->assertSame($this->workspace . '/.phgrep-ast-index', $resolvedIndexPath);
+        $this->assertSame($this->workspace . '/.greph-ast-index', $resolvedIndexPath);
         $this->assertNull($missingIndexPath);
     }
 

@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace Phgrep\Tests\Unit\Text;
+namespace Greph\Tests\Unit\Text;
 
-use Phgrep\Exceptions\PatternException;
-use Phgrep\Text\RegexSearcher;
+use Greph\Exceptions\PatternException;
+use Greph\Text\RegexSearcher;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 

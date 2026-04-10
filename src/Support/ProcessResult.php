@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Phgrep\Support;
+namespace Greph\Support;
 
 final readonly class ProcessResult
 {

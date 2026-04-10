@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Phgrep\Parallel;
+namespace Greph\Parallel;
 
 final class ResultCollector
 {

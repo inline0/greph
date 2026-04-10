@@ -2,12 +2,12 @@
 
 declare(strict_types=1);
 
-namespace Phgrep\Tests\Unit\Ast;
+namespace Greph\Tests\Unit\Ast;
 
-use Phgrep\Ast\AstCandidateFinder;
-use Phgrep\Ast\AstRootMatcher;
-use Phgrep\Ast\Parsers\ParserFactory;
-use Phgrep\Ast\PatternParser;
+use Greph\Ast\AstCandidateFinder;
+use Greph\Ast\AstRootMatcher;
+use Greph\Ast\Parsers\ParserFactory;
+use Greph\Ast\PatternParser;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 

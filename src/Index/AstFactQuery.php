@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace Phgrep\Index;
+namespace Greph\Index;
 
-use Phgrep\Ast\Pattern;
+use Greph\Ast\Pattern;
 use PhpParser\Node;
 use PhpParser\Node\Expr;
 use PhpParser\Node\Identifier;

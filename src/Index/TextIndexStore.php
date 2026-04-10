@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace Phgrep\Index;
+namespace Greph\Index;
 
-use Phgrep\Support\Filesystem;
+use Greph\Support\Filesystem;
 
 final class TextIndexStore
 {
@@ -28,7 +28,7 @@ final class TextIndexStore
 
     public function defaultPath(string $rootPath): string
     {
-        return Filesystem::normalizePath($rootPath) . '/.phgrep-index';
+        return Filesystem::normalizePath($rootPath) . '/.greph-index';
     }
 
     public function exists(string $indexPath): bool

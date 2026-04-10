@@ -2,12 +2,12 @@
 
 declare(strict_types=1);
 
-namespace Phgrep\FeatureMatrix;
+namespace Greph\FeatureMatrix;
 
-use Phgrep\Support\CommandRunner;
-use Phgrep\Support\Filesystem;
-use Phgrep\Support\ProcessResult;
-use Phgrep\Support\ToolResolver;
+use Greph\Support\CommandRunner;
+use Greph\Support\Filesystem;
+use Greph\Support\ProcessResult;
+use Greph\Support\ToolResolver;
 
 final class FeatureMatrixGenerator
 {
@@ -61,7 +61,7 @@ final class FeatureMatrixGenerator
                 $this->generateRgCompatibilitySection($providers),
                 $this->generateSgCompatibilitySection($providers),
                 $this->generateSgAliasSection($providers),
-                $this->generateNativePhgrepSection($providers),
+                $this->generateNativeGrephSection($providers),
                 $this->generateIndexedSection($providers),
                 $this->generateAstLibrarySection($providers),
             ],
@@ -701,7 +701,7 @@ final class FeatureMatrixGenerator
      *   }>
      * }
      */
-    private function generateNativePhgrepSection(array $providers): array
+    private function generateNativeGrephSection(array $providers): array
     {
         $sectionProviders = ['bin/greph'];
 
@@ -716,7 +716,7 @@ final class FeatureMatrixGenerator
                     static fn (self $generator, string $provider): array => $generator->runCommandProbe(
                         $providers[$provider],
                         ['-F', '--json', 'needle', '.'],
-                        static fn (ProcessResult $result): ?string => self::expectPhgrepTextJson($result),
+                        static fn (ProcessResult $result): ?string => self::expectGrephTextJson($result),
                     ),
                 ),
                 $this->buildRow(
@@ -956,7 +956,7 @@ final class FeatureMatrixGenerator
                     static fn (self $generator, string $provider): array => $generator->runIndexedSearchProbe(
                         $providers[$provider],
                         ['search', '-F', '--json', 'needle', '.'],
-                        static fn (ProcessResult $result): ?string => self::expectPhgrepTextJson($result),
+                        static fn (ProcessResult $result): ?string => self::expectGrephTextJson($result),
                     ),
                 ),
                 $this->buildRow(
@@ -1019,13 +1019,13 @@ final class FeatureMatrixGenerator
             'rows' => [
                 $this->buildRow(
                     'AST index build',
-                    'Probe: `Phgrep::buildAstIndex(.)`',
+                    'Probe: `Greph::buildAstIndex(.)`',
                     $sectionProviders,
                     static fn (self $generator, string $provider): array => $generator->runPhpLibraryProbe(
                         $providers[$provider],
                         <<<'PHP'
-require '__PHGREP_ROOT__/vendor/autoload.php';
-$result = Phgrep\Phgrep::buildAstIndex('.');
+require '__GREPH_ROOT__/vendor/autoload.php';
+$result = Greph\Greph::buildAstIndex('.');
 echo json_encode(['file_count' => $result->fileCount, 'index_path' => $result->indexPath], JSON_UNESCAPED_SLASHES);
 PHP,
                         static fn (ProcessResult $result): ?string => self::expectPositiveReportedFileCount(
@@ -1036,14 +1036,14 @@ PHP,
                 ),
                 $this->buildRow(
                     'Indexed AST search',
-                    'Probe: build index, then `Phgrep::searchAstIndexed(array($$$ITEMS), src/App.php)`',
+                    'Probe: build index, then `Greph::searchAstIndexed(array($$$ITEMS), src/App.php)`',
                     $sectionProviders,
                     static fn (self $generator, string $provider): array => $generator->runPhpLibraryProbe(
                         $providers[$provider],
                         <<<'PHP'
-require '__PHGREP_ROOT__/vendor/autoload.php';
-Phgrep\Phgrep::buildAstIndex('.');
-$matches = Phgrep\Phgrep::searchAstIndexed('array($$$ITEMS)', ['src/App.php']);
+require '__GREPH_ROOT__/vendor/autoload.php';
+Greph\Greph::buildAstIndex('.');
+$matches = Greph\Greph::searchAstIndexed('array($$$ITEMS)', ['src/App.php']);
 echo json_encode(array_map(static fn ($match) => ['file' => $match->file, 'code' => $match->code], $matches), JSON_UNESCAPED_SLASHES);
 PHP,
                         static fn (ProcessResult $result): ?string => self::expectExitAndStdoutContains($result, 0, 'array(1, 2, 3)'),
@@ -1056,11 +1056,11 @@ PHP,
                     static fn (self $generator, string $provider): array => $generator->runPhpLibraryProbe(
                         $providers[$provider],
                         <<<'PHP'
-require '__PHGREP_ROOT__/vendor/autoload.php';
-Phgrep\Phgrep::buildAstIndex('.');
+require '__GREPH_ROOT__/vendor/autoload.php';
+Greph\Greph::buildAstIndex('.');
 file_put_contents('src/App.php', file_get_contents('src/App.php') . "\ndispatch(\$refreshed);\n");
-Phgrep\Phgrep::refreshAstIndex('.');
-$matches = Phgrep\Phgrep::searchAstIndexed('dispatch($EVENT)', ['src/App.php']);
+Greph\Greph::refreshAstIndex('.');
+$matches = Greph\Greph::searchAstIndexed('dispatch($EVENT)', ['src/App.php']);
 echo json_encode(array_map(static fn ($match) => ['file' => $match->file, 'code' => $match->code], $matches), JSON_UNESCAPED_SLASHES);
 PHP,
                         static fn (ProcessResult $result): ?string => self::expectExitAndStdoutContains($result, 0, 'dispatch($refreshed)'),
@@ -1068,13 +1068,13 @@ PHP,
                 ),
                 $this->buildRow(
                     'AST cache build',
-                    'Probe: `Phgrep::buildAstCache(.)`',
+                    'Probe: `Greph::buildAstCache(.)`',
                     $sectionProviders,
                     static fn (self $generator, string $provider): array => $generator->runPhpLibraryProbe(
                         $providers[$provider],
                         <<<'PHP'
-require '__PHGREP_ROOT__/vendor/autoload.php';
-$result = Phgrep\Phgrep::buildAstCache('.');
+require '__GREPH_ROOT__/vendor/autoload.php';
+$result = Greph\Greph::buildAstCache('.');
 echo json_encode(['file_count' => $result->fileCount, 'index_path' => $result->indexPath], JSON_UNESCAPED_SLASHES);
 PHP,
                         static fn (ProcessResult $result): ?string => self::expectPositiveReportedFileCount(
@@ -1085,14 +1085,14 @@ PHP,
                 ),
                 $this->buildRow(
                     'Cached AST search',
-                    'Probe: build cache, then `Phgrep::searchAstCached(array($$$ITEMS), src/App.php)`',
+                    'Probe: build cache, then `Greph::searchAstCached(array($$$ITEMS), src/App.php)`',
                     $sectionProviders,
                     static fn (self $generator, string $provider): array => $generator->runPhpLibraryProbe(
                         $providers[$provider],
                         <<<'PHP'
-require '__PHGREP_ROOT__/vendor/autoload.php';
-Phgrep\Phgrep::buildAstCache('.');
-$matches = Phgrep\Phgrep::searchAstCached('array($$$ITEMS)', ['src/App.php']);
+require '__GREPH_ROOT__/vendor/autoload.php';
+Greph\Greph::buildAstCache('.');
+$matches = Greph\Greph::searchAstCached('array($$$ITEMS)', ['src/App.php']);
 echo json_encode(array_map(static fn ($match) => ['file' => $match->file, 'code' => $match->code], $matches), JSON_UNESCAPED_SLASHES);
 PHP,
                         static fn (ProcessResult $result): ?string => self::expectExitAndStdoutContains($result, 0, 'array(1, 2, 3)'),
@@ -1105,11 +1105,11 @@ PHP,
                     static fn (self $generator, string $provider): array => $generator->runPhpLibraryProbe(
                         $providers[$provider],
                         <<<'PHP'
-require '__PHGREP_ROOT__/vendor/autoload.php';
-Phgrep\Phgrep::buildAstCache('.');
+require '__GREPH_ROOT__/vendor/autoload.php';
+Greph\Greph::buildAstCache('.');
 file_put_contents('src/App.php', file_get_contents('src/App.php') . "\ndispatch(\$refreshed);\n");
-Phgrep\Phgrep::refreshAstCache('.');
-$matches = Phgrep\Phgrep::searchAstCached('dispatch($EVENT)', ['src/App.php']);
+Greph\Greph::refreshAstCache('.');
+$matches = Greph\Greph::searchAstCached('dispatch($EVENT)', ['src/App.php']);
 echo json_encode(array_map(static fn ($match) => ['file' => $match->file, 'code' => $match->code], $matches), JSON_UNESCAPED_SLASHES);
 PHP,
                         static fn (ProcessResult $result): ?string => self::expectExitAndStdoutContains($result, 0, 'dispatch($refreshed)'),
@@ -1336,7 +1336,7 @@ PHP,
                 $command = array_values(array_merge(
                     $commandPrefix,
                     ['-r', str_replace(
-                        ['__PHGREP_ROOT__', '__WORKSPACE__'],
+                        ['__GREPH_ROOT__', '__WORKSPACE__'],
                         [$generator->rootPath, $workspace],
                         $script,
                     )],
@@ -1875,7 +1875,7 @@ PHP);
         return null;
     }
 
-    private static function expectPhgrepTextJson(ProcessResult $result): ?string
+    private static function expectGrephTextJson(ProcessResult $result): ?string
     {
         if ($result->exitCode !== 0) {
             return sprintf('Expected exit 0, got %d.', $result->exitCode);

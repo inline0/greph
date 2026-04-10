@@ -2,12 +2,12 @@
 
 declare(strict_types=1);
 
-$phgrepRoot = getenv('PHGREP_ROOT');
+$grephRoot = getenv('GREPH_ROOT');
 
-if (!is_string($phgrepRoot) || $phgrepRoot === '') {
-    $phgrepRoot = dirname(__DIR__);
+if (!is_string($grephRoot) || $grephRoot === '') {
+    $grephRoot = dirname(__DIR__);
 }
 
-$phgrepRoot = rtrim($phgrepRoot, DIRECTORY_SEPARATOR);
+$grephRoot = rtrim($grephRoot, DIRECTORY_SEPARATOR);
 
-require $phgrepRoot . '/vendor/autoload.php';
+require $grephRoot . '/vendor/autoload.php';

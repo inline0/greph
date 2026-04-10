@@ -1,4 +1,4 @@
-# phgrep
+# greph
 
 Pure PHP code search and structural refactoring tool. Two modes: fast text search (like ripgrep) and AST-aware structural search with rewrite (like ast-grep). No extensions, no FFI, no shelling out. Oracle-tested against grep, ripgrep, and ast-grep.
 
@@ -22,7 +22,7 @@ Pure PHP code search and structural refactoring tool. Two modes: fast text searc
 # Oracle management
 ./bin/oracle <name>                      # Capture oracle output (grep/rg/sg)
 ./bin/oracle --refresh <name>            # Re-capture
-./bin/actual <name>                      # Run phgrep, capture output
+./bin/actual <name>                      # Run greph, capture output
 ./bin/compare <name>                     # Diff oracle vs actual
 
 # Unit tests
@@ -34,9 +34,9 @@ composer cs:fix                          # Fix coding standards
 composer analyse                         # PHPStan static analysis
 
 # CLI usage
-./bin/phgrep "pattern" path/             # Text search (grep mode)
-./bin/phgrep -p '$x = new $Class()' src/ # AST search (structural mode)
-./bin/phgrep -p '$OLD' -r '$NEW' src/    # AST rewrite
+./bin/greph "pattern" path/             # Text search (grep mode)
+./bin/greph -p '$x = new $Class()' src/ # AST search (structural mode)
+./bin/greph -p '$OLD' -r '$NEW' src/    # AST rewrite
 ```
 
 ## What This Is
@@ -56,9 +56,9 @@ Not a linter (use PHPStan/Psalm). Not an IDE (use your editor). Not a formatter 
 ## Project Structure
 
 ```
-phgrep/
+greph/
 ├── src/
-│   ├── Phgrep.php                       # Static facade (public API entry point)
+│   ├── Greph.php                       # Static facade (public API entry point)
 │   │
 │   ├── Text/
 │   │   ├── TextSearcher.php             # Core text search engine
@@ -83,7 +83,7 @@ phgrep/
 │   │
 │   ├── Walker/
 │   │   ├── FileWalker.php               # Recursive directory traversal
-│   │   ├── GitignoreFilter.php          # .gitignore / .phgrepignore rule parser and matcher
+│   │   ├── GitignoreFilter.php          # .gitignore / .grephignore rule parser and matcher
 │   │   ├── BinaryDetector.php           # Magic bytes check (skip binary files)
 │   │   ├── FileTypeFilter.php           # Extension-based type filtering (--type php)
 │   │   └── FileList.php                 # Collected file list for distribution to workers
@@ -108,9 +108,9 @@ phgrep/
 │       └── WalkerException.php          # Filesystem access error
 │
 ├── bin/
-│   ├── phgrep                           # CLI entry point
+│   ├── greph                           # CLI entry point
 │   ├── oracle                           # Capture oracle output (grep/rg/ast-grep)
-│   ├── actual                           # Run phgrep, capture output
+│   ├── actual                           # Run greph, capture output
 │   ├── compare                          # Diff oracle vs actual
 │   ├── test-scenario                    # Full pipeline: oracle → actual → compare
 │   ├── test-regression                  # Run all scenarios
@@ -121,7 +121,7 @@ phgrep/
 │   ├── Unit/                            # Isolated component tests
 │   └── Oracle/
 │       ├── OracleCapture.php            # Runs grep/rg/sg, captures structured output
-│       ├── ActualCapture.php            # Runs phgrep, captures same structure
+│       ├── ActualCapture.php            # Runs greph, captures same structure
 │       ├── ScenarioComparator.php       # Diffs oracle vs actual output
 │       ├── ScenarioRunner.php           # Orchestrates: setup → oracle → actual → compare
 │       └── ScenarioRepository.php       # Discovers and loads scenarios from disk
@@ -217,28 +217,28 @@ phgrep/
 The default mode. Matches grep's flags where possible.
 
 ```bash
-phgrep "pattern" [path...]               # Search for regex pattern
-phgrep -F "literal" [path...]            # Fixed string (no regex)
-phgrep -i "pattern" [path...]            # Case insensitive
-phgrep -w "word" [path...]               # Whole word match
-phgrep -v "pattern" [path...]            # Invert match
-phgrep -c "pattern" [path...]            # Count matches per file
-phgrep -l "pattern" [path...]            # List matching files only
-phgrep -L "pattern" [path...]            # List non-matching files
-phgrep -n "pattern" [path...]            # Show line numbers (default)
-phgrep -H "pattern" [path...]            # Show filename (default for multi-file)
-phgrep -r "pattern" [path...]            # Recursive (default)
-phgrep -A 3 "pattern" [path...]          # Show 3 lines after match
-phgrep -B 3 "pattern" [path...]          # Show 3 lines before match
-phgrep -C 3 "pattern" [path...]          # Show 3 lines context
-phgrep -m 10 "pattern" [path...]         # Max 10 matches per file
-phgrep --type php "pattern" [path...]    # Only search PHP files
-phgrep --type-not js "pattern" [path...]  # Exclude JS files
-phgrep --glob "*.php" "pattern" [path...] # Glob file filter
-phgrep --json "pattern" [path...]        # JSON output
-phgrep --no-ignore "pattern" [path...]   # Don't respect gitignore
-phgrep --hidden "pattern" [path...]      # Search hidden files
-phgrep -j 4 "pattern" [path...]         # Use 4 workers
+greph "pattern" [path...]               # Search for regex pattern
+greph -F "literal" [path...]            # Fixed string (no regex)
+greph -i "pattern" [path...]            # Case insensitive
+greph -w "word" [path...]               # Whole word match
+greph -v "pattern" [path...]            # Invert match
+greph -c "pattern" [path...]            # Count matches per file
+greph -l "pattern" [path...]            # List matching files only
+greph -L "pattern" [path...]            # List non-matching files
+greph -n "pattern" [path...]            # Show line numbers (default)
+greph -H "pattern" [path...]            # Show filename (default for multi-file)
+greph -r "pattern" [path...]            # Recursive (default)
+greph -A 3 "pattern" [path...]          # Show 3 lines after match
+greph -B 3 "pattern" [path...]          # Show 3 lines before match
+greph -C 3 "pattern" [path...]          # Show 3 lines context
+greph -m 10 "pattern" [path...]         # Max 10 matches per file
+greph --type php "pattern" [path...]    # Only search PHP files
+greph --type-not js "pattern" [path...]  # Exclude JS files
+greph --glob "*.php" "pattern" [path...] # Glob file filter
+greph --json "pattern" [path...]        # JSON output
+greph --no-ignore "pattern" [path...]   # Don't respect gitignore
+greph --hidden "pattern" [path...]      # Search hidden files
+greph -j 4 "pattern" [path...]         # Use 4 workers
 ```
 
 ### AST Search (ast-grep-compatible)
@@ -247,22 +247,22 @@ Activated by `-p` (pattern) flag. Patterns are written as ordinary PHP code with
 
 ```bash
 # Search for patterns
-phgrep -p 'new $Class()' src/                          # Find all constructor calls
-phgrep -p '$x = array()' src/                          # Find old-style array creation
-phgrep -p 'isset($x) ? $x : $default' src/             # Find ternary isset patterns
-phgrep -p '$obj->$method($$$ARGS)' src/                 # Any method call, any args
-phgrep -p 'function $name($$$PARAMS): void {}' src/     # Void return functions
+greph -p 'new $Class()' src/                          # Find all constructor calls
+greph -p '$x = array()' src/                          # Find old-style array creation
+greph -p 'isset($x) ? $x : $default' src/             # Find ternary isset patterns
+greph -p '$obj->$method($$$ARGS)' src/                 # Any method call, any args
+greph -p 'function $name($$$PARAMS): void {}' src/     # Void return functions
 
 # Rewrite
-phgrep -p 'array($$$ITEMS)' -r '[$$$ITEMS]' src/       # array() → []
-phgrep -p 'isset($x) ? $x : $y' -r '$x ?? $y' src/    # isset ternary → null coalesce
-phgrep -p '$a . $b' -r "\"{$a}{$b}\"" src/              # Concat → interpolation
+greph -p 'array($$$ITEMS)' -r '[$$$ITEMS]' src/       # array() → []
+greph -p 'isset($x) ? $x : $y' -r '$x ?? $y' src/    # isset ternary → null coalesce
+greph -p '$a . $b' -r "\"{$a}{$b}\"" src/              # Concat → interpolation
 
 # Options
-phgrep -p 'pattern' --lang php src/                     # Explicit language
-phgrep -p 'pattern' --json src/                         # JSON output
-phgrep -p 'pattern' -r 'rewrite' --dry-run src/         # Preview changes
-phgrep -p 'pattern' -r 'rewrite' --interactive src/     # Confirm each change
+greph -p 'pattern' --lang php src/                     # Explicit language
+greph -p 'pattern' --json src/                         # JSON output
+greph -p 'pattern' -r 'rewrite' --dry-run src/         # Preview changes
+greph -p 'pattern' -r 'rewrite' --interactive src/     # Confirm each change
 ```
 
 ### Meta-Variable Syntax
@@ -278,22 +278,22 @@ phgrep -p 'pattern' -r 'rewrite' --interactive src/     # Confirm each change
 
 | Constant / Flag | Default | Description |
 |---|---|---|
-| `PHGREP_WORKERS` / `-j` | CPU count | Number of parallel workers |
-| `PHGREP_BUFFER_SIZE` | `65536` | Read buffer size in bytes |
-| `PHGREP_MAX_FILESIZE` | `10M` | Skip files larger than this |
-| `PHGREP_MAX_COLUMNS` | `500` | Truncate long lines in output |
-| `PHGREP_BINARY_CHECK_BYTES` | `512` | Bytes to check for binary detection |
+| `GREPH_WORKERS` / `-j` | CPU count | Number of parallel workers |
+| `GREPH_BUFFER_SIZE` | `65536` | Read buffer size in bytes |
+| `GREPH_MAX_FILESIZE` | `10M` | Skip files larger than this |
+| `GREPH_MAX_COLUMNS` | `500` | Truncate long lines in output |
+| `GREPH_BINARY_CHECK_BYTES` | `512` | Bytes to check for binary detection |
 
 ## Key Rules
 
 1. Pure PHP. No extensions beyond what ships with every PHP install. No FFI. No `exec()`. No shelling out to grep, ripgrep, or ast-grep at runtime. Those tools are oracles for testing, not runtime dependencies.
-2. Three oracles, not one. Text search is tested against both `grep` and `ripgrep`. AST search is tested against `ast-grep --lang php`. All three are captured in oracle output. If phgrep disagrees with all oracles, phgrep is wrong. If oracles disagree with each other, investigate and document.
-3. Text mode grep-compatible output. The default output format must match `grep -rn` exactly: `file:line:content`. This means existing scripts and tools that parse grep output work unchanged with phgrep.
+2. Three oracles, not one. Text search is tested against both `grep` and `ripgrep`. AST search is tested against `ast-grep --lang php`. All three are captured in oracle output. If greph disagrees with all oracles, greph is wrong. If oracles disagree with each other, investigate and document.
+3. Text mode grep-compatible output. The default output format must match `grep -rn` exactly: `file:line:content`. This means existing scripts and tools that parse grep output work unchanged with greph.
 4. AST mode uses nikic/PHP-Parser. This is the only Composer dependency. It is pure PHP, actively maintained, and handles PHP 7/8+ syntax completely. No tree-sitter, no C bindings. PHP files only for v1. Other languages are a future concern.
 5. Performance is measured, not assumed. Every PR must not regress benchmarks. The benchmark suite runs against real corpora (WordPress, Laravel) and synthetic datasets. Results are tracked over time.
 6. Parallel scanning via pcntl_fork. The file walker produces a file list, the work splitter distributes it across N workers, each worker searches independently, results are collected via pipes. If pcntl is unavailable (Windows, some hosting), fall back to single-process gracefully.
 7. Literal prefix extraction is the single biggest text search optimization. Before applying PCRE2, extract literal substrings from the pattern and use `strpos()` (C-speed) to pre-filter. For fixed-string searches (`-F`), skip regex entirely.
-8. Gitignore pruning is the single biggest I/O optimization. Parse `.gitignore`, `.phgrepignore`, and `$GIT_DIR/info/exclude`. Prune entire directory trees before reading any files. This typically eliminates 90%+ of filesystem I/O (node_modules, vendor, .git).
+8. Gitignore pruning is the single biggest I/O optimization. Parse `.gitignore`, `.grephignore`, and `$GIT_DIR/info/exclude`. Prune entire directory trees before reading any files. This typically eliminates 90%+ of filesystem I/O (node_modules, vendor, .git).
 9. Large buffer reads, not line-by-line. Read files in 64KB chunks with `fread()`, find newlines in the buffer manually. This reduces syscall count dramatically compared to `fgets()` per line.
 10. AST patterns are valid PHP. The pattern `$x = new $Class()` is parsed by PHP-Parser the same way source code is. Meta-variables (`$VAR`, `$$$ARGS`) are recognized by name convention after parsing. This means patterns get syntax checking for free.
 11. AST rewrite is format-preserving. When replacing matched code, preserve surrounding whitespace, indentation, and comments. Use the original source positions from PHP-Parser to splice in the rewritten fragment.
@@ -316,10 +316,10 @@ Same oracle-driven verification model as pitmaster and php-browser (sibling proj
 
 The test infrastructure mirrors the same fixture/scenario system:
 
-| Concept | php-browser | pitmaster | phgrep |
+| Concept | php-browser | pitmaster | greph |
 |---|---|---|---|
 | Oracle | Chromium | `git` | `grep` + `rg` + `ast-grep` |
-| Actual | PHP renderer | Pitmaster | phgrep |
+| Actual | PHP renderer | Pitmaster | greph |
 | Fixture/Scenario | `fixtures/<name>/` | `scenarios/<cat>/<name>/` | `scenarios/<cat>/<name>/` |
 | Pipeline | oracle → render → compare | oracle → actual → compare | oracle → actual → compare |
 | Combined | `./bin/test-fixture` | `./bin/test-scenario` | `./bin/test-scenario` |
@@ -342,8 +342,8 @@ scenarios/text/literal-simple/
 │   ├── rg.txt                    # ripgrep output
 │   └── rg.json                   # ripgrep JSON output (for structured comparison)
 ├── actual/
-│   ├── phgrep.txt                # phgrep output
-│   └── phgrep.json               # phgrep JSON output
+│   ├── greph.txt                # greph output
+│   └── greph.json               # greph JSON output
 └── reports/
     └── comparison.json           # Diff results per oracle
 ```
@@ -381,8 +381,8 @@ scenarios/ast/match-function-call/
 │   ├── sg.txt                    # ast-grep output
 │   └── sg.json                   # ast-grep JSON output
 ├── actual/
-│   ├── phgrep.txt
-│   └── phgrep.json
+│   ├── greph.txt
+│   └── greph.json
 └── reports/
     └── comparison.json
 ```
@@ -405,7 +405,7 @@ Grep, ripgrep, and ast-grep sometimes produce different results. Document disagr
 {
     "oracle_disagreement": {
         "grep_vs_rg": "grep matches binary files by default, rg skips them",
-        "phgrep_follows": "rg",
+        "greph_follows": "rg",
         "reason": "Binary file matching is rarely desired, rg's default is safer"
     }
 }
@@ -441,7 +441,7 @@ Benchmarks are first-class. They run in CI and results are tracked over time.
 ### Benchmark Report Format
 
 ```
-phgrep Benchmark Report
+greph Benchmark Report
 =======================
 Corpus: WordPress (2,547 files, 1,482,391 lines)
 Workers: 4

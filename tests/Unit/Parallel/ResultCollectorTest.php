@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace Phgrep\Tests\Unit\Parallel;
+namespace Greph\Tests\Unit\Parallel;
 
-use Phgrep\Parallel\ResultCollector;
+use Greph\Parallel\ResultCollector;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
@@ -73,7 +73,7 @@ final class ResultCollectorTest extends TestCase
     {
         $this->requirePcntl();
 
-        $tempPath = tempnam(sys_get_temp_dir(), 'phgrep-result-');
+        $tempPath = tempnam(sys_get_temp_dir(), 'greph-result-');
         $this->assertNotFalse($tempPath);
         file_put_contents($tempPath, serialize(['result' => 'seekable']));
         $handle = fopen($tempPath, 'rb');

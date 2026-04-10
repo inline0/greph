@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Phgrep\Tests\Oracle;
+namespace Greph\Tests\Oracle;
 
 final readonly class Scenario
 {
@@ -148,7 +148,7 @@ final readonly class Scenario
      */
     public function expectedActualFiles(): array
     {
-        return ['phgrep.txt', 'phgrep.json'];
+        return ['greph.txt', 'greph.json'];
     }
 
     /**

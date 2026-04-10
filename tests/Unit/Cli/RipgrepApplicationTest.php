@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace Phgrep\Tests\Unit\Cli;
+namespace Greph\Tests\Unit\Cli;
 
-use Phgrep\Cli\RipgrepApplication;
-use Phgrep\Tests\Support\Workspace;
+use Greph\Cli\RipgrepApplication;
+use Greph\Tests\Support\Workspace;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
@@ -230,17 +230,17 @@ final class RipgrepApplicationTest extends TestCase
             $application,
             'formatCounts',
             [
-                new \Phgrep\Text\TextFileResult('match.txt', [new \Phgrep\Text\TextMatch('match.txt', 1, 1, 'needle', 'needle')], 1),
-                new \Phgrep\Text\TextFileResult('empty.txt', [], 0),
+                new \Greph\Text\TextFileResult('match.txt', [new \Greph\Text\TextMatch('match.txt', 1, 1, 'needle', 'needle')], 1),
+                new \Greph\Text\TextFileResult('empty.txt', [], 0),
             ],
-            new \Phgrep\Text\TextSearchOptions(showFileNames: true),
+            new \Greph\Text\TextSearchOptions(showFileNames: true),
         );
         $nonMatchingFiles = $this->invokeMethod(
             $application,
             'formatFileList',
             [
-                new \Phgrep\Text\TextFileResult('match.txt', [new \Phgrep\Text\TextMatch('match.txt', 1, 1, 'needle', 'needle')], 1),
-                new \Phgrep\Text\TextFileResult('empty.txt', [], 0),
+                new \Greph\Text\TextFileResult('match.txt', [new \Greph\Text\TextMatch('match.txt', 1, 1, 'needle', 'needle')], 1),
+                new \Greph\Text\TextFileResult('empty.txt', [], 0),
             ],
             false,
         );
@@ -249,14 +249,14 @@ final class RipgrepApplicationTest extends TestCase
             $application,
             'absoluteOffset',
             $this->workspace . '/empty.txt',
-            new \Phgrep\Text\TextMatch('empty.txt', 1, 2, 'needle', 'needle'),
+            new \Greph\Text\TextMatch('empty.txt', 1, 2, 'needle', 'needle'),
         );
         Workspace::writeFile($this->workspace, 'single-line.txt', 'needle');
         $truncatedOffset = $this->invokeMethod(
             $application,
             'absoluteOffset',
             $this->workspace . '/single-line.txt',
-            new \Phgrep\Text\TextMatch('single-line.txt', 2, 3, 'needle', 'needle'),
+            new \Greph\Text\TextMatch('single-line.txt', 2, 3, 'needle', 'needle'),
         );
         $displayNames = $this->invokeMethod(
             $application,

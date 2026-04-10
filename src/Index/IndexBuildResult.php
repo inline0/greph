@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Phgrep\Index;
+namespace Greph\Index;
 
 final readonly class IndexBuildResult
 {

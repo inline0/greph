@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace Phgrep\Tests\Unit\Cli;
+namespace Greph\Tests\Unit\Cli;
 
-use Phgrep\Cli\Application;
-use Phgrep\Tests\Support\Workspace;
-use Phgrep\Walker\FileTypeFilter;
+use Greph\Cli\Application;
+use Greph\Tests\Support\Workspace;
+use Greph\Walker\FileTypeFilter;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
@@ -48,7 +48,7 @@ PHP);
             $application,
             'parseArguments',
             [
-                'phgrep',
+                'greph',
                 '-F',
                 '-i',
                 '-w',
@@ -125,11 +125,11 @@ PHP);
     {
         $application = $this->newApplication()['application'];
         /** @var array<string, mixed> $help */
-        $help = $this->invokePrivate($application, 'parseArguments', ['phgrep', '--help']);
+        $help = $this->invokePrivate($application, 'parseArguments', ['greph', '--help']);
         /** @var array<string, mixed> $defaultPath */
-        $defaultPath = $this->invokePrivate($application, 'parseArguments', ['phgrep', 'needle']);
+        $defaultPath = $this->invokePrivate($application, 'parseArguments', ['greph', 'needle']);
         /** @var array<string, mixed> $doubleDash */
-        $doubleDash = $this->invokePrivate($application, 'parseArguments', ['phgrep', '-F', '--', '-literal', 'single.txt']);
+        $doubleDash = $this->invokePrivate($application, 'parseArguments', ['greph', '-F', '--', '-literal', 'single.txt']);
 
         $this->assertTrue($help['help']);
         $this->assertSame(['.'], $defaultPath['paths']);
@@ -144,7 +144,7 @@ PHP);
 
         $this->expectException(\InvalidArgumentException::class);
         $this->expectExceptionMessage('Unknown argument: --bogus');
-        $this->invokePrivate($application, 'parseArguments', ['phgrep', '--bogus']);
+        $this->invokePrivate($application, 'parseArguments', ['greph', '--bogus']);
     }
 
     #[Test]
@@ -154,7 +154,7 @@ PHP);
 
         $this->expectException(\InvalidArgumentException::class);
         $this->expectExceptionMessage('Missing value for -A.');
-        $this->invokePrivate($application, 'parseArguments', ['phgrep', '-A']);
+        $this->invokePrivate($application, 'parseArguments', ['greph', '-A']);
     }
 
     #[Test]
@@ -177,12 +177,12 @@ PHP);
         $harness = $this->newApplication();
         $application = $harness['application'];
 
-        $helpExit = $application->run(['phgrep', '--help']);
-        $missingPatternExit = $application->run(['phgrep']);
-        $matchExit = $application->run(['phgrep', '-F', 'needle', 'single.txt']);
-        $jsonExit = $application->run(['phgrep', '-F', '--json', 'needle', 'single.txt']);
-        $noMatchExit = $application->run(['phgrep', '-F', 'missing', 'single.txt']);
-        $filesWithoutMatchesExit = $application->run(['phgrep', '-F', '-L', 'needle', '.']);
+        $helpExit = $application->run(['greph', '--help']);
+        $missingPatternExit = $application->run(['greph']);
+        $matchExit = $application->run(['greph', '-F', 'needle', 'single.txt']);
+        $jsonExit = $application->run(['greph', '-F', '--json', 'needle', 'single.txt']);
+        $noMatchExit = $application->run(['greph', '-F', 'missing', 'single.txt']);
+        $filesWithoutMatchesExit = $application->run(['greph', '-F', '-L', 'needle', '.']);
 
         $stdout = $this->readStream($harness['stdout']);
         $stderr = $this->readStream($harness['stderr']);
@@ -206,10 +206,10 @@ PHP);
         $searchHarness = $this->newApplication();
         $searchApplication = $searchHarness['application'];
 
-        $plainSearchExit = $searchApplication->run(['phgrep', '-p', 'array($$$ITEMS)', 'src/App.php']);
-        $jsonSearchExit = $searchApplication->run(['phgrep', '-p', 'array($$$ITEMS)', '--json', 'src/App.php']);
-        $noMatchExit = $searchApplication->run(['phgrep', '-p', 'new $CLASS()', 'src/Other.php']);
-        $dryRunExit = $searchApplication->run(['phgrep', '-p', 'array($$$ITEMS)', '-r', '[$$$ITEMS]', '--dry-run', 'src/App.php']);
+        $plainSearchExit = $searchApplication->run(['greph', '-p', 'array($$$ITEMS)', 'src/App.php']);
+        $jsonSearchExit = $searchApplication->run(['greph', '-p', 'array($$$ITEMS)', '--json', 'src/App.php']);
+        $noMatchExit = $searchApplication->run(['greph', '-p', 'new $CLASS()', 'src/Other.php']);
+        $dryRunExit = $searchApplication->run(['greph', '-p', 'array($$$ITEMS)', '-r', '[$$$ITEMS]', '--dry-run', 'src/App.php']);
 
         $searchOutput = $this->readStream($searchHarness['stdout']);
 
@@ -224,7 +224,7 @@ PHP);
 
         $interactiveRejectHarness = $this->newApplication("n\n");
         $interactiveRejectExit = $interactiveRejectHarness['application']->run(
-            ['phgrep', '-p', 'array($$$ITEMS)', '-r', '[$$$ITEMS]', '--interactive', 'src/App.php']
+            ['greph', '-p', 'array($$$ITEMS)', '-r', '[$$$ITEMS]', '--interactive', 'src/App.php']
         );
 
         $this->assertSame(0, $interactiveRejectExit);
@@ -233,7 +233,7 @@ PHP);
 
         $interactiveAcceptHarness = $this->newApplication("yes\n");
         $interactiveAcceptExit = $interactiveAcceptHarness['application']->run(
-            ['phgrep', '-p', 'array($$$ITEMS)', '-r', '[$$$ITEMS]', '--interactive', 'src/App.php']
+            ['greph', '-p', 'array($$$ITEMS)', '-r', '[$$$ITEMS]', '--interactive', 'src/App.php']
         );
 
         $this->assertSame(0, $interactiveAcceptExit);
@@ -242,7 +242,7 @@ PHP);
 
         $rewriteNoChangeHarness = $this->newApplication();
         $rewriteNoChangeExit = $rewriteNoChangeHarness['application']->run(
-            ['phgrep', '-p', 'new $CLASS()', '-r', '$CLASS::make()', 'src/Other.php']
+            ['greph', '-p', 'new $CLASS()', '-r', '$CLASS::make()', 'src/Other.php']
         );
 
         $this->assertSame(1, $rewriteNoChangeExit);

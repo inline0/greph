@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace Phgrep\Tests\Unit\Index;
+namespace Greph\Tests\Unit\Index;
 
-use Phgrep\Index\TextIndexBuilder;
-use Phgrep\Index\TextIndexStore;
-use Phgrep\Tests\Support\Workspace;
+use Greph\Index\TextIndexBuilder;
+use Greph\Index\TextIndexStore;
+use Greph\Tests\Support\Workspace;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
@@ -39,7 +39,7 @@ final class TextIndexBuilderTest extends TestCase
 
         $this->assertSame(4, $buildResult->fileCount);
         $this->assertGreaterThan(0, $buildResult->trigramCount);
-        $this->assertSame($this->workspace . '/.phgrep-index', $buildResult->indexPath);
+        $this->assertSame($this->workspace . '/.greph-index', $buildResult->indexPath);
         $this->assertSame($this->workspace, $index->rootPath);
         $this->assertCount(4, $index->files);
         $this->assertTrue($store->exists($buildResult->indexPath));
@@ -78,9 +78,9 @@ final class TextIndexBuilderTest extends TestCase
             $refreshedIndex->files,
         );
 
-        $this->assertNotContains('.phgrep-index/files.phpbin', $refreshedPaths);
-        $this->assertNotContains('.phgrep-index/metadata.phpbin', $refreshedPaths);
-        $this->assertNotContains('.phgrep-index/postings.phpbin', $refreshedPaths);
+        $this->assertNotContains('.greph-index/files.phpbin', $refreshedPaths);
+        $this->assertNotContains('.greph-index/metadata.phpbin', $refreshedPaths);
+        $this->assertNotContains('.greph-index/postings.phpbin', $refreshedPaths);
     }
 
     #[Test]
@@ -105,7 +105,7 @@ final class TextIndexBuilderTest extends TestCase
 
         $absoluteIndexPath = $this->invokeMethod($builder, 'resolveIndexPath', $this->workspace, '/tmp/custom-text-index');
         $relativeIndexPath = $this->invokeMethod($builder, 'resolveIndexPath', $this->workspace, '.alt-index');
-        $scannedFiles = $this->invokeMethod($builder, 'scanFiles', $this->workspace, $this->workspace . '/.phgrep-index');
+        $scannedFiles = $this->invokeMethod($builder, 'scanFiles', $this->workspace, $this->workspace . '/.greph-index');
         $postings = $this->invokeMethod($builder, 'buildPostings', [3 => ['ghi', 'abc'], 1 => ['abc', 'def']]);
         $missingTerms = $this->invokeMethod($builder, 'extractFileTerms', $this->workspace . '/missing.txt');
         $words = $this->invokeMethod($builder, 'extractFileWords', "<?php\nFunction function OTHER\n");
@@ -133,7 +133,7 @@ final class TextIndexBuilderTest extends TestCase
         $builder = new TextIndexBuilder();
         $result = $builder->refresh($this->workspace);
 
-        $this->assertSame($this->workspace . '/.phgrep-index', $result->indexPath);
+        $this->assertSame($this->workspace . '/.greph-index', $result->indexPath);
         $this->assertSame($result->fileCount, $result->addedFiles);
         $this->assertGreaterThan(0, $result->trigramCount);
     }

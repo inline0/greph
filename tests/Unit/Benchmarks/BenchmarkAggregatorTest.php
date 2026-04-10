@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace Phgrep\Tests\Unit\Benchmarks;
+namespace Greph\Tests\Unit\Benchmarks;
 
-use Phgrep\Benchmarks\BenchmarkAggregator;
-use Phgrep\Benchmarks\BenchmarkResult;
+use Greph\Benchmarks\BenchmarkAggregator;
+use Greph\Benchmarks\BenchmarkResult;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
@@ -54,7 +54,7 @@ final class BenchmarkAggregatorTest extends TestCase
             suite: 'text-literal',
             operation: 'literal',
             corpus: 'wordpress',
-            tool: 'phgrep',
+            tool: 'greph',
             durationMs: $durationMs,
             memoryBytes: $memoryBytes,
             fileCount: 10,

@@ -2,7 +2,7 @@
 
 Generated from live command probes, not hand-maintained guesses.
 
-Generated at `2026-04-10T16:07:22+00:00` from real fixture workspaces. Raw evidence is stored in [FEATURE_MATRIX.json](FEATURE_MATRIX.json).
+Generated at `2026-04-10T17:01:41+00:00` from real fixture workspaces. Raw evidence is stored in [FEATURE_MATRIX.json](FEATURE_MATRIX.json).
 
 Status legend:
 - `Pass`: the command probe succeeded.
@@ -105,10 +105,10 @@ Status legend:
 
 | Feature | php/lib | Notes |
 | --- | --- | --- |
-| AST index build | Pass | Probe: `Phgrep::buildAstIndex(.)` |
-| Indexed AST search | Pass | Probe: build index, then `Phgrep::searchAstIndexed(array($$$ITEMS), src/App.php)` |
+| AST index build | Pass | Probe: `Greph::buildAstIndex(.)` |
+| Indexed AST search | Pass | Probe: build index, then `Greph::searchAstIndexed(array($$$ITEMS), src/App.php)` |
 | AST index refresh | Pass | Probe: build index, edit fixture, refresh, then re-run indexed AST search |
-| AST cache build | Pass | Probe: `Phgrep::buildAstCache(.)` |
-| Cached AST search | Pass | Probe: build cache, then `Phgrep::searchAstCached(array($$$ITEMS), src/App.php)` |
+| AST cache build | Pass | Probe: `Greph::buildAstCache(.)` |
+| Cached AST search | Pass | Probe: build cache, then `Greph::searchAstCached(array($$$ITEMS), src/App.php)` |
 | AST cache refresh | Pass | Probe: build cache, edit fixture, refresh, then re-run cached AST search |
 

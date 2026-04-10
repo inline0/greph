@@ -2,12 +2,12 @@
 
 declare(strict_types=1);
 
-namespace Phgrep\Index;
+namespace Greph\Index;
 
-use Phgrep\Support\Filesystem;
-use Phgrep\Text\TextFileResult;
-use Phgrep\Text\TextResultCodec;
-use Phgrep\Text\TextSearchOptions;
+use Greph\Support\Filesystem;
+use Greph\Text\TextFileResult;
+use Greph\Text\TextResultCodec;
+use Greph\Text\TextSearchOptions;
 
 final class TextQueryCacheStore
 {

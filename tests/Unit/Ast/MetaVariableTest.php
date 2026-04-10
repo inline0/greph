@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace Phgrep\Tests\Unit\Ast;
+namespace Greph\Tests\Unit\Ast;
 
-use Phgrep\Ast\MetaVariable;
+use Greph\Ast\MetaVariable;
 use PhpParser\Node\Arg;
 use PhpParser\Node\ArrayItem;
 use PhpParser\Node\Expr\Variable;

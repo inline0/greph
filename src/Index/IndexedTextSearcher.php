@@ -2,14 +2,14 @@
 
 declare(strict_types=1);
 
-namespace Phgrep\Index;
+namespace Greph\Index;
 
-use Phgrep\Support\Filesystem;
-use Phgrep\Text\LiteralExtractor;
-use Phgrep\Text\TextFileResult;
-use Phgrep\Text\TextSearchOptions;
-use Phgrep\Text\TextSearcher;
-use Phgrep\Walker\FileList;
+use Greph\Support\Filesystem;
+use Greph\Text\LiteralExtractor;
+use Greph\Text\TextFileResult;
+use Greph\Text\TextSearchOptions;
+use Greph\Text\TextSearcher;
+use Greph\Walker\FileList;
 
 final class IndexedTextSearcher
 {

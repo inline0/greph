@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Phgrep\Benchmarks;
+namespace Greph\Benchmarks;
 
 final class BenchmarkComparisonReport
 {
@@ -23,7 +23,7 @@ final class BenchmarkComparisonReport
             '- otherwise `noise`',
             '- spread shown as `min..max / n` from the repeated measured runs',
             '',
-            '## phgrep delta',
+            '## greph delta',
             '',
             '| Signal | Corpus | Category | Operation | Base | Base spread | Head | Head spread | Delta | Change |',
             '| --- | --- | --- | --- | ---: | --- | ---: | --- | ---: | ---: |',
@@ -42,7 +42,7 @@ final class BenchmarkComparisonReport
                 continue;
             }
 
-            if ($baseResult->tool !== 'phgrep') {
+            if ($baseResult->tool !== 'greph') {
                 continue;
             }
 
@@ -69,7 +69,7 @@ final class BenchmarkComparisonReport
         $lines[] = '';
         $lines[] = '## Head Snapshot vs external tools';
         $lines[] = '';
-        $lines[] = '| Corpus | Category | Operation | phgrep | Fastest external | Gap |';
+        $lines[] = '| Corpus | Category | Operation | greph | Fastest external | Gap |';
         $lines[] = '| --- | --- | --- | ---: | ---: | ---: |';
 
         foreach ($this->groupHeadRows($head) as $row) {
@@ -78,17 +78,17 @@ final class BenchmarkComparisonReport
                 $row['corpus'],
                 $row['category'],
                 $row['operation'],
-                $row['phgrep']->durationMs,
+                $row['greph']->durationMs,
                 $row['external']->durationMs,
                 $row['external']->tool,
-                (($row['phgrep']->durationMs - $row['external']->durationMs) / $row['external']->durationMs) * 100,
+                (($row['greph']->durationMs - $row['external']->durationMs) / $row['external']->durationMs) * 100,
             );
         }
 
         $lines[] = '';
         $lines[] = '## Head Memory Snapshot';
         $lines[] = '';
-        $lines[] = '| Corpus | Category | Operation | phgrep peak memory |';
+        $lines[] = '| Corpus | Category | Operation | greph peak memory |';
         $lines[] = '| --- | --- | --- | ---: |';
 
         foreach ($this->headMemoryRows($head) as $row) {
@@ -152,11 +152,11 @@ final class BenchmarkComparisonReport
 
     /**
      * @param list<BenchmarkResult> $results
-     * @return list<array{corpus: string, category: string, operation: string, phgrep: BenchmarkResult, external: BenchmarkResult}>
+     * @return list<array{corpus: string, category: string, operation: string, greph: BenchmarkResult, external: BenchmarkResult}>
      */
     private function groupHeadRows(array $results): array
     {
-        /** @var array<string, array{corpus: string, category: string, operation: string, phgrep?: BenchmarkResult, external?: BenchmarkResult}> $grouped */
+        /** @var array<string, array{corpus: string, category: string, operation: string, greph?: BenchmarkResult, external?: BenchmarkResult}> $grouped */
         $grouped = [];
 
         foreach ($results as $result) {
@@ -169,8 +169,8 @@ final class BenchmarkComparisonReport
             $grouped[$key]['category'] = $result->category;
             $grouped[$key]['operation'] = $result->operation;
 
-            if ($result->tool === 'phgrep') {
-                $grouped[$key]['phgrep'] = $result;
+            if ($result->tool === 'greph') {
+                $grouped[$key]['greph'] = $result;
                 continue;
             }
 
@@ -179,16 +179,16 @@ final class BenchmarkComparisonReport
             }
         }
 
-        /** @var list<array{corpus: string, category: string, operation: string, phgrep: BenchmarkResult, external: BenchmarkResult}> $rows */
+        /** @var list<array{corpus: string, category: string, operation: string, greph: BenchmarkResult, external: BenchmarkResult}> $rows */
         $rows = [];
 
         foreach ($grouped as $group) {
-            if (!isset($group['phgrep'], $group['external'])) {
+            if (!isset($group['greph'], $group['external'])) {
                 continue;
             }
 
-            /** @var BenchmarkResult $phgrep */
-            $phgrep = $group['phgrep'];
+            /** @var BenchmarkResult $greph */
+            $greph = $group['greph'];
             /** @var BenchmarkResult $external */
             $external = $group['external'];
 
@@ -196,7 +196,7 @@ final class BenchmarkComparisonReport
                 'corpus' => $group['corpus'],
                 'category' => $group['category'],
                 'operation' => $group['operation'],
-                'phgrep' => $phgrep,
+                'greph' => $greph,
                 'external' => $external,
             ];
         }
@@ -225,7 +225,7 @@ final class BenchmarkComparisonReport
     {
         $rows = array_values(array_filter(
             $results,
-            static fn (BenchmarkResult $result): bool => !$result->skipped && $result->tool === 'phgrep',
+            static fn (BenchmarkResult $result): bool => !$result->skipped && $result->tool === 'greph',
         ));
 
         usort(

@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace Phgrep\Tests\Unit\Walker;
+namespace Greph\Tests\Unit\Walker;
 
-use Phgrep\Walker\FileTypeFilter;
+use Greph\Walker\FileTypeFilter;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 

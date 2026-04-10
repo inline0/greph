@@ -2,22 +2,22 @@
 
 declare(strict_types=1);
 
-namespace Phgrep\Tests\Integration;
+namespace Greph\Tests\Integration;
 
-use Phgrep\Ast\AstSearchOptions;
-use Phgrep\Phgrep;
-use Phgrep\Tests\Support\Workspace;
-use Phgrep\Text\TextSearchOptions;
+use Greph\Ast\AstSearchOptions;
+use Greph\Greph;
+use Greph\Tests\Support\Workspace;
+use Greph\Text\TextSearchOptions;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
-final class PhgrepParallelThresholdTest extends TestCase
+final class GrephParallelThresholdTest extends TestCase
 {
     private string $workspace;
 
     protected function setUp(): void
     {
-        $this->workspace = Workspace::createDirectory('phgrep-parallel-threshold');
+        $this->workspace = Workspace::createDirectory('greph-parallel-threshold');
 
         for ($index = 0; $index < 1501; $index++) {
             Workspace::writeFile($this->workspace, sprintf('text/Search%04d.php', $index), "<?php\nfunction demo(): void {}\n");
@@ -41,17 +41,17 @@ final class PhgrepParallelThresholdTest extends TestCase
             $astPaths[] = $this->workspace . sprintf('/ast/Ast%04d.php', $index);
         }
 
-        $textResults = Phgrep::searchText(
+        $textResults = Greph::searchText(
             'function',
             $textPaths,
             new TextSearchOptions(fixedString: true, jobs: 2),
         );
-        $astResults = Phgrep::searchAst(
+        $astResults = Greph::searchAst(
             'new $CLASS()',
             $astPaths,
             new AstSearchOptions(jobs: 2),
         );
-        $rewriteResults = Phgrep::rewriteAst(
+        $rewriteResults = Greph::rewriteAst(
             'array($$$ITEMS)',
             '[$$$ITEMS]',
             $astPaths,
@@ -76,7 +76,7 @@ final class PhgrepParallelThresholdTest extends TestCase
             $paths[] = $path;
         }
 
-        $results = Phgrep::searchText(
+        $results = Greph::searchText(
             'function demo',
             $paths,
             new TextSearchOptions(jobs: 2),

@@ -2,12 +2,12 @@
 
 declare(strict_types=1);
 
-namespace Phgrep\Tests\Oracle;
+namespace Greph\Tests\Oracle;
 
-use Phgrep\Support\CommandRunner;
-use Phgrep\Support\Filesystem;
-use Phgrep\Support\Json;
-use Phgrep\Support\ToolResolver;
+use Greph\Support\CommandRunner;
+use Greph\Support\Filesystem;
+use Greph\Support\Json;
+use Greph\Support\ToolResolver;
 
 final class OracleCapture
 {

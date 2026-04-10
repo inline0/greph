@@ -2,23 +2,23 @@
 
 declare(strict_types=1);
 
-namespace Phgrep\Benchmarks;
+namespace Greph\Benchmarks;
 
-use Phgrep\Ast\AstSearchOptions;
-use Phgrep\Index\AstCacheBuilder;
-use Phgrep\Index\AstCacheStore;
-use Phgrep\Index\AstIndexBuilder;
-use Phgrep\Index\AstIndexStore;
-use Phgrep\Index\TextIndexBuilder;
-use Phgrep\Index\TextIndexStore;
-use Phgrep\Index\TextQueryCacheStore;
-use Phgrep\Index\TrigramExtractor;
-use Phgrep\Phgrep;
-use Phgrep\Support\CommandRunner;
-use Phgrep\Support\Filesystem;
-use Phgrep\Support\Json;
-use Phgrep\Support\ToolResolver;
-use Phgrep\Text\TextSearchOptions;
+use Greph\Ast\AstSearchOptions;
+use Greph\Index\AstCacheBuilder;
+use Greph\Index\AstCacheStore;
+use Greph\Index\AstIndexBuilder;
+use Greph\Index\AstIndexStore;
+use Greph\Index\TextIndexBuilder;
+use Greph\Index\TextIndexStore;
+use Greph\Index\TextQueryCacheStore;
+use Greph\Index\TrigramExtractor;
+use Greph\Greph;
+use Greph\Support\CommandRunner;
+use Greph\Support\Filesystem;
+use Greph\Support\Json;
+use Greph\Support\ToolResolver;
+use Greph\Text\TextSearchOptions;
 
 final class BenchmarkRunner
 {
@@ -56,7 +56,7 @@ final class BenchmarkRunner
                     continue;
                 }
 
-                $results[] = $this->runPhgrepBenchmark($suite, $corpusName, $corpusPath);
+                $results[] = $this->runGrephBenchmark($suite, $corpusName, $corpusPath);
 
                 foreach ($compareTools as $tool) {
                     $external = $this->runExternalBenchmark($suite, $tool, $corpusName, $corpusPath);
@@ -74,9 +74,9 @@ final class BenchmarkRunner
     /**
      * @param array<string, mixed> $suite
      */
-    private function runPhgrepBenchmark(array $suite, string $corpusName, string $corpusPath): BenchmarkResult
+    private function runGrephBenchmark(array $suite, string $corpusName, string $corpusPath): BenchmarkResult
     {
-        $fileCount = iterator_count(Phgrep::walk($corpusPath));
+        $fileCount = iterator_count(Greph::walk($corpusPath));
         $indexPath = $this->rootPath . '/build/benchmarks/indexes/' . $corpusName;
         $astIndexPath = $this->rootPath . '/build/benchmarks/ast-indexes/' . $corpusName;
         $astCachePath = $this->rootPath . '/build/benchmarks/ast-caches/' . $corpusName;
@@ -105,7 +105,7 @@ final class BenchmarkRunner
 
         switch ($suite['category']) {
             case 'text':
-                $results = Phgrep::searchText((string) $suite['pattern'], $corpusPath, new TextSearchOptions(
+                $results = Greph::searchText((string) $suite['pattern'], $corpusPath, new TextSearchOptions(
                     fixedString: (bool) ($suite['fixed'] ?? false),
                     caseInsensitive: (bool) ($suite['case_insensitive'] ?? false),
                     wholeWord: (bool) ($suite['whole_word'] ?? false),
@@ -118,7 +118,7 @@ final class BenchmarkRunner
                 break;
 
             case 'ast':
-                $results = Phgrep::searchAst((string) $suite['pattern'], $corpusPath, new AstSearchOptions(
+                $results = Greph::searchAst((string) $suite['pattern'], $corpusPath, new AstSearchOptions(
                     jobs: (int) ($suite['jobs'] ?? 1),
                     language: (string) ($suite['lang'] ?? 'php'),
                 ));
@@ -126,8 +126,8 @@ final class BenchmarkRunner
                 break;
 
             case 'ast-internal':
-                $matchCount = (new \Phgrep\Ast\AstSearcher())->countFiles(
-                    Phgrep::walk($corpusPath),
+                $matchCount = (new \Greph\Ast\AstSearcher())->countFiles(
+                    Greph::walk($corpusPath),
                     (string) $suite['pattern'],
                     new AstSearchOptions(
                         jobs: (int) ($suite['jobs'] ?? 1),
@@ -137,8 +137,8 @@ final class BenchmarkRunner
                 break;
 
             case 'ast-parse':
-                $matchCount = (new \Phgrep\Ast\AstSearcher())->countParsedFiles(
-                    Phgrep::walk($corpusPath),
+                $matchCount = (new \Greph\Ast\AstSearcher())->countParsedFiles(
+                    Greph::walk($corpusPath),
                     (string) $suite['pattern'],
                     new AstSearchOptions(
                         jobs: (int) ($suite['jobs'] ?? 1),
@@ -148,7 +148,7 @@ final class BenchmarkRunner
                 break;
 
             case 'ast-indexed':
-                $results = Phgrep::searchAstIndexed(
+                $results = Greph::searchAstIndexed(
                     (string) $suite['pattern'],
                     $corpusPath,
                     new AstSearchOptions(
@@ -167,7 +167,7 @@ final class BenchmarkRunner
                 break;
 
             case 'ast-cached':
-                $results = Phgrep::searchAstCached(
+                $results = Greph::searchAstCached(
                     (string) $suite['pattern'],
                     $corpusPath,
                     new AstSearchOptions(
@@ -186,11 +186,11 @@ final class BenchmarkRunner
                 break;
 
             case 'walker':
-                $matchCount = count(Phgrep::walk($corpusPath));
+                $matchCount = count(Greph::walk($corpusPath));
                 break;
 
             case 'parallel':
-                $results = Phgrep::searchText((string) $suite['pattern'], $corpusPath, new TextSearchOptions(
+                $results = Greph::searchText((string) $suite['pattern'], $corpusPath, new TextSearchOptions(
                     fixedString: (bool) ($suite['fixed'] ?? false),
                     wholeWord: (bool) ($suite['whole_word'] ?? false),
                     jobs: (int) ($suite['jobs'] ?? 1),
@@ -214,7 +214,7 @@ final class BenchmarkRunner
                     (new TextQueryCacheStore())->clear($indexPath);
                 }
 
-                $results = Phgrep::searchTextIndexed(
+                $results = Greph::searchTextIndexed(
                     (string) $suite['pattern'],
                     $corpusPath,
                     new TextSearchOptions(
@@ -256,7 +256,7 @@ final class BenchmarkRunner
             suite: (string) $suite['suite'],
             operation: (string) $suite['name'],
             corpus: $corpusName,
-            tool: 'phgrep',
+            tool: 'greph',
             durationMs: (hrtime(true) - $start) / 1_000_000,
             memoryBytes: max(0, memory_get_usage(true) - $memoryBefore),
             fileCount: $fileCount,

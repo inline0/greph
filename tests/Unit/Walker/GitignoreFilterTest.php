@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace Phgrep\Tests\Unit\Walker;
+namespace Greph\Tests\Unit\Walker;
 
-use Phgrep\Tests\Support\Workspace;
-use Phgrep\Walker\GitignoreFilter;
+use Greph\Tests\Support\Workspace;
+use Greph\Walker\GitignoreFilter;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
@@ -27,7 +27,7 @@ final class GitignoreFilterTest extends TestCase
     public function itLoadsRootIgnoreFilesAndNegationRules(): void
     {
         Workspace::writeFile($this->workspace, '.gitignore', "*.log\n!important.log\nvendor/\n");
-        Workspace::writeFile($this->workspace, '.phgrepignore', "cache/\n");
+        Workspace::writeFile($this->workspace, '.grephignore', "cache/\n");
         Workspace::writeFile($this->workspace, '.git/info/exclude', "local.php\n");
 
         $filter = new GitignoreFilter($this->workspace);

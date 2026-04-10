@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace Phgrep\Tests\Unit\Ast;
+namespace Greph\Tests\Unit\Ast;
 
-use Phgrep\Ast\AstSearchOptions;
-use Phgrep\Walker\FileTypeFilter;
+use Greph\Ast\AstSearchOptions;
+use Greph\Walker\FileTypeFilter;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 

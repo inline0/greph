@@ -2,12 +2,12 @@
 
 declare(strict_types=1);
 
-namespace Phgrep\Tests\Unit\Index;
+namespace Greph\Tests\Unit\Index;
 
-use Phgrep\Index\AstIndex;
-use Phgrep\Index\AstIndexBuilder;
-use Phgrep\Index\AstIndexStore;
-use Phgrep\Tests\Support\Workspace;
+use Greph\Index\AstIndex;
+use Greph\Index\AstIndexBuilder;
+use Greph\Index\AstIndexStore;
+use Greph\Tests\Support\Workspace;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
@@ -40,7 +40,7 @@ final class AstIndexStoreTest extends TestCase
 
         $index = $store->load($result->indexPath);
 
-        $this->assertSame($this->workspace . '/.phgrep-ast-index', $store->defaultPath($this->workspace));
+        $this->assertSame($this->workspace . '/.greph-ast-index', $store->defaultPath($this->workspace));
         $this->assertSame($result->indexPath, $store->locateFrom($this->workspace . '/src/App.php'));
         $this->assertSame($result->indexPath, $store->locateFrom($this->workspace));
         $this->assertTrue($store->exists($result->indexPath));
@@ -52,7 +52,7 @@ final class AstIndexStoreTest extends TestCase
     public function itRejectsMissingCorruptVersionMismatchedAndUnreadableIndexes(): void
     {
         $store = new AstIndexStore();
-        $indexPath = $this->workspace . '/.phgrep-ast-index';
+        $indexPath = $this->workspace . '/.greph-ast-index';
 
         try {
             $store->load($indexPath);
@@ -61,14 +61,14 @@ final class AstIndexStoreTest extends TestCase
             $this->assertStringContainsString('AST index does not exist', $exception->getMessage());
         }
 
-        Workspace::writeFile($this->workspace, '.phgrep-ast-index/metadata.phpbin', serialize([
+        Workspace::writeFile($this->workspace, '.greph-ast-index/metadata.phpbin', serialize([
             'version' => 999,
             'rootPath' => $this->workspace,
             'builtAt' => 1,
             'nextFileId' => 2,
         ]));
-        Workspace::writeFile($this->workspace, '.phgrep-ast-index/files.phpbin', serialize([]));
-        Workspace::writeFile($this->workspace, '.phgrep-ast-index/facts.phpbin', serialize([]));
+        Workspace::writeFile($this->workspace, '.greph-ast-index/files.phpbin', serialize([]));
+        Workspace::writeFile($this->workspace, '.greph-ast-index/facts.phpbin', serialize([]));
 
         try {
             $store->load($indexPath);
@@ -77,13 +77,13 @@ final class AstIndexStoreTest extends TestCase
             $this->assertStringContainsString('AST index version mismatch', $exception->getMessage());
         }
 
-        Workspace::writeFile($this->workspace, '.phgrep-ast-index/metadata.phpbin', serialize([
+        Workspace::writeFile($this->workspace, '.greph-ast-index/metadata.phpbin', serialize([
             'version' => $store->version(),
             'rootPath' => $this->workspace,
             'builtAt' => 1,
             'nextFileId' => 2,
         ]));
-        Workspace::writeFile($this->workspace, '.phgrep-ast-index/facts.phpbin', serialize('bad'));
+        Workspace::writeFile($this->workspace, '.greph-ast-index/facts.phpbin', serialize('bad'));
 
         try {
             $store->load($indexPath);
@@ -92,7 +92,7 @@ final class AstIndexStoreTest extends TestCase
             $this->assertStringContainsString('AST index is corrupt', $exception->getMessage());
         }
 
-        Workspace::writeFile($this->workspace, '.phgrep-ast-index/facts.phpbin', '');
+        Workspace::writeFile($this->workspace, '.greph-ast-index/facts.phpbin', '');
 
         try {
             $store->load($indexPath);
@@ -106,8 +106,8 @@ final class AstIndexStoreTest extends TestCase
     public function itSavesRoundTripsAndClearsQueryDirectories(): void
     {
         $store = new AstIndexStore();
-        $indexPath = $this->workspace . '/.phgrep-ast-index';
-        Workspace::writeFile($this->workspace, '.phgrep-ast-index/queries/stale.txt', 'old');
+        $indexPath = $this->workspace . '/.greph-ast-index';
+        Workspace::writeFile($this->workspace, '.greph-ast-index/queries/stale.txt', 'old');
 
         $index = new AstIndex(
             rootPath: $this->workspace,
@@ -145,7 +145,7 @@ final class AstIndexStoreTest extends TestCase
     public function itCoversPrivateAstIndexWriteFailures(): void
     {
         $store = new AstIndexStore();
-        $path = $this->workspace . '/.phgrep-ast-index/custom.phpbin';
+        $path = $this->workspace . '/.greph-ast-index/custom.phpbin';
 
         mkdir($path . '.tmp', 0777, true);
 

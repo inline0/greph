@@ -15,13 +15,13 @@
     },
     "autoload": {
         "psr-4": {
-            "Phgrep\\": "src/",
-            "Phgrep\\Benchmarks\\": "benchmarks/"
+            "Greph\\": "src/",
+            "Greph\\Benchmarks\\": "benchmarks/"
         }
     },
     "autoload-dev": {
         "psr-4": {
-            "Phgrep\\Tests\\": "tests/"
+            "Greph\\Tests\\": "tests/"
         }
     },
     "config": {
@@ -34,8 +34,6 @@
         "bin/sg",
         "bin/greph",
         "bin/greph-index",
-        "bin/phgrep",
-        "bin/phgrep-index",
         "bin/oracle",
         "bin/actual",
         "bin/compare",

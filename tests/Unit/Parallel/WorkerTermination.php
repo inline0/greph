@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Phgrep\Tests\Unit\Parallel;
+namespace Greph\Tests\Unit\Parallel;
 
 final class WorkerTermination extends \RuntimeException
 {

@@ -5,9 +5,9 @@ declare(strict_types=1);
 
 require __DIR__ . '/_bootstrap.php';
 
-use Phgrep\Benchmarks\BenchmarkReport;
-use Phgrep\Benchmarks\BenchmarkRunner;
-use Phgrep\Support\Json;
+use Greph\Benchmarks\BenchmarkReport;
+use Greph\Benchmarks\BenchmarkRunner;
+use Greph\Support\Json;
 
 $category = null;
 $corpus = null;
@@ -35,7 +35,7 @@ while ($arguments !== []) {
     }
 }
 
-$results = (new BenchmarkRunner($phgrepRoot))->run($category, $corpus, $compareTools);
+$results = (new BenchmarkRunner($grephRoot))->run($category, $corpus, $compareTools);
 
 if (is_string($outputPath) && $outputPath !== '') {
     Json::encodeFile($outputPath, array_map(static fn ($result) => $result->toArray(), $results));

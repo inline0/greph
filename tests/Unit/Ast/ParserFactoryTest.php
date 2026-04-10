@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace Phgrep\Tests\Unit\Ast;
+namespace Greph\Tests\Unit\Ast;
 
-use Phgrep\Ast\Parsers\ParserFactory;
+use Greph\Ast\Parsers\ParserFactory;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 

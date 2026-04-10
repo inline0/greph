@@ -5,10 +5,10 @@ declare(strict_types=1);
 
 require __DIR__ . '/_bootstrap.php';
 
-use Phgrep\Tests\Oracle\OracleCapture;
-use Phgrep\Tests\Oracle\ScenarioRepository;
-use Phgrep\Tests\Oracle\WorkspaceFactory;
-use Phgrep\Tests\Support\Workspace;
+use Greph\Tests\Oracle\OracleCapture;
+use Greph\Tests\Oracle\ScenarioRepository;
+use Greph\Tests\Oracle\WorkspaceFactory;
+use Greph\Tests\Support\Workspace;
 
 $scenarioName = $argv[1] ?? null;
 
@@ -17,7 +17,7 @@ if (!is_string($scenarioName) || $scenarioName === '') {
     exit(2);
 }
 
-$scenario = (new ScenarioRepository($phgrepRoot))->get($scenarioName);
+$scenario = (new ScenarioRepository($grephRoot))->get($scenarioName);
 $workspaceFactory = new WorkspaceFactory();
 $workspace = $workspaceFactory->create($scenario, 'oracle');
 

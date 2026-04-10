@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
-<ruleset name="phgrep">
-    <description>CodeSniffer rules for phgrep.</description>
+<ruleset name="greph">
+    <description>CodeSniffer rules for greph.</description>
 
     <arg name="basepath" value="."/>
     <arg name="parallel" value="4"/>

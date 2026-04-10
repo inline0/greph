@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace Phgrep\Tests\Integration;
+namespace Greph\Tests\Integration;
 
-use Phgrep\Tests\Support\Workspace;
+use Greph\Tests\Support\Workspace;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 

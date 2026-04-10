@@ -2,12 +2,12 @@
 
 declare(strict_types=1);
 
-namespace Phgrep\Tests\Unit\FeatureMatrix;
+namespace Greph\Tests\Unit\FeatureMatrix;
 
-use Phgrep\FeatureMatrix\FeatureMatrixGenerator;
-use Phgrep\Support\ProcessResult;
-use Phgrep\Support\ToolResolver;
-use Phgrep\Tests\Support\Workspace;
+use Greph\FeatureMatrix\FeatureMatrixGenerator;
+use Greph\Support\ProcessResult;
+use Greph\Support\ToolResolver;
+use Greph\Tests\Support\Workspace;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
@@ -393,24 +393,24 @@ final class FeatureMatrixGeneratorTest extends TestCase
             'expectStructuredJson',
             new ProcessResult(1, '[]', '', 0.1),
         );
-        $phgrepInvalid = $this->invokeStaticMethod(
+        $grephInvalid = $this->invokeStaticMethod(
             FeatureMatrixGenerator::class,
-            'expectPhgrepTextJson',
+            'expectGrephTextJson',
             new ProcessResult(0, '{}', '', 0.1),
         );
-        $phgrepExit = $this->invokeStaticMethod(
+        $grephExit = $this->invokeStaticMethod(
             FeatureMatrixGenerator::class,
-            'expectPhgrepTextJson',
+            'expectGrephTextJson',
             new ProcessResult(1, '[]', '', 0.1),
         );
-        $phgrepMissingFile = $this->invokeStaticMethod(
+        $grephMissingFile = $this->invokeStaticMethod(
             FeatureMatrixGenerator::class,
-            'expectPhgrepTextJson',
+            'expectGrephTextJson',
             new ProcessResult(0, '[{"file":"other.txt"}]', '', 0.1),
         );
-        $phgrepNonArray = $this->invokeStaticMethod(
+        $grephNonArray = $this->invokeStaticMethod(
             FeatureMatrixGenerator::class,
-            'expectPhgrepTextJson',
+            'expectGrephTextJson',
             new ProcessResult(0, 'null', '', 0.1),
         );
 
@@ -439,10 +439,10 @@ final class FeatureMatrixGeneratorTest extends TestCase
         $this->assertSame('Expected JSON object or JSON lines output.', $structuredInvalidLine);
         $this->assertNull($structuredLinesSuccess);
         $this->assertSame('Expected exit 0, got 1.', $structuredExit);
-        $this->assertSame('Expected JSON payload to include `single.txt`.', $phgrepInvalid);
-        $this->assertSame('Expected exit 0, got 1.', $phgrepExit);
-        $this->assertSame('Expected JSON payload to include `single.txt`.', $phgrepMissingFile);
-        $this->assertSame('Expected greph JSON array output.', $phgrepNonArray);
+        $this->assertSame('Expected JSON payload to include `single.txt`.', $grephInvalid);
+        $this->assertSame('Expected exit 0, got 1.', $grephExit);
+        $this->assertSame('Expected JSON payload to include `single.txt`.', $grephMissingFile);
+        $this->assertSame('Expected greph JSON array output.', $grephNonArray);
     }
 
     #[Test]

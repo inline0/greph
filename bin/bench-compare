@@ -5,10 +5,10 @@ declare(strict_types=1);
 
 require __DIR__ . '/_bootstrap.php';
 
-use Phgrep\Benchmarks\BenchmarkComparisonReport;
-use Phgrep\Benchmarks\BenchmarkResult;
-use Phgrep\Support\Filesystem;
-use Phgrep\Support\Json;
+use Greph\Benchmarks\BenchmarkComparisonReport;
+use Greph\Benchmarks\BenchmarkResult;
+use Greph\Support\Filesystem;
+use Greph\Support\Json;
 
 $arguments = array_slice($argv, 1);
 $outputPath = null;

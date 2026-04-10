@@ -2,18 +2,18 @@
 
 declare(strict_types=1);
 
-namespace Phgrep\Tests\Unit\Text;
+namespace Greph\Tests\Unit\Text;
 
-use Phgrep\Text\AnchoredLiteralSearcher;
-use Phgrep\Text\LineMatch;
-use Phgrep\Text\LiteralSearcher;
-use Phgrep\Text\RegexSearcher;
-use Phgrep\Tests\Support\Workspace;
-use Phgrep\Text\TextFileResult;
-use Phgrep\Text\TextMatcher;
-use Phgrep\Text\TextSearchOptions;
-use Phgrep\Text\TextSearcher;
-use Phgrep\Walker\FileList;
+use Greph\Text\AnchoredLiteralSearcher;
+use Greph\Text\LineMatch;
+use Greph\Text\LiteralSearcher;
+use Greph\Text\RegexSearcher;
+use Greph\Tests\Support\Workspace;
+use Greph\Text\TextFileResult;
+use Greph\Text\TextMatcher;
+use Greph\Text\TextSearchOptions;
+use Greph\Text\TextSearcher;
+use Greph\Walker\FileList;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 

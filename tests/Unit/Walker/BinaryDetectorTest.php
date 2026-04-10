@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace Phgrep\Tests\Unit\Walker;
+namespace Greph\Tests\Unit\Walker;
 
-use Phgrep\Tests\Support\Workspace;
-use Phgrep\Walker\BinaryDetector;
+use Greph\Tests\Support\Workspace;
+use Greph\Walker\BinaryDetector;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 

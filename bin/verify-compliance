@@ -5,8 +5,8 @@ declare(strict_types=1);
 
 require __DIR__ . '/_bootstrap.php';
 
-use Phgrep\Support\Json;
-use Phgrep\Tests\Oracle\ComplianceReporter;
+use Greph\Support\Json;
+use Greph\Tests\Oracle\ComplianceReporter;
 
 $outputPath = null;
 $arguments = array_slice($argv, 1);
@@ -20,7 +20,7 @@ while ($arguments !== []) {
     }
 }
 
-$reporter = new ComplianceReporter($phgrepRoot);
+$reporter = new ComplianceReporter($grephRoot);
 $report = $reporter->build();
 
 if (is_string($outputPath) && $outputPath !== '') {

@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace Phgrep\Tests\Support;
+namespace Greph\Tests\Support;
 
-use Phgrep\Support\Filesystem;
+use Greph\Support\Filesystem;
 
 final class Workspace
 {
@@ -53,7 +53,7 @@ final class Workspace
 
     private static function root(): string
     {
-        $path = sys_get_temp_dir() . '/phgrep-tests';
+        $path = sys_get_temp_dir() . '/greph-tests';
 
         if (!is_dir($path) && !mkdir($path, 0777, true) && !is_dir($path)) {
             throw new \RuntimeException(sprintf('Failed to create workspace root: %s', $path));

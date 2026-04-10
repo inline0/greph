@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace Phgrep\Walker;
+namespace Greph\Walker;
 
 final class GitignoreFilter
 {
-    private const IGNORE_FILES = ['.gitignore', '.phgrepignore'];
+    private const IGNORE_FILES = ['.gitignore', '.grephignore'];
 
     private string $rootPath;
 

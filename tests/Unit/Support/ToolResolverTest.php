@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace Phgrep\Tests\Unit\Support;
+namespace Greph\Tests\Unit\Support;
 
-use Phgrep\Support\ToolResolver;
+use Greph\Support\ToolResolver;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
@@ -27,7 +27,7 @@ final class ToolResolverTest extends TestCase
         $this->assertSame(['/mock/rg'], $resolver->ripgrep());
         $this->assertSame(['/mock/gh'], $resolver->githubCli());
         $this->assertSame([PHP_BINARY], $resolver->phpBinary());
-        $this->assertSame([PHP_BINARY, '/tmp/project/bin/phgrep'], $resolver->phgrep('/tmp/project'));
+        $this->assertSame([PHP_BINARY, '/tmp/project/bin/greph'], $resolver->greph('/tmp/project'));
         $this->assertSame(['/mock/sg'], $resolver->astGrep());
         $this->assertTrue($resolver->hasAstGrep());
     }
@@ -105,7 +105,7 @@ final class ToolResolverTest extends TestCase
 
         try {
             $resolver = new ToolResolver(static fn (string $candidate): ?string => null);
-            $this->assertSame([PHP_BINARY, $workspace . '/bin/greph'], $resolver->phgrep($workspace));
+            $this->assertSame([PHP_BINARY, $workspace . '/bin/greph'], $resolver->greph($workspace));
         } finally {
             @unlink($workspace . '/bin/greph');
             @rmdir($workspace . '/bin');

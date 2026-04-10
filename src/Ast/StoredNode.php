@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Phgrep\Ast;
+namespace Greph\Ast;
 
 use PhpParser\NodeAbstract;
 

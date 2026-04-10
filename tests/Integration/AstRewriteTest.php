@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace Phgrep\Tests\Integration;
+namespace Greph\Tests\Integration;
 
-use Phgrep\Ast\AstSearchOptions;
-use Phgrep\Phgrep;
-use Phgrep\Tests\Support\Workspace;
+use Greph\Ast\AstSearchOptions;
+use Greph\Greph;
+use Greph\Tests\Support\Workspace;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
@@ -40,7 +40,7 @@ PHP);
     #[Test]
     public function itRewritesMatchedCodeUsingCapturedMetaVariables(): void
     {
-        $results = Phgrep::rewriteAst(
+        $results = Greph::rewriteAst(
             'array($$$ITEMS)',
             '[$$$ITEMS]',
             $this->workspace . '/src/Legacy.php',
@@ -55,7 +55,7 @@ PHP);
     #[Test]
     public function itRewritesTernaryIssetPatterns(): void
     {
-        $results = Phgrep::rewriteAst(
+        $results = Greph::rewriteAst(
             'isset($x) ? $x : $y',
             '$x ?? $y',
             $this->workspace . '/src/Legacy.php',
@@ -68,7 +68,7 @@ PHP);
     #[Test]
     public function itRewritesEveryMatchInAFile(): void
     {
-        $results = Phgrep::rewriteAst(
+        $results = Greph::rewriteAst(
             'array($$$ITEMS)',
             '[$$$ITEMS]',
             $this->workspace . '/src/Multiple.php',
@@ -84,7 +84,7 @@ PHP);
     #[Test]
     public function itReturnsUnchangedResultsWhenNothingMatches(): void
     {
-        $results = Phgrep::rewriteAst(
+        $results = Greph::rewriteAst(
             'array($$$ITEMS)',
             '[$$$ITEMS]',
             $this->workspace . '/src/Unchanged.php',
@@ -100,7 +100,7 @@ PHP);
     #[Test]
     public function itSupportsParallelRewriteExecution(): void
     {
-        $results = Phgrep::rewriteAst(
+        $results = Greph::rewriteAst(
             'array($$$ITEMS)',
             '[$$$ITEMS]',
             [$this->workspace . '/src/Legacy.php', $this->workspace . '/src/Multiple.php'],
@@ -118,7 +118,7 @@ PHP);
     #[Test]
     public function itIsIdempotentAcrossRepeatedRewriteRuns(): void
     {
-        $firstPass = Phgrep::rewriteAst(
+        $firstPass = Greph::rewriteAst(
             'array($$$ITEMS)',
             '[$$$ITEMS]',
             $this->workspace . '/src/Legacy.php',
@@ -127,7 +127,7 @@ PHP);
 
         file_put_contents($this->workspace . '/src/Legacy.php', $firstPass[0]->rewrittenContents);
 
-        $secondPass = Phgrep::rewriteAst(
+        $secondPass = Greph::rewriteAst(
             'array($$$ITEMS)',
             '[$$$ITEMS]',
             $this->workspace . '/src/Legacy.php',

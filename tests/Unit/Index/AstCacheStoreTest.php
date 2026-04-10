@@ -2,12 +2,12 @@
 
 declare(strict_types=1);
 
-namespace Phgrep\Tests\Unit\Index;
+namespace Greph\Tests\Unit\Index;
 
-use Phgrep\Index\AstCache;
-use Phgrep\Index\AstCacheBuilder;
-use Phgrep\Index\AstCacheStore;
-use Phgrep\Tests\Support\Workspace;
+use Greph\Index\AstCache;
+use Greph\Index\AstCacheBuilder;
+use Greph\Index\AstCacheStore;
+use Greph\Tests\Support\Workspace;
 use PhpParser\Node\Expr\ConstFetch;
 use PhpParser\Node\Stmt\Expression;
 use PHPUnit\Framework\Attributes\Test;
@@ -41,7 +41,7 @@ final class AstCacheStoreTest extends TestCase
         $result = $builder->build($this->workspace);
 
         $cache = $store->load($result->indexPath);
-        $this->assertSame($this->workspace . '/.phgrep-ast-cache', $store->defaultPath($this->workspace));
+        $this->assertSame($this->workspace . '/.greph-ast-cache', $store->defaultPath($this->workspace));
         $this->assertSame($result->indexPath, $store->locateFrom($this->workspace . '/src/App.php'));
         $this->assertSame($result->indexPath, $store->locateFrom($this->workspace));
         $this->assertTrue($store->exists($result->indexPath));
@@ -87,7 +87,7 @@ final class AstCacheStoreTest extends TestCase
     public function itRejectsMissingCorruptVersionMismatchedAndUnreadableCaches(): void
     {
         $store = new AstCacheStore();
-        $indexPath = $this->workspace . '/.phgrep-ast-cache';
+        $indexPath = $this->workspace . '/.greph-ast-cache';
 
         try {
             $store->load($indexPath);
@@ -96,14 +96,14 @@ final class AstCacheStoreTest extends TestCase
             $this->assertStringContainsString('AST cache does not exist', $exception->getMessage());
         }
 
-        Workspace::writeFile($this->workspace, '.phgrep-ast-cache/metadata.phpbin', serialize([
+        Workspace::writeFile($this->workspace, '.greph-ast-cache/metadata.phpbin', serialize([
             'version' => 999,
             'rootPath' => $this->workspace,
             'builtAt' => 1,
             'nextFileId' => 2,
         ]));
-        Workspace::writeFile($this->workspace, '.phgrep-ast-cache/files.phpbin', serialize([]));
-        Workspace::writeFile($this->workspace, '.phgrep-ast-cache/facts.phpbin', serialize([]));
+        Workspace::writeFile($this->workspace, '.greph-ast-cache/files.phpbin', serialize([]));
+        Workspace::writeFile($this->workspace, '.greph-ast-cache/facts.phpbin', serialize([]));
         mkdir($indexPath . '/trees', 0777, true);
 
         try {
@@ -113,13 +113,13 @@ final class AstCacheStoreTest extends TestCase
             $this->assertStringContainsString('AST cache version mismatch', $exception->getMessage());
         }
 
-        Workspace::writeFile($this->workspace, '.phgrep-ast-cache/metadata.phpbin', serialize([
+        Workspace::writeFile($this->workspace, '.greph-ast-cache/metadata.phpbin', serialize([
             'version' => $store->version(),
             'rootPath' => $this->workspace,
             'builtAt' => 1,
             'nextFileId' => 2,
         ]));
-        Workspace::writeFile($this->workspace, '.phgrep-ast-cache/facts.phpbin', serialize('bad'));
+        Workspace::writeFile($this->workspace, '.greph-ast-cache/facts.phpbin', serialize('bad'));
 
         try {
             $store->load($indexPath);
@@ -128,7 +128,7 @@ final class AstCacheStoreTest extends TestCase
             $this->assertStringContainsString('AST cache is corrupt', $exception->getMessage());
         }
 
-        Workspace::writeFile($this->workspace, '.phgrep-ast-cache/facts.phpbin', '');
+        Workspace::writeFile($this->workspace, '.greph-ast-cache/facts.phpbin', '');
 
         try {
             $store->load($indexPath);
@@ -142,8 +142,8 @@ final class AstCacheStoreTest extends TestCase
     public function itSavesRoundTripsAndClearsQueryDirectories(): void
     {
         $store = new AstCacheStore();
-        $indexPath = $this->workspace . '/.phgrep-ast-cache';
-        Workspace::writeFile($this->workspace, '.phgrep-ast-cache/queries/stale.txt', 'old');
+        $indexPath = $this->workspace . '/.greph-ast-cache';
+        Workspace::writeFile($this->workspace, '.greph-ast-cache/queries/stale.txt', 'old');
 
         $cache = new AstCache(
             rootPath: $this->workspace,
@@ -182,7 +182,7 @@ final class AstCacheStoreTest extends TestCase
     public function itCoversPrivateWriteTreeAndPruneBranches(): void
     {
         $store = new AstCacheStore();
-        $indexPath = $this->workspace . '/.phgrep-ast-cache';
+        $indexPath = $this->workspace . '/.greph-ast-cache';
         $treePath = $this->invokeMethod($store, 'treePath', $indexPath, 77);
         $writePath = $indexPath . '/custom.phpbin';
         $statements = [new Expression(new ConstFetch(new \PhpParser\Node\Name('true')))];

@@ -2,12 +2,12 @@
 
 declare(strict_types=1);
 
-namespace Phgrep\Tests\Unit\Output;
+namespace Greph\Tests\Unit\Output;
 
-use Phgrep\Output\GrepFormatter;
-use Phgrep\Text\TextFileResult;
-use Phgrep\Text\TextMatch;
-use Phgrep\Text\TextSearchOptions;
+use Greph\Output\GrepFormatter;
+use Greph\Text\TextFileResult;
+use Greph\Text\TextMatch;
+use Greph\Text\TextSearchOptions;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 

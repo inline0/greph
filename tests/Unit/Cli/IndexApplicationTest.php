@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace Phgrep\Tests\Unit\Cli;
+namespace Greph\Tests\Unit\Cli;
 
-use Phgrep\Cli\IndexApplication;
-use Phgrep\Tests\Support\Workspace;
+use Greph\Cli\IndexApplication;
+use Greph\Tests\Support\Workspace;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
@@ -59,27 +59,27 @@ PHP,
         $harness = $this->newApplication();
         $application = $harness['application'];
 
-        $helpExit = $application->run(['phgrep-index', '--help']);
-        $buildExit = $application->run(['phgrep-index', 'build', '.']);
-        $searchExit = $application->run(['phgrep-index', 'search', '-F', 'function', '.']);
-        $jsonExit = $application->run(['phgrep-index', 'search', '-F', '--json', 'function', '.']);
-        $noMatchExit = $application->run(['phgrep-index', 'search', '-F', 'missing', '.']);
-        $countExit = $application->run(['phgrep-index', 'search', '-F', '-c', 'needle', 'counts.txt']);
-        $filesWithExit = $application->run(['phgrep-index', 'search', '-F', '-l', 'needle', '.']);
-        $filesWithoutExit = $application->run(['phgrep-index', 'search', '-F', '-L', 'needle', '.']);
-        $caseInsensitiveExit = $application->run(['phgrep-index', 'search', '-F', '-i', 'needle', 'single.txt']);
-        $globExit = $application->run(['phgrep-index', 'search', '-F', '--glob', '*.php', 'function', '.']);
-        $typeNotExit = $application->run(['phgrep-index', 'search', '--type-not', 'php', 'function', '.']);
-        $hiddenExit = $application->run(['phgrep-index', 'search', '--hidden', '-F', 'secret', '.']);
-        $ignoredExit = $application->run(['phgrep-index', 'search', '--no-ignore', '-F', 'ignored', '.']);
-        $contextExit = $application->run(['phgrep-index', 'search', '-F', '-C', '1', 'needle', 'context.txt']);
-        $maxCountExit = $application->run(['phgrep-index', 'search', '-F', '-m', '1', 'needle', 'counts.txt']);
-        $noFilenameExit = $application->run(['phgrep-index', 'search', '-h', '-F', 'needle', '.']);
-        $withFilenameExit = $application->run(['phgrep-index', 'search', '-H', '-F', 'needle', 'single.txt']);
+        $helpExit = $application->run(['greph-index', '--help']);
+        $buildExit = $application->run(['greph-index', 'build', '.']);
+        $searchExit = $application->run(['greph-index', 'search', '-F', 'function', '.']);
+        $jsonExit = $application->run(['greph-index', 'search', '-F', '--json', 'function', '.']);
+        $noMatchExit = $application->run(['greph-index', 'search', '-F', 'missing', '.']);
+        $countExit = $application->run(['greph-index', 'search', '-F', '-c', 'needle', 'counts.txt']);
+        $filesWithExit = $application->run(['greph-index', 'search', '-F', '-l', 'needle', '.']);
+        $filesWithoutExit = $application->run(['greph-index', 'search', '-F', '-L', 'needle', '.']);
+        $caseInsensitiveExit = $application->run(['greph-index', 'search', '-F', '-i', 'needle', 'single.txt']);
+        $globExit = $application->run(['greph-index', 'search', '-F', '--glob', '*.php', 'function', '.']);
+        $typeNotExit = $application->run(['greph-index', 'search', '--type-not', 'php', 'function', '.']);
+        $hiddenExit = $application->run(['greph-index', 'search', '--hidden', '-F', 'secret', '.']);
+        $ignoredExit = $application->run(['greph-index', 'search', '--no-ignore', '-F', 'ignored', '.']);
+        $contextExit = $application->run(['greph-index', 'search', '-F', '-C', '1', 'needle', 'context.txt']);
+        $maxCountExit = $application->run(['greph-index', 'search', '-F', '-m', '1', 'needle', 'counts.txt']);
+        $noFilenameExit = $application->run(['greph-index', 'search', '-h', '-F', 'needle', '.']);
+        $withFilenameExit = $application->run(['greph-index', 'search', '-H', '-F', 'needle', 'single.txt']);
 
         sleep(1);
         Workspace::writeFile($this->workspace, 'src/App.php', "<?php\nfunction refreshed(): void {}\n");
-        $refreshExit = $application->run(['phgrep-index', 'refresh', '.']);
+        $refreshExit = $application->run(['greph-index', 'refresh', '.']);
 
         $stdout = $this->readStream($harness['stdout']);
 
@@ -119,14 +119,14 @@ PHP,
     {
         $harness = $this->newApplication();
 
-        $missingPatternExit = $harness['application']->run(['phgrep-index', 'search']);
+        $missingPatternExit = $harness['application']->run(['greph-index', 'search']);
 
         $this->assertSame(2, $missingPatternExit);
         $this->assertSame("Missing search pattern.\n", $this->readStream($harness['stderr']));
 
         $this->expectException(\InvalidArgumentException::class);
         $this->expectExceptionMessage('Unknown subcommand: explode');
-        $harness['application']->run(['phgrep-index', 'explode']);
+        $harness['application']->run(['greph-index', 'explode']);
     }
 
     #[Test]
@@ -135,11 +135,11 @@ PHP,
         $harness = $this->newApplication();
         $application = $harness['application'];
 
-        $buildHelpExit = $application->run(['phgrep-index', 'build', '--help']);
-        $refreshHelpExit = $application->run(['phgrep-index', 'refresh', '--help']);
-        $searchHelpExit = $application->run(['phgrep-index', 'search', '--help']);
-        $buildExit = $application->run(['phgrep-index', 'build', '.', '--index-dir', '.custom-index']);
-        $searchExit = $application->run(['phgrep-index', 'search', '--index-dir', '.custom-index', '-F', 'function', '.']);
+        $buildHelpExit = $application->run(['greph-index', 'build', '--help']);
+        $refreshHelpExit = $application->run(['greph-index', 'refresh', '--help']);
+        $searchHelpExit = $application->run(['greph-index', 'search', '--help']);
+        $buildExit = $application->run(['greph-index', 'build', '.', '--index-dir', '.custom-index']);
+        $searchExit = $application->run(['greph-index', 'search', '--index-dir', '.custom-index', '-F', 'function', '.']);
 
         $stdout = $this->readStream($harness['stdout']);
 
@@ -160,19 +160,19 @@ PHP,
         $harness = $this->newApplication();
         $application = $harness['application'];
 
-        $indexBuildExit = $application->run(['phgrep-index', 'ast-index', 'build', '.']);
-        $indexSearchExit = $application->run(['phgrep-index', 'ast-index', 'search', 'new $CLASS()', '.']);
-        $indexJsonExit = $application->run(['phgrep-index', 'ast-index', 'search', '--json', 'array($$$ITEMS)', '.']);
-        $indexFilesExit = $application->run(['phgrep-index', 'ast-index', 'search', '-l', 'render_widget()', '.']);
-        $indexHiddenExit = $application->run(['phgrep-index', 'ast-index', 'search', '--hidden', 'new $CLASS()', '.']);
-        $indexIgnoredExit = $application->run(['phgrep-index', 'ast-index', 'search', '--no-ignore', 'array($$$ITEMS)', '.']);
-        $indexFallbackExit = $application->run(['phgrep-index', 'ast-index', 'search', '--index-dir', '.missing-ast-index', '--fallback', 'scan', 'new $CLASS()', 'src/Ast.php']);
-        $cacheBuildExit = $application->run(['phgrep-index', 'ast-cache', 'build', '.']);
-        $cacheSearchExit = $application->run(['phgrep-index', 'ast-cache', 'search', 'new $CLASS()', '.']);
-        $cacheJsonExit = $application->run(['phgrep-index', 'ast-cache', 'search', '--json', 'array($$$ITEMS)', '.']);
-        $cacheFilesExit = $application->run(['phgrep-index', 'ast-cache', 'search', '--files-with-matches', 'render_widget()', '.']);
+        $indexBuildExit = $application->run(['greph-index', 'ast-index', 'build', '.']);
+        $indexSearchExit = $application->run(['greph-index', 'ast-index', 'search', 'new $CLASS()', '.']);
+        $indexJsonExit = $application->run(['greph-index', 'ast-index', 'search', '--json', 'array($$$ITEMS)', '.']);
+        $indexFilesExit = $application->run(['greph-index', 'ast-index', 'search', '-l', 'render_widget()', '.']);
+        $indexHiddenExit = $application->run(['greph-index', 'ast-index', 'search', '--hidden', 'new $CLASS()', '.']);
+        $indexIgnoredExit = $application->run(['greph-index', 'ast-index', 'search', '--no-ignore', 'array($$$ITEMS)', '.']);
+        $indexFallbackExit = $application->run(['greph-index', 'ast-index', 'search', '--index-dir', '.missing-ast-index', '--fallback', 'scan', 'new $CLASS()', 'src/Ast.php']);
+        $cacheBuildExit = $application->run(['greph-index', 'ast-cache', 'build', '.']);
+        $cacheSearchExit = $application->run(['greph-index', 'ast-cache', 'search', 'new $CLASS()', '.']);
+        $cacheJsonExit = $application->run(['greph-index', 'ast-cache', 'search', '--json', 'array($$$ITEMS)', '.']);
+        $cacheFilesExit = $application->run(['greph-index', 'ast-cache', 'search', '--files-with-matches', 'render_widget()', '.']);
         $cacheStrictExit = $application->run([
-            'phgrep-index',
+            'greph-index',
             'ast-cache',
             'search',
             '--index-dir',
@@ -188,10 +188,10 @@ PHP,
         Workspace::writeFile($this->workspace, 'src/Ast.php', "<?php\n\$value = 1;\n");
         Workspace::writeFile($this->workspace, 'src/Newer.php', "<?php\n\$fresh = new FreshThing();\n");
 
-        $indexRefreshExit = $application->run(['phgrep-index', 'ast-index', 'refresh', '.']);
-        $indexRefreshedSearchExit = $application->run(['phgrep-index', 'ast-index', 'search', 'new $CLASS()', '.']);
-        $cacheRefreshExit = $application->run(['phgrep-index', 'ast-cache', 'refresh', '.']);
-        $cacheRefreshedSearchExit = $application->run(['phgrep-index', 'ast-cache', 'search', 'new $CLASS()', '.']);
+        $indexRefreshExit = $application->run(['greph-index', 'ast-index', 'refresh', '.']);
+        $indexRefreshedSearchExit = $application->run(['greph-index', 'ast-index', 'search', 'new $CLASS()', '.']);
+        $cacheRefreshExit = $application->run(['greph-index', 'ast-cache', 'refresh', '.']);
+        $cacheRefreshedSearchExit = $application->run(['greph-index', 'ast-cache', 'search', 'new $CLASS()', '.']);
 
         $stdout = $this->readStream($harness['stdout']);
 
@@ -232,7 +232,7 @@ PHP,
         $buildMissingValue = $this->newApplication()['application'];
 
         try {
-            $buildMissingValue->run(['phgrep-index', 'build', '--index-dir']);
+            $buildMissingValue->run(['greph-index', 'build', '--index-dir']);
             self::fail('Expected missing build --index-dir value.');
         } catch (\InvalidArgumentException $exception) {
             $this->assertSame('Missing value for --index-dir.', $exception->getMessage());
@@ -241,7 +241,7 @@ PHP,
         $buildUnknown = $this->newApplication()['application'];
 
         try {
-            $buildUnknown->run(['phgrep-index', 'build', '--bogus']);
+            $buildUnknown->run(['greph-index', 'build', '--bogus']);
             self::fail('Expected unknown build flag.');
         } catch (\InvalidArgumentException $exception) {
             $this->assertSame('Unknown argument: --bogus', $exception->getMessage());
@@ -250,7 +250,7 @@ PHP,
         $searchMissingValue = $this->newApplication()['application'];
 
         try {
-            $searchMissingValue->run(['phgrep-index', 'search', '--glob']);
+            $searchMissingValue->run(['greph-index', 'search', '--glob']);
             self::fail('Expected missing --glob value.');
         } catch (\InvalidArgumentException $exception) {
             $this->assertSame('Missing value for --glob.', $exception->getMessage());
@@ -259,7 +259,7 @@ PHP,
         $searchUnknown = $this->newApplication()['application'];
 
         try {
-            $searchUnknown->run(['phgrep-index', 'search', '--bogus', 'needle', '.']);
+            $searchUnknown->run(['greph-index', 'search', '--bogus', 'needle', '.']);
             self::fail('Expected unknown search flag.');
         } catch (\InvalidArgumentException $exception) {
             $this->assertSame('Unknown argument: --bogus', $exception->getMessage());
@@ -268,7 +268,7 @@ PHP,
         $astSearchUnknown = $this->newApplication()['application'];
 
         try {
-            $astSearchUnknown->run(['phgrep-index', 'ast-index', 'search', '--fallback', 'bogus', 'new $CLASS()', '.']);
+            $astSearchUnknown->run(['greph-index', 'ast-index', 'search', '--fallback', 'bogus', 'new $CLASS()', '.']);
             self::fail('Expected unknown AST fallback mode.');
         } catch (\InvalidArgumentException $exception) {
             $this->assertSame('Unknown fallback mode: bogus', $exception->getMessage());

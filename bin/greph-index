@@ -5,7 +5,7 @@ declare(strict_types=1);
 
 require dirname(__DIR__) . '/vendor/autoload.php';
 
-use Phgrep\Cli\IndexApplication;
+use Greph\Cli\IndexApplication;
 
 try {
     exit((new IndexApplication())->run($argv));

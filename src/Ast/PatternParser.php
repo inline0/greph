@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace Phgrep\Ast;
+namespace Greph\Ast;
 
-use Phgrep\Ast\Parsers\ParserFactory;
-use Phgrep\Exceptions\ParseException;
+use Greph\Ast\Parsers\ParserFactory;
+use Greph\Exceptions\ParseException;
 
 final class PatternParser
 {

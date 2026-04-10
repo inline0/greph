@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Phgrep\Text;
+namespace Greph\Text;
 
 final readonly class LineMatch
 {

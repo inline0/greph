@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace Phgrep\Tests\Unit\Index;
+namespace Greph\Tests\Unit\Index;
 
-use Phgrep\Index\AstFactExtractor;
+use Greph\Index\AstFactExtractor;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 

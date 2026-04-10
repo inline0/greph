@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace Phgrep\Tests\Unit\Text;
+namespace Greph\Tests\Unit\Text;
 
-use Phgrep\Text\TextFileResult;
-use Phgrep\Text\TextMatch;
+use Greph\Text\TextFileResult;
+use Greph\Text\TextMatch;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 

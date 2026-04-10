@@ -5,9 +5,9 @@ declare(strict_types=1);
 
 require __DIR__ . '/_bootstrap.php';
 
-use Phgrep\Benchmarks\BenchmarkAggregator;
-use Phgrep\Benchmarks\BenchmarkResult;
-use Phgrep\Support\Json;
+use Greph\Benchmarks\BenchmarkAggregator;
+use Greph\Benchmarks\BenchmarkResult;
+use Greph\Support\Json;
 
 $arguments = array_slice($argv, 1);
 $outputPath = null;

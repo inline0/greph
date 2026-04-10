@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace Phgrep\Tests\Unit\Support;
+namespace Greph\Tests\Unit\Support;
 
-use Phgrep\Support\CommandRunner;
+use Greph\Support\CommandRunner;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
@@ -18,10 +18,10 @@ final class CommandRunnerTest extends TestCase
             [
                 PHP_BINARY,
                 '-r',
-                'fwrite(STDOUT, getenv("PHGREP_TEST")); fwrite(STDERR, "err"); exit(3);',
+                'fwrite(STDOUT, getenv("GREPH_TEST")); fwrite(STDERR, "err"); exit(3);',
             ],
             null,
-            ['PHGREP_TEST' => 'ok'],
+            ['GREPH_TEST' => 'ok'],
         );
 
         $this->assertSame(3, $result->exitCode);

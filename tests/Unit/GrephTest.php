@@ -2,60 +2,60 @@
 
 declare(strict_types=1);
 
-namespace Phgrep\Tests\Unit;
+namespace Greph\Tests\Unit;
 
-use Phgrep\Ast\AstSearchOptions;
-use Phgrep\Phgrep;
-use Phgrep\Text\TextFileResult;
-use Phgrep\Text\TextResultCodec;
-use Phgrep\Text\TextSearchOptions;
+use Greph\Ast\AstSearchOptions;
+use Greph\Greph;
+use Greph\Text\TextFileResult;
+use Greph\Text\TextResultCodec;
+use Greph\Text\TextSearchOptions;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
-final class PhgrepTest extends TestCase
+final class GrephTest extends TestCase
 {
     #[Test]
     public function itUsesTheExpectedParallelThresholdHeuristics(): void
     {
         $textDisabled = $this->invokeStaticMethod(
-            Phgrep::class,
+            Greph::class,
             'shouldUseTextWorkers',
             'function',
             new TextSearchOptions(fixedString: true, jobs: 1),
             10_000,
         );
         $textDefaultDisabled = $this->invokeStaticMethod(
-            Phgrep::class,
+            Greph::class,
             'shouldUseTextWorkers',
             'new [A-Za-z]+',
             new TextSearchOptions(jobs: 2),
             4_000,
         );
         $textDefaultEnabled = $this->invokeStaticMethod(
-            Phgrep::class,
+            Greph::class,
             'shouldUseTextWorkers',
             'new [A-Za-z]+',
             new TextSearchOptions(jobs: 2),
             4_001,
         );
         $textSummaryEnabled = $this->invokeStaticMethod(
-            Phgrep::class,
+            Greph::class,
             'shouldUseTextWorkers',
             'function!',
             new TextSearchOptions(fixedString: true, jobs: 2, countOnly: true),
             1_501,
         );
         $textSummaryDisabled = $this->invokeStaticMethod(
-            Phgrep::class,
+            Greph::class,
             'shouldUseTextWorkers',
             'function!',
             new TextSearchOptions(fixedString: true, jobs: 2, countOnly: true),
             1_500,
         );
-        $astDisabled = $this->invokeStaticMethod(Phgrep::class, 'shouldUseAstWorkers', 1, 10_000);
-        $astEnabled = $this->invokeStaticMethod(Phgrep::class, 'shouldUseAstWorkers', 2, 1_501);
-        $rewriteDisabled = $this->invokeStaticMethod(Phgrep::class, 'shouldUseRewriteWorkers', 2, 1_500);
-        $rewriteEnabled = $this->invokeStaticMethod(Phgrep::class, 'shouldUseRewriteWorkers', 2, 1_501);
+        $astDisabled = $this->invokeStaticMethod(Greph::class, 'shouldUseAstWorkers', 1, 10_000);
+        $astEnabled = $this->invokeStaticMethod(Greph::class, 'shouldUseAstWorkers', 2, 1_501);
+        $rewriteDisabled = $this->invokeStaticMethod(Greph::class, 'shouldUseRewriteWorkers', 2, 1_500);
+        $rewriteEnabled = $this->invokeStaticMethod(Greph::class, 'shouldUseRewriteWorkers', 2, 1_501);
 
         $this->assertFalse($textDisabled);
         $this->assertFalse($textDefaultDisabled);
@@ -72,28 +72,28 @@ final class PhgrepTest extends TestCase
     public function itAppliesTheFixedLiteralThresholdBump(): void
     {
         $enabled = $this->invokeStaticMethod(
-            Phgrep::class,
+            Greph::class,
             'shouldUseTextWorkers',
             'function',
             new TextSearchOptions(fixedString: true, jobs: 2),
             8_001,
         );
         $disabledByPattern = $this->invokeStaticMethod(
-            Phgrep::class,
+            Greph::class,
             'shouldUseTextWorkers',
             'func-tion',
             new TextSearchOptions(fixedString: true, jobs: 2),
             8_001,
         );
         $disabledByFlags = $this->invokeStaticMethod(
-            Phgrep::class,
+            Greph::class,
             'shouldUseTextWorkers',
             'function',
             new TextSearchOptions(fixedString: true, jobs: 2, caseInsensitive: true),
             8_001,
         );
         $astStillIndependent = $this->invokeStaticMethod(
-            Phgrep::class,
+            Greph::class,
             'shouldUseAstWorkers',
             2,
             1_600,
@@ -110,7 +110,7 @@ final class PhgrepTest extends TestCase
     {
         $codec = new TextResultCodec();
         $encoded = $this->invokeStaticMethod(
-            Phgrep::class,
+            Greph::class,
             'encodeTextWorkerResults',
             [new TextFileResult('file.php', [], 1)],
             $codec,
@@ -120,7 +120,7 @@ final class PhgrepTest extends TestCase
 
         $this->expectException(\RuntimeException::class);
         $this->expectExceptionMessage('Worker returned invalid text result set.');
-        $this->invokeStaticMethod(Phgrep::class, 'encodeTextWorkerResults', 'bad', $codec);
+        $this->invokeStaticMethod(Greph::class, 'encodeTextWorkerResults', 'bad', $codec);
     }
 
     /**

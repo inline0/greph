@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace Phgrep\Tests\Integration;
+namespace Greph\Tests\Integration;
 
-use Phgrep\Ast\AstSearchOptions;
-use Phgrep\Phgrep;
-use Phgrep\Tests\Support\Workspace;
+use Greph\Ast\AstSearchOptions;
+use Greph\Greph;
+use Greph\Tests\Support\Workspace;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
@@ -34,7 +34,7 @@ PHP,
         Workspace::writeFile($this->workspace, 'ignored.php', "<?php\n\$ignored = array(1);\n");
         Workspace::writeFile($this->workspace, 'broken.php', "<?php\nif (\n");
 
-        Phgrep::buildAstCache($this->workspace);
+        Greph::buildAstCache($this->workspace);
     }
 
     protected function tearDown(): void
@@ -45,17 +45,17 @@ PHP,
     #[Test]
     public function itSearchesThroughCachedAstTrees(): void
     {
-        $newMatches = Phgrep::searchAstCached(
+        $newMatches = Greph::searchAstCached(
             'new $CLASS()',
             $this->workspace,
             new AstSearchOptions(),
         );
-        $arrayMatches = Phgrep::searchAstCached(
+        $arrayMatches = Greph::searchAstCached(
             'array($$$ITEMS)',
             $this->workspace,
             new AstSearchOptions(),
         );
-        $functionMatches = Phgrep::searchAstCached(
+        $functionMatches = Greph::searchAstCached(
             'render_widget()',
             $this->workspace,
             new AstSearchOptions(),
@@ -72,12 +72,12 @@ PHP,
     #[Test]
     public function itRefreshesCachedTreesAndRespectsFilters(): void
     {
-        $defaultMatches = Phgrep::searchAstCached(
+        $defaultMatches = Greph::searchAstCached(
             'new $CLASS()',
             $this->workspace,
             new AstSearchOptions(),
         );
-        $expandedMatches = Phgrep::searchAstCached(
+        $expandedMatches = Greph::searchAstCached(
             'new $CLASS()',
             $this->workspace,
             new AstSearchOptions(includeHidden: true, respectIgnore: false),
@@ -89,9 +89,9 @@ PHP,
         sleep(1);
         Workspace::writeFile($this->workspace, 'src/App.php', "<?php\n\$value = 1;\n");
         Workspace::writeFile($this->workspace, 'src/Newer.php', "<?php\n\$fresh = new FreshThing();\n");
-        Phgrep::refreshAstCache($this->workspace);
+        Greph::refreshAstCache($this->workspace);
 
-        $refreshedMatches = Phgrep::searchAstCached(
+        $refreshedMatches = Greph::searchAstCached(
             'new $CLASS()',
             $this->workspace,
             new AstSearchOptions(),
@@ -104,13 +104,13 @@ PHP,
     #[Test]
     public function itCachesRootAstQueriesAndInvalidatesThemOnRefresh(): void
     {
-        $initialMatches = Phgrep::searchAstCached(
+        $initialMatches = Greph::searchAstCached(
             'new $CLASS()',
             $this->workspace,
             new AstSearchOptions(),
         );
 
-        $cacheFiles = glob($this->workspace . '/.phgrep-ast-cache/queries/*.phpbin*') ?: [];
+        $cacheFiles = glob($this->workspace . '/.greph-ast-cache/queries/*.phpbin*') ?: [];
 
         $this->assertNotSame([], $cacheFiles);
         $this->assertCount(1, $initialMatches);
@@ -119,15 +119,15 @@ PHP,
         sleep(1);
         Workspace::writeFile($this->workspace, 'src/App.php', "<?php\n\$value = 1;\n");
         Workspace::writeFile($this->workspace, 'src/Newer.php', "<?php\n\$fresh = new FreshThing();\n");
-        Phgrep::refreshAstCache($this->workspace);
+        Greph::refreshAstCache($this->workspace);
 
-        $refreshedMatches = Phgrep::searchAstCached(
+        $refreshedMatches = Greph::searchAstCached(
             'new $CLASS()',
             $this->workspace,
             new AstSearchOptions(),
         );
 
-        $refreshedCacheFiles = glob($this->workspace . '/.phgrep-ast-cache/queries/*.phpbin*') ?: [];
+        $refreshedCacheFiles = glob($this->workspace . '/.greph-ast-cache/queries/*.phpbin*') ?: [];
 
         $this->assertNotSame([], $refreshedCacheFiles);
         $this->assertCount(1, $refreshedMatches);

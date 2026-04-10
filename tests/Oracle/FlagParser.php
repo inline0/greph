@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace Phgrep\Tests\Oracle;
+namespace Greph\Tests\Oracle;
 
-use Phgrep\Ast\AstSearchOptions;
-use Phgrep\Text\TextSearchOptions;
-use Phgrep\Walker\FileTypeFilter;
+use Greph\Ast\AstSearchOptions;
+use Greph\Text\TextSearchOptions;
+use Greph\Walker\FileTypeFilter;
 
 final class FlagParser
 {

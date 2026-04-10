@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Phgrep\Ast;
+namespace Greph\Ast;
 
 use PhpParser\Node;
 use PhpParser\Node\Arg;
@@ -14,8 +14,8 @@ use PhpParser\Node\Param;
 
 final class MetaVariable
 {
-    public const IDENTIFIER_PREFIX = '__phgrep_ident_';
-    public const VARIADIC_PREFIX = '__phgrep_variadic_';
+    public const IDENTIFIER_PREFIX = '__greph_ident_';
+    public const VARIADIC_PREFIX = '__greph_variadic_';
 
     public static function preprocess(string $pattern): string
     {

@@ -15,7 +15,7 @@ Compatibility note:
 - `rg` and `sg` are compatibility entrypoints for agent/tooling use, not full reimplementations of every upstream flag.
 - [FEATURE_MATRIX.md](FEATURE_MATRIX.md) tracks exactly what the PHP port implements, what is partial, and what is still out of scope.
 - Composer package: `grepg/greph`
-- Legacy native entrypoints `bin/phgrep` and `bin/phgrep-index` remain as compatibility aliases.
+- Native entrypoints: `bin/greph` and `bin/greph-index`
 
 ## Quick Start
 
@@ -34,9 +34,9 @@ bin/greph-index ast-cache build .
 bin/greph-index ast-cache search 'array($$$ITEMS)' src
 ```
 
-By default, `bin/greph-index` stores its index in `.phgrep-index` under the indexed root.
+By default, `bin/greph-index` stores its index in `.greph-index` under the indexed root.
 The current text index is still trigram-first, with auxiliary whole-word / identifier postings used by the sharper indexed paths.
-AST fact indexes default to `.phgrep-ast-index`, and cached AST trees default to `.phgrep-ast-cache`.
+AST fact indexes default to `.greph-ast-index`, and cached AST trees default to `.greph-ast-cache`.
 
 ## Feature Matrix
 

@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace Phgrep\Tests\Integration;
+namespace Greph\Tests\Integration;
 
-use Phgrep\Phgrep;
-use Phgrep\Tests\Support\Workspace;
-use Phgrep\Text\TextSearchOptions;
+use Greph\Greph;
+use Greph\Tests\Support\Workspace;
+use Greph\Text\TextSearchOptions;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
@@ -24,7 +24,7 @@ final class IndexedTextSearchTest extends TestCase
         Workspace::writeFile($this->workspace, 'ignored.php', "<?php\nfunction ignoredThing(): void {}\n");
         Workspace::writeFile($this->workspace, 'notes.txt', "plain text\n");
 
-        Phgrep::buildTextIndex($this->workspace);
+        Greph::buildTextIndex($this->workspace);
     }
 
     protected function tearDown(): void
@@ -35,12 +35,12 @@ final class IndexedTextSearchTest extends TestCase
     #[Test]
     public function itUsesTheIndexForLiteralAndRegexSearches(): void
     {
-        $literalResults = Phgrep::searchTextIndexed(
+        $literalResults = Greph::searchTextIndexed(
             'function',
             $this->workspace,
             new TextSearchOptions(fixedString: true),
         );
-        $regexResults = Phgrep::searchTextIndexed(
+        $regexResults = Greph::searchTextIndexed(
             '\$[a-z]+ = new [A-Za-z]+\(\)',
             $this->workspace,
             new TextSearchOptions(),
@@ -69,12 +69,12 @@ final class IndexedTextSearchTest extends TestCase
     #[Test]
     public function itCanIncludeHiddenAndIgnoredFilesWhenRequested(): void
     {
-        $defaultResults = Phgrep::searchTextIndexed(
+        $defaultResults = Greph::searchTextIndexed(
             'function',
             $this->workspace,
             new TextSearchOptions(fixedString: true),
         );
-        $expandedResults = Phgrep::searchTextIndexed(
+        $expandedResults = Greph::searchTextIndexed(
             'function',
             $this->workspace,
             new TextSearchOptions(fixedString: true, includeHidden: true, respectIgnore: false),
@@ -90,17 +90,17 @@ final class IndexedTextSearchTest extends TestCase
     #[Test]
     public function itSupportsFileListingAndIncrementalRefresh(): void
     {
-        $countResults = Phgrep::searchTextIndexed(
+        $countResults = Greph::searchTextIndexed(
             'function',
             $this->workspace,
             new TextSearchOptions(fixedString: true, countOnly: true),
         );
-        $filesWithMatches = Phgrep::searchTextIndexed(
+        $filesWithMatches = Greph::searchTextIndexed(
             'function',
             $this->workspace,
             new TextSearchOptions(fixedString: true, filesWithMatches: true),
         );
-        $filesWithoutMatches = Phgrep::searchTextIndexed(
+        $filesWithoutMatches = Greph::searchTextIndexed(
             'function',
             $this->workspace,
             new TextSearchOptions(fixedString: true, filesWithoutMatches: true),
@@ -131,9 +131,9 @@ final class IndexedTextSearchTest extends TestCase
         sleep(1);
         Workspace::writeFile($this->workspace, 'src/App.php', "<?php\n\$value = 1;\n");
         Workspace::writeFile($this->workspace, 'src/New.php', "<?php\nfunction newer(): void {}\n");
-        Phgrep::refreshTextIndex($this->workspace);
+        Greph::refreshTextIndex($this->workspace);
 
-        $results = Phgrep::searchTextIndexed(
+        $results = Greph::searchTextIndexed(
             'function',
             $this->workspace,
             new TextSearchOptions(fixedString: true),
@@ -152,9 +152,9 @@ final class IndexedTextSearchTest extends TestCase
     public function itUsesWholeWordFilteringWithIndexedCandidates(): void
     {
         Workspace::writeFile($this->workspace, 'src/Subword.php', "<?php\n\$label = 'dysfunction';\n");
-        Phgrep::refreshTextIndex($this->workspace);
+        Greph::refreshTextIndex($this->workspace);
 
-        $results = Phgrep::searchTextIndexed(
+        $results = Greph::searchTextIndexed(
             'function',
             $this->workspace,
             new TextSearchOptions(fixedString: true, wholeWord: true),
@@ -173,13 +173,13 @@ final class IndexedTextSearchTest extends TestCase
     #[Test]
     public function itCachesRootLiteralQueriesAndInvalidatesThemOnRefresh(): void
     {
-        $initialResults = Phgrep::searchTextIndexed(
+        $initialResults = Greph::searchTextIndexed(
             'function',
             $this->workspace,
             new TextSearchOptions(fixedString: true),
         );
 
-        $cacheFiles = glob($this->workspace . '/.phgrep-index/queries/*.phpbin*') ?: [];
+        $cacheFiles = glob($this->workspace . '/.greph-index/queries/*.phpbin*') ?: [];
         $initialMatchedFiles = array_values(array_map(
             static fn ($result): string => basename($result->file),
             array_filter($initialResults, static fn ($result): bool => $result->hasMatches()),
@@ -190,15 +190,15 @@ final class IndexedTextSearchTest extends TestCase
 
         sleep(1);
         Workspace::writeFile($this->workspace, 'src/App.php', "<?php\n\$value = 1;\n");
-        Phgrep::refreshTextIndex($this->workspace);
+        Greph::refreshTextIndex($this->workspace);
 
-        $refreshedResults = Phgrep::searchTextIndexed(
+        $refreshedResults = Greph::searchTextIndexed(
             'function',
             $this->workspace,
             new TextSearchOptions(fixedString: true),
         );
 
-        $refreshedCacheFiles = glob($this->workspace . '/.phgrep-index/queries/*.phpbin*') ?: [];
+        $refreshedCacheFiles = glob($this->workspace . '/.greph-index/queries/*.phpbin*') ?: [];
         $refreshedMatchedFiles = array_values(array_map(
             static fn ($result): string => basename($result->file),
             array_filter($refreshedResults, static fn ($result): bool => $result->hasMatches()),
@@ -211,13 +211,13 @@ final class IndexedTextSearchTest extends TestCase
     #[Test]
     public function itKeepsSummaryCachesSeparateFromNormalMatchResults(): void
     {
-        Phgrep::searchTextIndexed(
+        Greph::searchTextIndexed(
             'function',
             $this->workspace,
             new TextSearchOptions(fixedString: true, filesWithMatches: true),
         );
 
-        $normalResults = Phgrep::searchTextIndexed(
+        $normalResults = Greph::searchTextIndexed(
             'function',
             $this->workspace,
             new TextSearchOptions(fixedString: true),
@@ -236,18 +236,18 @@ final class IndexedTextSearchTest extends TestCase
     #[Test]
     public function itCachesShortLiteralRootQueries(): void
     {
-        $firstResults = Phgrep::searchTextIndexed(
+        $firstResults = Greph::searchTextIndexed(
             'fu',
             $this->workspace,
             new TextSearchOptions(fixedString: true),
         );
-        $secondResults = Phgrep::searchTextIndexed(
+        $secondResults = Greph::searchTextIndexed(
             'fu',
             $this->workspace,
             new TextSearchOptions(fixedString: true),
         );
 
-        $cacheFiles = glob($this->workspace . '/.phgrep-index/queries/*.phpbin') ?: [];
+        $cacheFiles = glob($this->workspace . '/.greph-index/queries/*.phpbin') ?: [];
 
         $this->assertNotSame([], $cacheFiles);
         $this->assertSame(

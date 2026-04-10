@@ -2,14 +2,14 @@
 
 declare(strict_types=1);
 
-namespace Phgrep\Tests\Oracle;
+namespace Greph\Tests\Oracle;
 
-use Phgrep\Ast\AstMatch;
-use Phgrep\Ast\RewriteResult;
-use Phgrep\Support\Filesystem;
-use Phgrep\Support\Json;
-use Phgrep\Text\TextFileResult;
-use Phgrep\Text\TextSearchOptions;
+use Greph\Ast\AstMatch;
+use Greph\Ast\RewriteResult;
+use Greph\Support\Filesystem;
+use Greph\Support\Json;
+use Greph\Text\TextFileResult;
+use Greph\Text\TextSearchOptions;
 
 final class OutputNormalizer
 {

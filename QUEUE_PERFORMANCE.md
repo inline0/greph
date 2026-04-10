@@ -1,13 +1,13 @@
 # Comprehensive Performance Queue
 
-This is the single canonical performance backlog for `phgrep`.
+This is the single canonical performance backlog for `greph`.
 
 It supersedes the older split queue files:
 - `queue.md`
 - `QUEUE_PERFORMANCE.md`
 
 This file supersedes the older split queues. It is the final performance program for
-`phgrep`.
+`greph`.
 
 The goal is not "maybe faster." The goal is:
 - exhaust every credible remaining performance idea

@@ -2,17 +2,17 @@
 
 declare(strict_types=1);
 
-namespace Phgrep\Cli;
+namespace Greph\Cli;
 
-use Phgrep\Ast\AstMatch;
-use Phgrep\Ast\AstSearchOptions;
-use Phgrep\Output\GrepFormatter;
-use Phgrep\Phgrep;
-use Phgrep\Support\Filesystem;
-use Phgrep\Text\TextFileResult;
-use Phgrep\Text\TextMatch;
-use Phgrep\Text\TextSearchOptions;
-use Phgrep\Walker\FileTypeFilter;
+use Greph\Ast\AstMatch;
+use Greph\Ast\AstSearchOptions;
+use Greph\Output\GrepFormatter;
+use Greph\Greph;
+use Greph\Support\Filesystem;
+use Greph\Text\TextFileResult;
+use Greph\Text\TextMatch;
+use Greph\Text\TextSearchOptions;
+use Greph\Walker\FileTypeFilter;
 
 final class IndexApplication
 {
@@ -97,8 +97,8 @@ final class IndexApplication
     private function runBuild(array $arguments, bool $refresh): int
     {
         $result = $refresh
-            ? Phgrep::refreshTextIndex($arguments['root'], $arguments['indexDir'])
-            : Phgrep::buildTextIndex($arguments['root'], $arguments['indexDir']);
+            ? Greph::refreshTextIndex($arguments['root'], $arguments['indexDir'])
+            : Greph::buildTextIndex($arguments['root'], $arguments['indexDir']);
 
         $verb = $refresh ? 'Refreshed' : 'Built';
         $this->writeOutput(sprintf(
@@ -123,8 +123,8 @@ final class IndexApplication
     {
         if ($mode === 'index') {
             $result = $refresh
-                ? Phgrep::refreshAstIndex($arguments['root'], $arguments['indexDir'])
-                : Phgrep::buildAstIndex($arguments['root'], $arguments['indexDir']);
+                ? Greph::refreshAstIndex($arguments['root'], $arguments['indexDir'])
+                : Greph::buildAstIndex($arguments['root'], $arguments['indexDir']);
 
             $this->writeOutput(sprintf(
                 '%s AST index for %d files in %s (%d fact rows, +%d ~%d -%d =%d)' . PHP_EOL,
@@ -142,8 +142,8 @@ final class IndexApplication
         }
 
         $result = $refresh
-            ? Phgrep::refreshAstCache($arguments['root'], $arguments['indexDir'])
-            : Phgrep::buildAstCache($arguments['root'], $arguments['indexDir']);
+            ? Greph::refreshAstCache($arguments['root'], $arguments['indexDir'])
+            : Greph::buildAstCache($arguments['root'], $arguments['indexDir']);
 
         $this->writeOutput(sprintf(
             '%s AST cache for %d files in %s (%d cached trees, +%d ~%d -%d =%d)' . PHP_EOL,
@@ -217,7 +217,7 @@ final class IndexApplication
             showFileNames: $this->shouldDisplayFileNames($arguments),
         );
 
-        $results = Phgrep::searchTextIndexed(
+        $results = Greph::searchTextIndexed(
             $arguments['pattern'],
             $arguments['paths'],
             $options,
@@ -306,8 +306,8 @@ final class IndexApplication
         try {
             try {
                 $matches = $mode === 'index'
-                    ? Phgrep::searchAstIndexed($arguments['pattern'], $arguments['paths'], $options, $arguments['indexDir'])
-                    : Phgrep::searchAstCached($arguments['pattern'], $arguments['paths'], $options, $arguments['indexDir']);
+                    ? Greph::searchAstIndexed($arguments['pattern'], $arguments['paths'], $options, $arguments['indexDir'])
+                    : Greph::searchAstCached($arguments['pattern'], $arguments['paths'], $options, $arguments['indexDir']);
             } catch (\RuntimeException $exception) {
                 if (
                     $arguments['fallback'] === 'scan'
@@ -318,7 +318,7 @@ final class IndexApplication
                         || str_starts_with($exception->getMessage(), 'AST cache does not exist: ')
                     )
                 ) {
-                    $matches = Phgrep::searchAst($arguments['pattern'], $arguments['paths'], $options);
+                    $matches = Greph::searchAst($arguments['pattern'], $arguments['paths'], $options);
                 } else {
                     throw $exception;
                 }
@@ -856,7 +856,7 @@ Search Options:
   --type NAME     Include a file type.
   --type-not NAME Exclude a file type.
   --json          Emit JSON output.
-  --no-ignore     Ignore .gitignore and .phgrepignore rules.
+  --no-ignore     Ignore .gitignore and .grephignore rules.
   --hidden        Include hidden files.
   --index-dir DIR Use a non-default index directory.
   --help          Show this help.
@@ -870,7 +870,7 @@ AST Search Options:
   --type NAME             Include a file type.
   --type-not NAME         Exclude a file type.
   --json                  Emit JSON output.
-  --no-ignore             Ignore .gitignore and .phgrepignore rules.
+  --no-ignore             Ignore .gitignore and .grephignore rules.
   --hidden                Include hidden files.
   --strict-parse          Fail on parse errors instead of skipping them.
   --fallback MODE         Missing-index behavior: fail|scan.

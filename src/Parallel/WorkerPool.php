@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace Phgrep\Parallel;
+namespace Greph\Parallel;
 
-use Phgrep\Walker\FileList;
+use Greph\Walker\FileList;
 
 final class WorkerPool
 {
@@ -61,7 +61,7 @@ final class WorkerPool
         };
         $this->wait = $resolvedWait;
         /** @var \Closure(): (string|false) $resolvedTempFileFactory */
-        $resolvedTempFileFactory = $tempFileFactory ?? static fn (): string|false => tempnam(sys_get_temp_dir(), 'phgrep-worker-');
+        $resolvedTempFileFactory = $tempFileFactory ?? static fn (): string|false => tempnam(sys_get_temp_dir(), 'greph-worker-');
         $this->tempFileFactory = $resolvedTempFileFactory;
         /** @var \Closure(string, string): mixed $resolvedFileOpener */
         $resolvedFileOpener = $fileOpener ?? static fn (string $path, string $mode): mixed => fopen($path, $mode);

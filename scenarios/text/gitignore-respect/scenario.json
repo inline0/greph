@@ -14,7 +14,7 @@
     },
     "oracle_disagreement": {
         "grep_vs_rg": "grep does not respect .gitignore by default, ripgrep does",
-        "phgrep_follows": "rg",
+        "greph_follows": "rg",
         "reason": "Ignoring vendor-style trees is part of the intended behavior"
     }
 }

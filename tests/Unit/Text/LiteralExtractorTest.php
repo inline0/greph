@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace Phgrep\Tests\Unit\Text;
+namespace Greph\Tests\Unit\Text;
 
-use Phgrep\Text\LiteralExtractor;
+use Greph\Text\LiteralExtractor;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 

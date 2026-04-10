@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace Phgrep\Text;
+namespace Greph\Text;
 
-use Phgrep\Exceptions\PatternException;
+use Greph\Exceptions\PatternException;
 
 final class RegexSearcher implements TextMatcher
 {

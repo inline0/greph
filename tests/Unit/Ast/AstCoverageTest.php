@@ -2,17 +2,17 @@
 
 declare(strict_types=1);
 
-namespace Phgrep\Tests\Unit\Ast;
+namespace Greph\Tests\Unit\Ast;
 
-use Phgrep\Ast\AstRewriter;
-use Phgrep\Ast\AstSearchOptions;
-use Phgrep\Ast\AstSearcher;
-use Phgrep\Ast\MetaVariable;
-use Phgrep\Ast\PatternMatcher;
-use Phgrep\Ast\Parsers\PhpParser;
-use Phgrep\Exceptions\ParseException;
-use Phgrep\Tests\Support\Workspace;
-use Phgrep\Walker\FileList;
+use Greph\Ast\AstRewriter;
+use Greph\Ast\AstSearchOptions;
+use Greph\Ast\AstSearcher;
+use Greph\Ast\MetaVariable;
+use Greph\Ast\PatternMatcher;
+use Greph\Ast\Parsers\PhpParser;
+use Greph\Exceptions\ParseException;
+use Greph\Tests\Support\Workspace;
+use Greph\Walker\FileList;
 use PhpParser\ErrorHandler;
 use PhpParser\Node;
 use PhpParser\Node\Arg;
@@ -165,7 +165,7 @@ final class AstCoverageTest extends TestCase
         $searcher = new AstSearcher();
         $expr = new Expr\ConstFetch(new Name('true'), ['startLine' => 1, 'endLine' => 1, 'startFilePos' => 5, 'endFilePos' => 1]);
         $statement = new Node\Stmt\Echo_([new Expr\Variable('value')]);
-        /** @var \Phgrep\Ast\AstMatch $match */
+        /** @var \Greph\Ast\AstMatch $match */
         $match = $this->invokePrivate($searcher, 'createMatch', $expr, [], '', $this->workspace . '/expr.php');
 
         $this->assertSame('true', $match->code);

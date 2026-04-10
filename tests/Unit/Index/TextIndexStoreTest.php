@@ -2,12 +2,12 @@
 
 declare(strict_types=1);
 
-namespace Phgrep\Tests\Unit\Index;
+namespace Greph\Tests\Unit\Index;
 
-use Phgrep\Index\TextIndex;
-use Phgrep\Index\TextIndexBuilder;
-use Phgrep\Index\TextIndexStore;
-use Phgrep\Tests\Support\Workspace;
+use Greph\Index\TextIndex;
+use Greph\Index\TextIndexBuilder;
+use Greph\Index\TextIndexStore;
+use Greph\Tests\Support\Workspace;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
@@ -39,7 +39,7 @@ final class TextIndexStoreTest extends TestCase
         $selected = $store->loadSelectedPostings($result->indexPath, ['fun', 'xyz']);
         $selectedWords = $store->loadSelectedWordPostings($result->indexPath, ['function', 'missing']);
 
-        $this->assertSame($this->workspace . '/.phgrep-index', $store->defaultPath($this->workspace));
+        $this->assertSame($this->workspace . '/.greph-index', $store->defaultPath($this->workspace));
         $this->assertSame($result->indexPath, $store->locateFrom($this->workspace . '/src/App.php'));
         $this->assertTrue($store->exists($result->indexPath));
         $this->assertSame($store->version(), $index->version);
@@ -60,10 +60,10 @@ final class TextIndexStoreTest extends TestCase
         $this->assertSame([1, 2], $legacyIndex->postings['fun']);
         $this->assertSame($index->wordPostings, $legacyIndex->wordPostings);
 
-        Workspace::writeFile($this->workspace, '.phgrep-index/files.phpbin', serialize([
+        Workspace::writeFile($this->workspace, '.greph-index/files.phpbin', serialize([
             ['id' => 1, 'p' => 'src/App.php', 's' => 10, 'm' => 1, 'h' => false, 'g' => false, 't' => ['fun', 99], 'o' => 0],
         ]));
-        Workspace::writeFile($this->workspace, '.phgrep-index/postings.phpbin', serialize(['fun' => [1], 'bad' => 'skip']));
+        Workspace::writeFile($this->workspace, '.greph-index/postings.phpbin', serialize(['fun' => [1], 'bad' => 'skip']));
         Workspace::remove($result->indexPath . '/forward.phpbin');
 
         $legacyForwardIndex = $store->load($result->indexPath, includeForward: true, includePostings: true);
@@ -77,7 +77,7 @@ final class TextIndexStoreTest extends TestCase
     public function itRejectsMissingCorruptAndMismatchedIndexes(): void
     {
         $store = new TextIndexStore();
-        $indexPath = $this->workspace . '/.phgrep-index';
+        $indexPath = $this->workspace . '/.greph-index';
 
         try {
             $store->load($indexPath);
@@ -86,14 +86,14 @@ final class TextIndexStoreTest extends TestCase
             $this->assertStringContainsString('Index does not exist', $exception->getMessage());
         }
 
-        Workspace::writeFile($this->workspace, '.phgrep-index/metadata.phpbin', serialize([
+        Workspace::writeFile($this->workspace, '.greph-index/metadata.phpbin', serialize([
             'version' => 999,
             'rootPath' => $this->workspace,
             'builtAt' => 1,
             'nextFileId' => 2,
         ]));
-        Workspace::writeFile($this->workspace, '.phgrep-index/files.phpbin', serialize([]));
-        Workspace::writeFile($this->workspace, '.phgrep-index/postings.phpbin', serialize([]));
+        Workspace::writeFile($this->workspace, '.greph-index/files.phpbin', serialize([]));
+        Workspace::writeFile($this->workspace, '.greph-index/postings.phpbin', serialize([]));
 
         try {
             $store->load($indexPath);
@@ -102,13 +102,13 @@ final class TextIndexStoreTest extends TestCase
             $this->assertStringContainsString('Index version mismatch', $exception->getMessage());
         }
 
-        Workspace::writeFile($this->workspace, '.phgrep-index/metadata.phpbin', serialize([
+        Workspace::writeFile($this->workspace, '.greph-index/metadata.phpbin', serialize([
             'version' => $store->version(),
             'rootPath' => $this->workspace,
             'builtAt' => 1,
             'nextFileId' => 2,
         ]));
-        Workspace::writeFile($this->workspace, '.phgrep-index/postings.phpbin', serialize('bad'));
+        Workspace::writeFile($this->workspace, '.greph-index/postings.phpbin', serialize('bad'));
 
         try {
             $store->loadSelectedPostings($indexPath, ['fun']);
@@ -117,7 +117,7 @@ final class TextIndexStoreTest extends TestCase
             $this->assertStringContainsString('Index is corrupt', $exception->getMessage());
         }
 
-        Workspace::writeFile($this->workspace, '.phgrep-index/metadata.phpbin', '');
+        Workspace::writeFile($this->workspace, '.greph-index/metadata.phpbin', '');
 
         try {
             $store->load($indexPath);
@@ -131,8 +131,8 @@ final class TextIndexStoreTest extends TestCase
     public function itSavesAndClearsQueryDirectoriesOnRoundTrip(): void
     {
         $store = new TextIndexStore();
-        $indexPath = $this->workspace . '/.phgrep-index';
-        Workspace::writeFile($this->workspace, '.phgrep-index/queries/stale.txt', 'old');
+        $indexPath = $this->workspace . '/.greph-index';
+        Workspace::writeFile($this->workspace, '.greph-index/queries/stale.txt', 'old');
 
         $index = new TextIndex(
             rootPath: $this->workspace,
@@ -163,7 +163,7 @@ final class TextIndexStoreTest extends TestCase
     public function itCoversPrivateWriteAndLegacyForwardBranches(): void
     {
         $store = new TextIndexStore();
-        $indexPath = $this->workspace . '/.phgrep-index';
+        $indexPath = $this->workspace . '/.greph-index';
         $writePath = $indexPath . '/custom.phpbin';
 
         mkdir($writePath . '.tmp', 0777, true);
@@ -205,13 +205,13 @@ final class TextIndexStoreTest extends TestCase
 
         $this->assertSame([1 => ['fun']], $legacyForward);
 
-        Workspace::writeFile($this->workspace, '.phgrep-index/metadata.phpbin', serialize([
+        Workspace::writeFile($this->workspace, '.greph-index/metadata.phpbin', serialize([
             'version' => $store->version(),
             'rootPath' => $this->workspace,
             'builtAt' => 1,
         ]));
-        Workspace::writeFile($this->workspace, '.phgrep-index/files.phpbin', serialize([]));
-        Workspace::writeFile($this->workspace, '.phgrep-index/postings.phpbin', serialize([]));
+        Workspace::writeFile($this->workspace, '.greph-index/files.phpbin', serialize([]));
+        Workspace::writeFile($this->workspace, '.greph-index/postings.phpbin', serialize([]));
 
         try {
             $store->load($indexPath);

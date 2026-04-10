@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace Phgrep\Tests\Oracle;
+namespace Greph\Tests\Oracle;
 
-use Phgrep\Support\Filesystem;
-use Phgrep\Support\Json;
-use Phgrep\Tests\Support\Workspace;
+use Greph\Support\Filesystem;
+use Greph\Support\Json;
+use Greph\Tests\Support\Workspace;
 
 final class ScenarioRunner
 {

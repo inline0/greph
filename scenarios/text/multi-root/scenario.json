@@ -17,7 +17,7 @@
     },
     "oracle_disagreement": {
         "grep_vs_rg": "grep preserves the requested root order while ripgrep emits matches in lexical file order across roots",
-        "phgrep_follows": "grep",
+        "greph_follows": "grep",
         "reason": "Text mode is grep-compatible and keeps traversal order anchored to input roots"
     }
 }

@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Phgrep\Support;
+namespace Greph\Support;
 
 final class ToolResolver
 {
@@ -75,7 +75,7 @@ final class ToolResolver
     /**
      * @return list<string>
      */
-    public function phgrep(string $rootPath): array
+    public function greph(string $rootPath): array
     {
         $grephPath = $rootPath . '/bin/greph';
 
@@ -83,7 +83,7 @@ final class ToolResolver
             return [PHP_BINARY, $grephPath];
         }
 
-        return [PHP_BINARY, $rootPath . '/bin/phgrep'];
+        return [PHP_BINARY, $rootPath . '/bin/greph'];
     }
 
     public function hasAstGrep(): bool

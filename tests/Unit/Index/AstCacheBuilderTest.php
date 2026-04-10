@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace Phgrep\Tests\Unit\Index;
+namespace Greph\Tests\Unit\Index;
 
-use Phgrep\Index\AstCacheBuilder;
-use Phgrep\Tests\Support\Workspace;
+use Greph\Index\AstCacheBuilder;
+use Greph\Tests\Support\Workspace;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
@@ -19,7 +19,7 @@ final class AstCacheBuilderTest extends TestCase
         Workspace::writeFile($this->workspace, '.gitignore', "vendor/\n");
         Workspace::writeFile($this->workspace, 'src/App.php', "<?php\nnew Service();\n");
         Workspace::writeFile($this->workspace, '.hidden/Hidden.php', "<?php\nnew HiddenService();\n");
-        Workspace::writeFile($this->workspace, '.phgrep-ast-cache/ignored/Skip.php', "<?php\nnew Skipped();\n");
+        Workspace::writeFile($this->workspace, '.greph-ast-cache/ignored/Skip.php', "<?php\nnew Skipped();\n");
     }
 
     protected function tearDown(): void
@@ -35,13 +35,13 @@ final class AstCacheBuilderTest extends TestCase
         $refreshed = $builder->refresh($this->workspace);
         $absoluteIndexPath = $this->invokeMethod($builder, 'resolveIndexPath', $this->workspace, '/tmp/custom-ast-cache');
         $relativeIndexPath = $this->invokeMethod($builder, 'resolveIndexPath', $this->workspace, '.alt-cache');
-        $scannedFiles = $this->invokeMethod($builder, 'scanFiles', $this->workspace, $this->workspace . '/.phgrep-ast-cache');
+        $scannedFiles = $this->invokeMethod($builder, 'scanFiles', $this->workspace, $this->workspace . '/.greph-ast-cache');
         $missingFacts = $this->invokeMethod($builder, 'extractFacts', $this->workspace . '/missing.php');
         $hidden = $this->invokeMethod($builder, 'isHiddenPath', '.hidden/Hidden.php');
         $visible = $this->invokeMethod($builder, 'isHiddenPath', 'src/App.php');
 
         $this->assertSame(2, $refreshed->fileCount);
-        $this->assertSame($this->workspace . '/.phgrep-ast-cache', $refreshed->indexPath);
+        $this->assertSame($this->workspace . '/.greph-ast-cache', $refreshed->indexPath);
         $this->assertSame('/tmp/custom-ast-cache', $absoluteIndexPath);
         $this->assertSame($this->workspace . '/.alt-cache', $relativeIndexPath);
         $this->assertCount(2, $scannedFiles);

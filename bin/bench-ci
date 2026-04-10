@@ -5,8 +5,8 @@ declare(strict_types=1);
 
 require __DIR__ . '/_bootstrap.php';
 
-use Phgrep\Support\CommandRunner;
-use Phgrep\Support\ToolResolver;
+use Greph\Support\CommandRunner;
+use Greph\Support\ToolResolver;
 
 $arguments = array_slice($argv, 1);
 $repo = 'inline0/phgrep';
@@ -76,7 +76,7 @@ if ($category !== '') {
     $command[] = 'category=' . $category;
 }
 
-$launch = $runner->run($command, $phgrepRoot);
+$launch = $runner->run($command, $grephRoot);
 
 if (!$launch->successful()) {
     throw new RuntimeException(trim($launch->output()) !== '' ? trim($launch->output()) : 'Failed to trigger benchmark workflow.');
@@ -103,7 +103,7 @@ for ($attempt = 0; $attempt < 10; $attempt++) {
         '20',
         '--json',
         'databaseId,url,status,headSha,createdAt',
-    ], $phgrepRoot);
+    ], $grephRoot);
 
     if (!$list->successful()) {
         throw new RuntimeException(trim($list->output()) !== '' ? trim($list->output()) : 'Failed to resolve launched benchmark run.');

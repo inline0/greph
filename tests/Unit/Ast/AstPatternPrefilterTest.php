@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace Phgrep\Tests\Unit\Ast;
+namespace Greph\Tests\Unit\Ast;
 
-use Phgrep\Ast\AstPatternPrefilter;
-use Phgrep\Ast\PatternParser;
+use Greph\Ast\AstPatternPrefilter;
+use Greph\Ast\PatternParser;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 

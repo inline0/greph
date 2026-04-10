@@ -2,12 +2,12 @@
 
 declare(strict_types=1);
 
-namespace Phgrep\Tests\Integration;
+namespace Greph\Tests\Integration;
 
-use Phgrep\Phgrep;
-use Phgrep\Tests\Support\Workspace;
-use Phgrep\Text\TextSearchOptions;
-use Phgrep\Walker\FileTypeFilter;
+use Greph\Greph;
+use Greph\Tests\Support\Workspace;
+use Greph\Text\TextSearchOptions;
+use Greph\Walker\FileTypeFilter;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
@@ -33,7 +33,7 @@ final class TextSearchTest extends TestCase
     #[Test]
     public function itFindsLiteralMatchesInPhpFiles(): void
     {
-        $results = Phgrep::searchText(
+        $results = Greph::searchText(
             'function',
             $this->workspace,
             new TextSearchOptions(fileTypeFilter: new FileTypeFilter(['php'])),
@@ -63,7 +63,7 @@ final class TextSearchTest extends TestCase
     #[Test]
     public function itSupportsRegexSearchAndParallelWorkers(): void
     {
-        $results = Phgrep::searchText(
+        $results = Greph::searchText(
             '\$[a-z]+ = new [A-Za-z]+\(\)',
             $this->workspace,
             new TextSearchOptions(jobs: 2, fileTypeFilter: new FileTypeFilter(['php'])),
@@ -81,17 +81,17 @@ final class TextSearchTest extends TestCase
     #[Test]
     public function itSupportsCountAndFileListingModes(): void
     {
-        $countResults = Phgrep::searchText(
+        $countResults = Greph::searchText(
             'function',
             $this->workspace,
             new TextSearchOptions(fixedString: true, countOnly: true),
         );
-        $filesWithMatches = Phgrep::searchText(
+        $filesWithMatches = Greph::searchText(
             'function',
             $this->workspace,
             new TextSearchOptions(fixedString: true, filesWithMatches: true),
         );
-        $filesWithoutMatches = Phgrep::searchText(
+        $filesWithoutMatches = Greph::searchText(
             'function',
             $this->workspace,
             new TextSearchOptions(fixedString: true, filesWithoutMatches: true),
@@ -123,17 +123,17 @@ final class TextSearchTest extends TestCase
     #[Test]
     public function itSupportsContextInvertMatchAndMaxCount(): void
     {
-        $contextResults = Phgrep::searchText(
+        $contextResults = Greph::searchText(
             'function',
             $this->workspace . '/src/Multi.php',
             new TextSearchOptions(fixedString: true, beforeContext: 1, afterContext: 1),
         );
-        $invertResults = Phgrep::searchText(
+        $invertResults = Greph::searchText(
             'function',
             $this->workspace . '/notes.txt',
             new TextSearchOptions(fixedString: true, invertMatch: true),
         );
-        $maxCountResults = Phgrep::searchText(
+        $maxCountResults = Greph::searchText(
             'function',
             $this->workspace . '/src/Multi.php',
             new TextSearchOptions(fixedString: true, maxCount: 1),

@@ -2,16 +2,16 @@
 
 declare(strict_types=1);
 
-namespace Phgrep\Cli;
+namespace Greph\Cli;
 
-use Phgrep\Ast\AstSearchOptions;
-use Phgrep\Output\GrepFormatter;
-use Phgrep\Phgrep;
-use Phgrep\Support\Filesystem;
-use Phgrep\Text\TextFileResult;
-use Phgrep\Text\TextMatch;
-use Phgrep\Text\TextSearchOptions;
-use Phgrep\Walker\FileTypeFilter;
+use Greph\Ast\AstSearchOptions;
+use Greph\Output\GrepFormatter;
+use Greph\Greph;
+use Greph\Support\Filesystem;
+use Greph\Text\TextFileResult;
+use Greph\Text\TextMatch;
+use Greph\Text\TextSearchOptions;
+use Greph\Walker\FileTypeFilter;
 
 final class Application
 {
@@ -133,7 +133,7 @@ final class Application
             showFileNames: $this->shouldDisplayFileNames($arguments),
         );
 
-        $results = Phgrep::searchText($arguments['pattern'], $arguments['paths'], $options);
+        $results = Greph::searchText($arguments['pattern'], $arguments['paths'], $options);
         $displayResults = $this->displayTextResults($results);
 
         if ($arguments['json']) {
@@ -231,7 +231,7 @@ final class Application
         );
 
         if ($arguments['rewrite'] !== null) {
-            $results = Phgrep::rewriteAst($astPattern, $arguments['rewrite'], $arguments['paths'], $options);
+            $results = Greph::rewriteAst($astPattern, $arguments['rewrite'], $arguments['paths'], $options);
             $changed = false;
 
             foreach ($results as $result) {
@@ -268,7 +268,7 @@ final class Application
             return $changed ? 0 : 1;
         }
 
-        $matches = Phgrep::searchAst($astPattern, $arguments['paths'], $options);
+        $matches = Greph::searchAst($astPattern, $arguments['paths'], $options);
 
         if ($arguments['json']) {
             $payload = array_map(
@@ -537,7 +537,7 @@ Options:
   --type-not NAME Exclude a file type.
   --lang NAME     AST language. Default: php.
   --json          Emit JSON output.
-  --no-ignore     Ignore .gitignore and .phgrepignore rules.
+  --no-ignore     Ignore .gitignore and .grephignore rules.
   --hidden        Include hidden files.
   --dry-run       Print rewrites without writing files.
   --interactive   Confirm each rewritten file.

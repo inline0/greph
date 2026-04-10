@@ -2,16 +2,16 @@
 
 declare(strict_types=1);
 
-namespace Phgrep\Cli;
+namespace Greph\Cli;
 
-use Phgrep\Output\GrepFormatter;
-use Phgrep\Phgrep;
-use Phgrep\Support\Filesystem;
-use Phgrep\Text\TextFileResult;
-use Phgrep\Text\TextMatch;
-use Phgrep\Text\TextSearchOptions;
-use Phgrep\Walker\FileTypeFilter;
-use Phgrep\Walker\WalkOptions;
+use Greph\Output\GrepFormatter;
+use Greph\Greph;
+use Greph\Support\Filesystem;
+use Greph\Text\TextFileResult;
+use Greph\Text\TextMatch;
+use Greph\Text\TextSearchOptions;
+use Greph\Walker\FileTypeFilter;
+use Greph\Walker\WalkOptions;
 
 final class RipgrepApplication
 {
@@ -93,7 +93,7 @@ final class RipgrepApplication
             showFileNames: $this->shouldDisplayFileNames($parsed),
         );
 
-        $results = Phgrep::searchText($parsed['pattern'], $parsed['paths'], $options);
+        $results = Greph::searchText($parsed['pattern'], $parsed['paths'], $options);
         $displayResults = $this->displayTextResults($results, $this->shouldPrefixCurrentDirectory($parsed['paths']));
 
         if ($parsed['json']) {
@@ -132,7 +132,7 @@ final class RipgrepApplication
     {
         $parsed = $this->parseFilesArguments($arguments);
         $filter = $this->createFileTypeFilter($parsed['type'], $parsed['typeNot']);
-        $files = Phgrep::walk(
+        $files = Greph::walk(
             $parsed['paths'],
             new WalkOptions(
                 respectIgnore: !$parsed['noIgnore'],
@@ -770,7 +770,7 @@ Supported Options:
   --type NAME                  Include a file type.
   --type-not NAME              Exclude a file type.
   --json                       Emit ripgrep-style JSON events.
-  --no-ignore                  Ignore .gitignore and .phgrepignore rules.
+  --no-ignore                  Ignore .gitignore and .grephignore rules.
   --hidden                     Include hidden files.
   --files                      List candidate files instead of searching.
   --help                       Show this help.

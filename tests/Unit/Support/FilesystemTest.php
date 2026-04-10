@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace Phgrep\Tests\Unit\Support;
+namespace Greph\Tests\Unit\Support;
 
-use Phgrep\Support\Filesystem;
-use Phgrep\Tests\Support\Workspace;
+use Greph\Support\Filesystem;
+use Greph\Tests\Support\Workspace;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 

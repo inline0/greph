@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace Phgrep\Tests\Unit\Parallel;
+namespace Greph\Tests\Unit\Parallel;
 
-use Phgrep\Parallel\Worker;
-use Phgrep\Walker\FileList;
+use Greph\Parallel\Worker;
+use Greph\Walker\FileList;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 

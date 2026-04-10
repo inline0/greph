@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace Phgrep\Tests\Oracle;
+namespace Greph\Tests\Oracle;
 
-use Phgrep\Support\Json;
+use Greph\Support\Json;
 
 final readonly class ScenarioRepository
 {

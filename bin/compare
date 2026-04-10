@@ -5,9 +5,9 @@ declare(strict_types=1);
 
 require __DIR__ . '/_bootstrap.php';
 
-use Phgrep\Support\Json;
-use Phgrep\Tests\Oracle\ScenarioComparator;
-use Phgrep\Tests\Oracle\ScenarioRepository;
+use Greph\Support\Json;
+use Greph\Tests\Oracle\ScenarioComparator;
+use Greph\Tests\Oracle\ScenarioRepository;
 
 $scenarioName = $argv[1] ?? null;
 
@@ -16,7 +16,7 @@ if (!is_string($scenarioName) || $scenarioName === '') {
     exit(2);
 }
 
-$scenario = (new ScenarioRepository($phgrepRoot))->get($scenarioName);
+$scenario = (new ScenarioRepository($grephRoot))->get($scenarioName);
 $comparison = (new ScenarioComparator())->compare($scenario);
 Json::encodeFile($scenario->reportPath(), $comparison);
 fwrite(STDOUT, json_encode($comparison, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES) . PHP_EOL);

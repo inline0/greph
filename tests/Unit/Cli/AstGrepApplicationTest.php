@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace Phgrep\Tests\Unit\Cli;
+namespace Greph\Tests\Unit\Cli;
 
-use Phgrep\Cli\AstGrepApplication;
-use Phgrep\Tests\Support\Workspace;
+use Greph\Cli\AstGrepApplication;
+use Greph\Tests\Support\Workspace;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
@@ -258,7 +258,7 @@ PHP);
         $fallbackLine = $this->invokeMethod(
             $application,
             'displayLine',
-            new \Phgrep\Ast\AstMatch(
+            new \Greph\Ast\AstMatch(
                 file: $this->workspace . '/src/App.php',
                 node: new \PhpParser\Node\Expr\Variable('event'),
                 captures: [],
@@ -282,7 +282,7 @@ PHP);
         $this->assertSame('dispatch( $event );', $fallbackLine);
         $this->assertSame([], $splitEmpty);
         $this->assertNull($noFilter);
-        $this->assertInstanceOf(\Phgrep\Walker\FileTypeFilter::class, $yesFilter);
+        $this->assertInstanceOf(\Greph\Walker\FileTypeFilter::class, $yesFilter);
     }
 
     /**

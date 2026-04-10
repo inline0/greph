@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace Phgrep\Tests\Unit\Benchmarks;
+namespace Greph\Tests\Unit\Benchmarks;
 
-use Phgrep\Benchmarks\BenchmarkComparisonReport;
-use Phgrep\Benchmarks\BenchmarkResult;
+use Greph\Benchmarks\BenchmarkComparisonReport;
+use Greph\Benchmarks\BenchmarkResult;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
@@ -16,11 +16,11 @@ final class BenchmarkComparisonReportTest extends TestCase
     {
         $report = (new BenchmarkComparisonReport())->render(
             [
-                $this->benchmarkResult('phgrep', 120.0, 110.0, 130.0, 5),
+                $this->benchmarkResult('greph', 120.0, 110.0, 130.0, 5),
                 $this->benchmarkResult('rg', 40.0, 38.0, 42.0, 5),
             ],
             [
-                $this->benchmarkResult('phgrep', 90.0, 88.0, 95.0, 5),
+                $this->benchmarkResult('greph', 90.0, 88.0, 95.0, 5),
                 $this->benchmarkResult('rg', 35.0, 34.0, 36.0, 5),
             ],
             'main',

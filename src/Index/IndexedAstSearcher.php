@@ -2,16 +2,16 @@
 
 declare(strict_types=1);
 
-namespace Phgrep\Index;
+namespace Greph\Index;
 
-use Phgrep\Ast\AstMatch;
-use Phgrep\Ast\AstSearchOptions;
-use Phgrep\Ast\AstSearcher;
-use Phgrep\Ast\Pattern;
-use Phgrep\Ast\PatternParser;
-use Phgrep\Ast\Parsers\ParserFactory;
-use Phgrep\Support\Filesystem;
-use Phgrep\Walker\FileList;
+use Greph\Ast\AstMatch;
+use Greph\Ast\AstSearchOptions;
+use Greph\Ast\AstSearcher;
+use Greph\Ast\Pattern;
+use Greph\Ast\PatternParser;
+use Greph\Ast\Parsers\ParserFactory;
+use Greph\Support\Filesystem;
+use Greph\Walker\FileList;
 
 final class IndexedAstSearcher
 {

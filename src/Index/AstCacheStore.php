@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace Phgrep\Index;
+namespace Greph\Index;
 
-use Phgrep\Support\Filesystem;
+use Greph\Support\Filesystem;
 use PhpParser\Node;
 
 final class AstCacheStore
@@ -28,7 +28,7 @@ final class AstCacheStore
 
     public function defaultPath(string $rootPath): string
     {
-        return Filesystem::normalizePath($rootPath) . '/.phgrep-ast-cache';
+        return Filesystem::normalizePath($rootPath) . '/.greph-ast-cache';
     }
 
     public function exists(string $indexPath): bool

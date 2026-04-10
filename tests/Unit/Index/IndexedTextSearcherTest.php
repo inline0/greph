@@ -2,15 +2,15 @@
 
 declare(strict_types=1);
 
-namespace Phgrep\Tests\Unit\Index;
+namespace Greph\Tests\Unit\Index;
 
-use Phgrep\Index\IndexedTextSearcher;
-use Phgrep\Index\TextIndexStore;
-use Phgrep\Phgrep;
-use Phgrep\Tests\Support\Workspace;
-use Phgrep\Text\TextFileResult;
-use Phgrep\Text\TextSearchOptions;
-use Phgrep\Walker\FileTypeFilter;
+use Greph\Index\IndexedTextSearcher;
+use Greph\Index\TextIndexStore;
+use Greph\Greph;
+use Greph\Tests\Support\Workspace;
+use Greph\Text\TextFileResult;
+use Greph\Text\TextSearchOptions;
+use Greph\Walker\FileTypeFilter;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
@@ -35,7 +35,7 @@ final class IndexedTextSearcherTest extends TestCase
         $this->externalWorkspace = Workspace::createDirectory('indexed-text-searcher-external');
         Workspace::writeFile($this->externalWorkspace, 'external.txt', "external needle\n");
 
-        Phgrep::buildTextIndex($this->workspace);
+        Greph::buildTextIndex($this->workspace);
         $this->searcher = new IndexedTextSearcher();
     }
 
@@ -57,7 +57,7 @@ final class IndexedTextSearcherTest extends TestCase
             'external',
             $this->externalWorkspace . '/external.txt',
             new TextSearchOptions(fixedString: true),
-            $this->workspace . '/.phgrep-index',
+            $this->workspace . '/.greph-index',
         );
         $invertResults = $this->searcher->search(
             'function',
@@ -103,7 +103,7 @@ final class IndexedTextSearcherTest extends TestCase
     public function itUsesWordPostingsForIndexedWholeWordQueries(): void
     {
         Workspace::writeFile($this->workspace, 'src/Subword.php', "<?php\n\$label = 'dysfunction';\n");
-        Phgrep::refreshTextIndex($this->workspace);
+        Greph::refreshTextIndex($this->workspace);
 
         $results = $this->searcher->search(
             'function',
@@ -161,19 +161,19 @@ final class IndexedTextSearcherTest extends TestCase
         $candidateIdsWithoutTrigrams = $this->invokeMethod(
             $this->searcher,
             'candidateIds',
-            $this->workspace . '/.phgrep-index',
+            $this->workspace . '/.greph-index',
             ['ab'],
         );
         $candidateIdsWithTrigrams = $this->invokeMethod(
             $this->searcher,
             'candidateIds',
-            $this->workspace . '/.phgrep-index',
+            $this->workspace . '/.greph-index',
             ['function'],
         );
         $candidateIdsFromWords = $this->invokeMethod(
             $this->searcher,
             'candidateIdsFromWordPostings',
-            $this->workspace . '/.phgrep-index',
+            $this->workspace . '/.greph-index',
             'function',
         );
         $wholeWordToken = $this->invokeMethod(
@@ -271,7 +271,7 @@ final class IndexedTextSearcherTest extends TestCase
             $this->searcher,
             'resolveIndexPath',
             [$this->workspace],
-            $this->workspace . '/.phgrep-index',
+            $this->workspace . '/.greph-index',
         );
         $unlocatedIndexPath = $this->invokeMethod(
             $this->searcher,
@@ -307,7 +307,7 @@ final class IndexedTextSearcherTest extends TestCase
     public function itCoversIndexedTextFallbackSummaryAndLiteralHelpers(): void
     {
         $missingIndexedPath = Workspace::writeFile($this->workspace, 'src/Newer.php', "<?php\nfunction future(): void {}\n");
-        $indexPath = $this->workspace . '/.phgrep-index';
+        $indexPath = $this->workspace . '/.greph-index';
 
         $deletedFallback = $this->searcher->search(
             'function',
@@ -397,7 +397,7 @@ final class IndexedTextSearcherTest extends TestCase
 
         $rootResults = $this->searcher->search($pattern, $this->workspace, $options);
         $cachedRootResults = $this->searcher->search($pattern, $this->workspace, $options);
-        $cacheFiles = glob($this->workspace . '/.phgrep-index/queries/*.phpbin') ?: [];
+        $cacheFiles = glob($this->workspace . '/.greph-index/queries/*.phpbin') ?: [];
 
         $this->assertNotSame([], $cacheFiles);
         $this->assertSame(

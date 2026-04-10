@@ -14,7 +14,7 @@
     },
     "oracle_disagreement": {
         "grep_vs_rg": "grep prints filenames for explicit file paths in recursive mode while ripgrep suppresses the filename for a single file target",
-        "phgrep_follows": "grep",
+        "greph_follows": "grep",
         "reason": "Text mode defaults to grep-compatible filename display semantics"
     }
 }

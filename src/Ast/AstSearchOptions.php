@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace Phgrep\Ast;
+namespace Greph\Ast;
 
-use Phgrep\Walker\FileTypeFilter;
-use Phgrep\Walker\WalkOptions;
+use Greph\Walker\FileTypeFilter;
+use Greph\Walker\WalkOptions;
 
 final readonly class AstSearchOptions
 {

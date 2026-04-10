@@ -2,12 +2,12 @@
 
 declare(strict_types=1);
 
-namespace Phgrep\Tests\Unit\Ast;
+namespace Greph\Tests\Unit\Ast;
 
-use Phgrep\Ast\AstMatch;
-use Phgrep\Ast\AstMatchCodec;
-use Phgrep\Ast\PatternParser;
-use Phgrep\Ast\StoredNode;
+use Greph\Ast\AstMatch;
+use Greph\Ast\AstMatchCodec;
+use Greph\Ast\PatternParser;
+use Greph\Ast\StoredNode;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 use PhpParser\Node\Arg;

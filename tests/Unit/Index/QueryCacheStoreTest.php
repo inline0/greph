@@ -2,19 +2,19 @@
 
 declare(strict_types=1);
 
-namespace Phgrep\Tests\Unit\Index;
+namespace Greph\Tests\Unit\Index;
 
-use Phgrep\Ast\AstMatch;
-use Phgrep\Ast\AstSearchOptions;
-use Phgrep\Ast\PatternParser;
-use Phgrep\Ast\StoredNode;
-use Phgrep\Index\AstQueryCacheStore;
-use Phgrep\Index\TextIndex;
-use Phgrep\Index\TextQueryCacheStore;
-use Phgrep\Tests\Support\Workspace;
-use Phgrep\Text\TextFileResult;
-use Phgrep\Text\TextMatch;
-use Phgrep\Text\TextSearchOptions;
+use Greph\Ast\AstMatch;
+use Greph\Ast\AstSearchOptions;
+use Greph\Ast\PatternParser;
+use Greph\Ast\StoredNode;
+use Greph\Index\AstQueryCacheStore;
+use Greph\Index\TextIndex;
+use Greph\Index\TextQueryCacheStore;
+use Greph\Tests\Support\Workspace;
+use Greph\Text\TextFileResult;
+use Greph\Text\TextMatch;
+use Greph\Text\TextSearchOptions;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
@@ -50,7 +50,7 @@ final class QueryCacheStoreTest extends TestCase
 
         $loaded = $store->load($index, 'function', $normalOptions);
         $summaryLoaded = $store->load($index, 'function', $summaryOptions);
-        $cacheFiles = glob($this->workspace . '/.phgrep-index/queries/*.phpbin*') ?: [];
+        $cacheFiles = glob($this->workspace . '/.greph-index/queries/*.phpbin*') ?: [];
 
         $this->assertCount(2, $cacheFiles);
         $this->assertNotNull($loaded);
@@ -84,7 +84,7 @@ final class QueryCacheStoreTest extends TestCase
         $options = new TextSearchOptions(fixedString: true);
 
         $store->save($index, 'function', $options, [new TextFileResult('src/App.php', [], 1)]);
-        $path = (glob($this->workspace . '/.phgrep-index/queries/*.phpbin*') ?: [])[0] ?? null;
+        $path = (glob($this->workspace . '/.greph-index/queries/*.phpbin*') ?: [])[0] ?? null;
 
         $this->assertNotNull($path);
         $rawPayload = file_get_contents($path);
@@ -138,7 +138,7 @@ final class QueryCacheStoreTest extends TestCase
         $store = new AstQueryCacheStore();
         $pattern = (new PatternParser())->parse('array($$$ITEMS)');
         $options = new AstSearchOptions();
-        $indexPath = $this->workspace . '/.phgrep-ast-index';
+        $indexPath = $this->workspace . '/.greph-ast-index';
         $match = new AstMatch(
             file: $this->workspace . '/src/App.php',
             node: $pattern->root,
@@ -240,7 +240,7 @@ final class QueryCacheStoreTest extends TestCase
         $textIndex = $this->textIndex();
         $textOptions = new TextSearchOptions(fixedString: true);
         $astOptions = new AstSearchOptions();
-        $astIndexPath = $this->workspace . '/.phgrep-ast-index';
+        $astIndexPath = $this->workspace . '/.greph-ast-index';
         $textPath = $this->invokeMethod($textStore, 'cachePath', $textIndex->indexPath, 'function', $textOptions);
         $astPath = $this->invokeMethod($astStore, 'cachePath', $astIndexPath, 'array($$$ITEMS)', $astOptions);
 
@@ -298,7 +298,7 @@ final class QueryCacheStoreTest extends TestCase
     {
         return new TextIndex(
             rootPath: $this->workspace,
-            indexPath: $this->workspace . '/.phgrep-index',
+            indexPath: $this->workspace . '/.greph-index',
             version: 1,
             builtAt: 123,
             nextFileId: 2,

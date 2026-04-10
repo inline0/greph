@@ -2,13 +2,13 @@
 
 declare(strict_types=1);
 
-namespace Phgrep\Tests\Unit\Walker;
+namespace Greph\Tests\Unit\Walker;
 
-use Phgrep\Exceptions\WalkerException;
-use Phgrep\Tests\Support\Workspace;
-use Phgrep\Walker\FileTypeFilter;
-use Phgrep\Walker\FileWalker;
-use Phgrep\Walker\WalkOptions;
+use Greph\Exceptions\WalkerException;
+use Greph\Tests\Support\Workspace;
+use Greph\Walker\FileTypeFilter;
+use Greph\Walker\FileWalker;
+use Greph\Walker\WalkOptions;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
@@ -21,7 +21,7 @@ final class FileWalkerTest extends TestCase
         $this->workspace = Workspace::createDirectory('file-walker');
 
         Workspace::writeFile($this->workspace, '.gitignore', "vendor/\n");
-        Workspace::writeFile($this->workspace, '.phgrepignore', "cache/\n");
+        Workspace::writeFile($this->workspace, '.grephignore', "cache/\n");
         Workspace::writeFile($this->workspace, '.git/info/exclude', "notes.txt\n");
         Workspace::writeFile($this->workspace, 'src/.gitignore', "*.skip\n");
         Workspace::writeFile($this->workspace, 'src/App.php', "<?php\n");

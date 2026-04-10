@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Phgrep\Benchmarks;
+namespace Greph\Benchmarks;
 
 final class BenchmarkReport
 {
@@ -12,7 +12,7 @@ final class BenchmarkReport
     public function render(array $results): string
     {
         $lines = [
-            'phgrep Benchmark Report',
+            'greph Benchmark Report',
             '=======================',
             '',
         ];

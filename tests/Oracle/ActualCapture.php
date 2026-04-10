@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace Phgrep\Tests\Oracle;
+namespace Greph\Tests\Oracle;
 
-use Phgrep\Phgrep;
-use Phgrep\Support\Filesystem;
-use Phgrep\Support\Json;
+use Greph\Greph;
+use Greph\Support\Filesystem;
+use Greph\Support\Json;
 
 final class ActualCapture
 {
@@ -66,12 +66,12 @@ final class ActualCapture
     {
         $paths = array_map(static fn (string $path): string => $workspaceRoot . '/' . $path, $scenario->paths());
         $options = $this->flagParser->textOptions($scenario);
-        $results = Phgrep::searchText($scenario->pattern(), $paths, $options);
+        $results = Greph::searchText($scenario->pattern(), $paths, $options);
         $outputs = $this->normalizer->textOutputs($results, $options, $workspaceRoot);
 
         return [
-            'phgrep.txt' => $outputs['text'],
-            'phgrep.json' => $outputs['json'],
+            'greph.txt' => $outputs['text'],
+            'greph.json' => $outputs['json'],
         ];
     }
 
@@ -82,12 +82,12 @@ final class ActualCapture
     {
         $paths = array_map(static fn (string $path): string => $workspaceRoot . '/' . $path, $scenario->paths());
         $options = $this->flagParser->astOptions($scenario);
-        $matches = Phgrep::searchAst($scenario->pattern(), $paths, $options);
+        $matches = Greph::searchAst($scenario->pattern(), $paths, $options);
         $outputs = $this->normalizer->astOutputs($matches, $workspaceRoot);
 
         return [
-            'phgrep.txt' => $outputs['text'],
-            'phgrep.json' => $outputs['json'],
+            'greph.txt' => $outputs['text'],
+            'greph.json' => $outputs['json'],
         ];
     }
 
@@ -98,12 +98,12 @@ final class ActualCapture
     {
         $paths = array_map(static fn (string $path): string => $workspaceRoot . '/' . $path, $scenario->paths());
         $options = $this->flagParser->astOptions($scenario);
-        $results = Phgrep::rewriteAst($scenario->pattern(), (string) $scenario->rewrite(), $paths, $options);
+        $results = Greph::rewriteAst($scenario->pattern(), (string) $scenario->rewrite(), $paths, $options);
         $outputs = $this->normalizer->rewriteOutputs($results, $workspaceRoot);
 
         return [
-            'phgrep.txt' => $outputs['text'],
-            'phgrep.json' => $outputs['json'],
+            'greph.txt' => $outputs['text'],
+            'greph.json' => $outputs['json'],
         ];
     }
 }

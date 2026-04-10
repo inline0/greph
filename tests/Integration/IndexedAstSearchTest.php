@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace Phgrep\Tests\Integration;
+namespace Greph\Tests\Integration;
 
-use Phgrep\Ast\AstSearchOptions;
-use Phgrep\Phgrep;
-use Phgrep\Tests\Support\Workspace;
+use Greph\Ast\AstSearchOptions;
+use Greph\Greph;
+use Greph\Tests\Support\Workspace;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
@@ -34,7 +34,7 @@ PHP,
         Workspace::writeFile($this->workspace, '.hidden/Hidden.php', "<?php\n\$hidden = new HiddenThing();\n");
         Workspace::writeFile($this->workspace, 'ignored.php', "<?php\n\$ignored = array(1);\n");
 
-        Phgrep::buildAstIndex($this->workspace);
+        Greph::buildAstIndex($this->workspace);
     }
 
     protected function tearDown(): void
@@ -45,17 +45,17 @@ PHP,
     #[Test]
     public function itUsesIndexedFactsToNarrowAstSearches(): void
     {
-        $newMatches = Phgrep::searchAstIndexed(
+        $newMatches = Greph::searchAstIndexed(
             'new $CLASS()',
             $this->workspace,
             new AstSearchOptions(),
         );
-        $arrayMatches = Phgrep::searchAstIndexed(
+        $arrayMatches = Greph::searchAstIndexed(
             'array($$$ITEMS)',
             $this->workspace,
             new AstSearchOptions(),
         );
-        $functionMatches = Phgrep::searchAstIndexed(
+        $functionMatches = Greph::searchAstIndexed(
             'render_widget()',
             $this->workspace,
             new AstSearchOptions(),
@@ -72,12 +72,12 @@ PHP,
     #[Test]
     public function itHonorsVisibilityAndIgnoreFiltersAndRefreshesIncrementally(): void
     {
-        $defaultMatches = Phgrep::searchAstIndexed(
+        $defaultMatches = Greph::searchAstIndexed(
             'new $CLASS()',
             $this->workspace,
             new AstSearchOptions(),
         );
-        $expandedMatches = Phgrep::searchAstIndexed(
+        $expandedMatches = Greph::searchAstIndexed(
             'new $CLASS()',
             $this->workspace,
             new AstSearchOptions(includeHidden: true, respectIgnore: false),
@@ -89,9 +89,9 @@ PHP,
         sleep(1);
         Workspace::writeFile($this->workspace, 'src/App.php', "<?php\n\$value = 1;\n");
         Workspace::writeFile($this->workspace, 'src/Newer.php', "<?php\n\$fresh = new FreshThing();\n");
-        Phgrep::refreshAstIndex($this->workspace);
+        Greph::refreshAstIndex($this->workspace);
 
-        $refreshedMatches = Phgrep::searchAstIndexed(
+        $refreshedMatches = Greph::searchAstIndexed(
             'new $CLASS()',
             $this->workspace,
             new AstSearchOptions(),
@@ -104,13 +104,13 @@ PHP,
     #[Test]
     public function itCachesRootAstIndexQueriesAndInvalidatesThemOnRefresh(): void
     {
-        $initialMatches = Phgrep::searchAstIndexed(
+        $initialMatches = Greph::searchAstIndexed(
             'new $CLASS()',
             $this->workspace,
             new AstSearchOptions(),
         );
 
-        $cacheFiles = glob($this->workspace . '/.phgrep-ast-index/queries/*.phpbin*') ?: [];
+        $cacheFiles = glob($this->workspace . '/.greph-ast-index/queries/*.phpbin*') ?: [];
 
         $this->assertNotSame([], $cacheFiles);
         $this->assertCount(1, $initialMatches);
@@ -119,15 +119,15 @@ PHP,
         sleep(1);
         Workspace::writeFile($this->workspace, 'src/App.php', "<?php\n\$value = 1;\n");
         Workspace::writeFile($this->workspace, 'src/Newer.php', "<?php\n\$fresh = new FreshThing();\n");
-        Phgrep::refreshAstIndex($this->workspace);
+        Greph::refreshAstIndex($this->workspace);
 
-        $refreshedMatches = Phgrep::searchAstIndexed(
+        $refreshedMatches = Greph::searchAstIndexed(
             'new $CLASS()',
             $this->workspace,
             new AstSearchOptions(),
         );
 
-        $refreshedCacheFiles = glob($this->workspace . '/.phgrep-ast-index/queries/*.phpbin*') ?: [];
+        $refreshedCacheFiles = glob($this->workspace . '/.greph-ast-index/queries/*.phpbin*') ?: [];
 
         $this->assertNotSame([], $refreshedCacheFiles);
         $this->assertCount(1, $refreshedMatches);

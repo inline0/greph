@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Phgrep\Benchmarks;
+namespace Greph\Benchmarks;
 
 final class BenchmarkArtifactLocator
 {

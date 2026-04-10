@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace Phgrep\Benchmarks;
+namespace Greph\Benchmarks;
 
-use Phgrep\Support\Filesystem;
+use Greph\Support\Filesystem;
 
 final class SyntheticCorpusGenerator
 {

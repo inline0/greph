@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace Phgrep\Tests\Unit\Parallel;
+namespace Greph\Tests\Unit\Parallel;
 
-use Phgrep\Parallel\WorkerPool;
-use Phgrep\Tests\Support\Workspace;
-use Phgrep\Walker\FileList;
+use Greph\Parallel\WorkerPool;
+use Greph\Tests\Support\Workspace;
+use Greph\Walker\FileList;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
@@ -143,7 +143,7 @@ final class WorkerPoolTest extends TestCase
                 return [$reader, $writer];
             },
             fork: static fn (): int => 0,
-            workerFactory: static fn (int $index, FileList $chunk): \Phgrep\Parallel\Worker => new \Phgrep\Parallel\Worker(
+            workerFactory: static fn (int $index, FileList $chunk): \Greph\Parallel\Worker => new \Greph\Parallel\Worker(
                 $index,
                 $chunk,
                 static function (int $exitCode): never {
@@ -300,9 +300,9 @@ final class WorkerPoolTest extends TestCase
     {
         $pool = new WorkerPool(
             fork: static fn (): int => 0,
-            tempFileFactory: static fn (): string => '/tmp/phgrep-worker-child',
+            tempFileFactory: static fn (): string => '/tmp/greph-worker-child',
             fileOpener: static fn (string $path, string $mode) => fopen('php://temp', 'w+'),
-            workerFactory: static fn (int $index, FileList $chunk): \Phgrep\Parallel\Worker => new \Phgrep\Parallel\Worker(
+            workerFactory: static fn (int $index, FileList $chunk): \Greph\Parallel\Worker => new \Greph\Parallel\Worker(
                 $index,
                 $chunk,
                 static function (int $exitCode): never {

@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace Phgrep\Tests\Unit\Support;
+namespace Greph\Tests\Unit\Support;
 
-use Phgrep\Support\Json;
-use Phgrep\Tests\Support\Workspace;
+use Greph\Support\Json;
+use Greph\Tests\Support\Workspace;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
@@ -27,7 +27,7 @@ final class JsonTest extends TestCase
     public function itEncodesAndDecodesJsonFiles(): void
     {
         $path = $this->workspace . '/nested/data.json';
-        $payload = ['name' => 'phgrep', 'items' => [1, 2, 3]];
+        $payload = ['name' => 'greph', 'items' => [1, 2, 3]];
 
         Json::encodeFile($path, $payload);
 
@@ -51,6 +51,6 @@ final class JsonTest extends TestCase
 
         $this->expectException(\RuntimeException::class);
 
-        Json::encodeFile($this->workspace . '/directory-target', ['name' => 'phgrep']);
+        Json::encodeFile($this->workspace . '/directory-target', ['name' => 'greph']);
     }
 }

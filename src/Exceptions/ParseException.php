@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Phgrep\Exceptions;
+namespace Greph\Exceptions;
 
 final class ParseException extends \RuntimeException
 {

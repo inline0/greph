@@ -1,5 +1,5 @@
 {
-    "generated_at": "2026-04-10T16:07:22+00:00",
+    "generated_at": "2026-04-10T17:01:41+00:00",
     "root_path": "/Users/dennis/Local Sites/fabrikat/inline0/greph",
     "sections": [
         {
@@ -692,7 +692,7 @@
                                 "."
                             ],
                             "exit_code": 0,
-                            "stdout": "./src/Other.txt:function ignored\n./vendor/Ignored.php:dispatch($ignored);\n./vendor/ignored.txt:ignored needle\n",
+                            "stdout": "./src/Other.txt:function ignored\n./vendor/ignored.txt:ignored needle\n./vendor/Ignored.php:dispatch($ignored);\n",
                             "stderr": "",
                             "note": ""
                         },
@@ -861,7 +861,7 @@
                                 "single.txt"
                             ],
                             "exit_code": 0,
-                            "stdout": "{\"type\":\"begin\",\"data\":{\"path\":{\"text\":\"single.txt\"}}}\n{\"type\":\"match\",\"data\":{\"path\":{\"text\":\"single.txt\"},\"lines\":{\"text\":\"needle\\n\"},\"line_number\":2,\"absolute_offset\":6,\"submatches\":[{\"match\":{\"text\":\"needle\"},\"start\":0,\"end\":6}]}}\n{\"type\":\"end\",\"data\":{\"path\":{\"text\":\"single.txt\"},\"binary_offset\":null,\"stats\":{\"elapsed\":{\"secs\":0,\"nanos\":49042,\"human\":\"0.000049s\"},\"searches\":1,\"searches_with_match\":1,\"bytes_searched\":20,\"bytes_printed\":235,\"matched_lines\":1,\"matches\":1}}}\n{\"data\":{\"elapsed_total\":{\"human\":\"0.000557s\",\"nanos\":557375,\"secs\":0},\"stats\":{\"bytes_printed\":235,\"bytes_searched\":20\n...[truncated]\n",
+                            "stdout": "{\"type\":\"begin\",\"data\":{\"path\":{\"text\":\"single.txt\"}}}\n{\"type\":\"match\",\"data\":{\"path\":{\"text\":\"single.txt\"},\"lines\":{\"text\":\"needle\\n\"},\"line_number\":2,\"absolute_offset\":6,\"submatches\":[{\"match\":{\"text\":\"needle\"},\"start\":0,\"end\":6}]}}\n{\"type\":\"end\",\"data\":{\"path\":{\"text\":\"single.txt\"},\"binary_offset\":null,\"stats\":{\"elapsed\":{\"secs\":0,\"nanos\":51083,\"human\":\"0.000051s\"},\"searches\":1,\"searches_with_match\":1,\"bytes_searched\":20,\"bytes_printed\":235,\"matched_lines\":1,\"matches\":1}}}\n{\"data\":{\"elapsed_total\":{\"human\":\"0.000788s\",\"nanos\":788291,\"secs\":0},\"stats\":{\"bytes_printed\":235,\"bytes_searched\":20\n...[truncated]\n",
                             "stderr": "",
                             "note": ""
                         },
@@ -1854,7 +1854,7 @@
                                 "."
                             ],
                             "exit_code": 0,
-                            "stdout": "Built index for 14 files in .phgrep-index (175 trigrams, +14 ~0 -0 =0)\n",
+                            "stdout": "Built index for 14 files in .greph-index (175 trigrams, +14 ~0 -0 =0)\n",
                             "stderr": "",
                             "note": ""
                         }
@@ -1877,7 +1877,7 @@
                             "exit_code": 0,
                             "stdout": "notes.txt:4:refreshed needle\n",
                             "stderr": "",
-                            "note": "Build: Built index for 14 files in .phgrep-index (175 trigrams, +14 ~0 -0 =0)\nRefresh: Refreshed index for 14 files in .phgrep-index (184 trigrams, +0 ~1 -0 =13)"
+                            "note": "Build: Built index for 14 files in .greph-index (175 trigrams, +14 ~0 -0 =0)\nRefresh: Refreshed index for 14 files in .greph-index (184 trigrams, +0 ~1 -0 =13)"
                         }
                     }
                 },
@@ -1898,7 +1898,7 @@
                             "exit_code": 0,
                             "stdout": "single.txt:2:needle\ninvert.txt:1:needle\ncounts.txt:1:needle\ncounts.txt:2:needle\nwords.txt:1:needle\nwords.txt:2:needles\ncontext.txt:2:needle\n",
                             "stderr": "",
-                            "note": "Built index for 14 files in .phgrep-index (175 trigrams, +14 ~0 -0 =0)"
+                            "note": "Built index for 14 files in .greph-index (175 trigrams, +14 ~0 -0 =0)"
                         }
                     }
                 },
@@ -1920,7 +1920,7 @@
                             "exit_code": 0,
                             "stdout": "single.txt:2:needle\nsingle.txt:3:NEEDLE\ninvert.txt:1:needle\ncounts.txt:1:needle\ncounts.txt:2:needle\nwords.txt:1:needle\nwords.txt:2:needles\ncontext.txt:2:needle\n",
                             "stderr": "",
-                            "note": "Built index for 14 files in .phgrep-index (175 trigrams, +14 ~0 -0 =0)"
+                            "note": "Built index for 14 files in .greph-index (175 trigrams, +14 ~0 -0 =0)"
                         }
                     }
                 },
@@ -1940,7 +1940,7 @@
                             "exit_code": 0,
                             "stdout": "2:new instance\n",
                             "stderr": "",
-                            "note": "Built index for 14 files in .phgrep-index (175 trigrams, +14 ~0 -0 =0)"
+                            "note": "Built index for 14 files in .greph-index (175 trigrams, +14 ~0 -0 =0)"
                         }
                     }
                 },
@@ -1962,7 +1962,7 @@
                             "exit_code": 0,
                             "stdout": "2\n",
                             "stderr": "",
-                            "note": "Built index for 14 files in .phgrep-index (175 trigrams, +14 ~0 -0 =0)"
+                            "note": "Built index for 14 files in .greph-index (175 trigrams, +14 ~0 -0 =0)"
                         }
                     }
                 },
@@ -1985,7 +1985,7 @@
                             "exit_code": 0,
                             "stdout": "1:needle\n",
                             "stderr": "",
-                            "note": "Built index for 14 files in .phgrep-index (175 trigrams, +14 ~0 -0 =0)"
+                            "note": "Built index for 14 files in .greph-index (175 trigrams, +14 ~0 -0 =0)"
                         }
                     }
                 },
@@ -2007,7 +2007,7 @@
                             "exit_code": 0,
                             "stdout": "single.txt\ninvert.txt\ncounts.txt\nwords.txt\ncontext.txt\n",
                             "stderr": "",
-                            "note": "Built index for 14 files in .phgrep-index (175 trigrams, +14 ~0 -0 =0)"
+                            "note": "Built index for 14 files in .greph-index (175 trigrams, +14 ~0 -0 =0)"
                         }
                     }
                 },
@@ -2029,7 +2029,7 @@
                             "exit_code": 0,
                             "stdout": "notes.txt\nunmatched.txt\nsrc/App.php\nsrc/Other.txt\n",
                             "stderr": "",
-                            "note": "Built index for 14 files in .phgrep-index (175 trigrams, +14 ~0 -0 =0)"
+                            "note": "Built index for 14 files in .greph-index (175 trigrams, +14 ~0 -0 =0)"
                         }
                     }
                 },
@@ -2051,7 +2051,7 @@
                             "exit_code": 0,
                             "stdout": "[\n    {\n        \"file\": \"notes.txt\",\n        \"matches\": []\n    },\n    {\n        \"file\": \"unmatched.txt\",\n        \"matches\": []\n    },\n    {\n        \"file\": \"single.txt\",\n        \"matches\": [\n            {\n                \"line\": 2,\n                \"column\": 1,\n                \"content\": \"needle\",\n                \"matched_text\": \"needle\",\n                \"captures\": []\n            }\n        ]\n    },\n    {\n        \"file\": \"invert.txt\",\n        \"matches\": [\n            {\n                \"line\": 1,\n                \"column\": 1,\n                \"content\": \"needle\",\n                \"matched_text\": \"n\n...[truncated]\n",
                             "stderr": "",
-                            "note": "Built index for 14 files in .phgrep-index (175 trigrams, +14 ~0 -0 =0)"
+                            "note": "Built index for 14 files in .greph-index (175 trigrams, +14 ~0 -0 =0)"
                         }
                     }
                 },
@@ -2074,7 +2074,7 @@
                             "exit_code": 0,
                             "stdout": "src/App.php:3:function visible(): void {}\n",
                             "stderr": "",
-                            "note": "Built index for 14 files in .phgrep-index (175 trigrams, +14 ~0 -0 =0)"
+                            "note": "Built index for 14 files in .greph-index (175 trigrams, +14 ~0 -0 =0)"
                         }
                     }
                 },
@@ -2096,7 +2096,7 @@
                             "exit_code": 0,
                             "stdout": "src/Other.txt:1:function ignored\n",
                             "stderr": "",
-                            "note": "Built index for 14 files in .phgrep-index (175 trigrams, +14 ~0 -0 =0)"
+                            "note": "Built index for 14 files in .greph-index (175 trigrams, +14 ~0 -0 =0)"
                         }
                     }
                 }
@@ -2110,17 +2110,17 @@
             "rows": [
                 {
                     "feature": "AST index build",
-                    "notes": "Probe: `Phgrep::buildAstIndex(.)`",
+                    "notes": "Probe: `Greph::buildAstIndex(.)`",
                     "results": {
                         "php/lib": {
                             "status": "Pass",
                             "command": [
                                 "/opt/homebrew/Cellar/php/8.4.5_1/bin/php",
                                 "-r",
-                                "require '/Users/dennis/Local Sites/fabrikat/inline0/greph/vendor/autoload.php';\n$result = Phgrep\\Phgrep::buildAstIndex('.');\necho json_encode(['file_count' => $result->fileCount, 'index_path' => $result->indexPath], JSON_UNESCAPED_SLASHES);"
+                                "require '/Users/dennis/Local Sites/fabrikat/inline0/greph/vendor/autoload.php';\n$result = Greph\\Greph::buildAstIndex('.');\necho json_encode(['file_count' => $result->fileCount, 'index_path' => $result->indexPath], JSON_UNESCAPED_SLASHES);"
                             ],
                             "exit_code": 0,
-                            "stdout": "{\"file_count\":3,\"index_path\":\"/private<workspace>/.phgrep-ast-index\"}",
+                            "stdout": "{\"file_count\":3,\"index_path\":\"/private<workspace>/.greph-ast-index\"}",
                             "stderr": "",
                             "note": ""
                         }
@@ -2128,14 +2128,14 @@
                 },
                 {
                     "feature": "Indexed AST search",
-                    "notes": "Probe: build index, then `Phgrep::searchAstIndexed(array($$$ITEMS), src/App.php)`",
+                    "notes": "Probe: build index, then `Greph::searchAstIndexed(array($$$ITEMS), src/App.php)`",
                     "results": {
                         "php/lib": {
                             "status": "Pass",
                             "command": [
                                 "/opt/homebrew/Cellar/php/8.4.5_1/bin/php",
                                 "-r",
-                                "require '/Users/dennis/Local Sites/fabrikat/inline0/greph/vendor/autoload.php';\nPhgrep\\Phgrep::buildAstIndex('.');\n$matches = Phgrep\\Phgrep::searchAstIndexed('array($$$ITEMS)', ['src/App.php']);\necho json_encode(array_map(static fn ($match) => ['file' => $match->file, 'code' => $match->code], $matches), JSON_UNESCAPED_SLASHES);"
+                                "require '/Users/dennis/Local Sites/fabrikat/inline0/greph/vendor/autoload.php';\nGreph\\Greph::buildAstIndex('.');\n$matches = Greph\\Greph::searchAstIndexed('array($$$ITEMS)', ['src/App.php']);\necho json_encode(array_map(static fn ($match) => ['file' => $match->file, 'code' => $match->code], $matches), JSON_UNESCAPED_SLASHES);"
                             ],
                             "exit_code": 0,
                             "stdout": "[{\"file\":\"/private<workspace>/src/App.php\",\"code\":\"array(1, 2, 3)\"}]",
@@ -2153,7 +2153,7 @@
                             "command": [
                                 "/opt/homebrew/Cellar/php/8.4.5_1/bin/php",
                                 "-r",
-                                "require '/Users/dennis/Local Sites/fabrikat/inline0/greph/vendor/autoload.php';\nPhgrep\\Phgrep::buildAstIndex('.');\nfile_put_contents('src/App.php', file_get_contents('src/App.php') . \"\\ndispatch(\\$refreshed);\\n\");\nPhgrep\\Phgrep::refreshAstIndex('.');\n$matches = Phgrep\\Phgrep::searchAstIndexed('dispatch($EVENT)', ['src/App.php']);\necho json_encode(array_map(static fn ($match) => ['file' => $match->file, 'code' => $match->code], $matches), JSON_UNESCAPED_SLASHES);"
+                                "require '/Users/dennis/Local Sites/fabrikat/inline0/greph/vendor/autoload.php';\nGreph\\Greph::buildAstIndex('.');\nfile_put_contents('src/App.php', file_get_contents('src/App.php') . \"\\ndispatch(\\$refreshed);\\n\");\nGreph\\Greph::refreshAstIndex('.');\n$matches = Greph\\Greph::searchAstIndexed('dispatch($EVENT)', ['src/App.php']);\necho json_encode(array_map(static fn ($match) => ['file' => $match->file, 'code' => $match->code], $matches), JSON_UNESCAPED_SLASHES);"
                             ],
                             "exit_code": 0,
                             "stdout": "[{\"file\":\"/private<workspace>/src/App.php\",\"code\":\"dispatch($event)\"},{\"file\":\"/private<workspace>/src/App.php\",\"code\":\"dispatch($refreshed)\"}]",
@@ -2164,17 +2164,17 @@
                 },
                 {
                     "feature": "AST cache build",
-                    "notes": "Probe: `Phgrep::buildAstCache(.)`",
+                    "notes": "Probe: `Greph::buildAstCache(.)`",
                     "results": {
                         "php/lib": {
                             "status": "Pass",
                             "command": [
                                 "/opt/homebrew/Cellar/php/8.4.5_1/bin/php",
                                 "-r",
-                                "require '/Users/dennis/Local Sites/fabrikat/inline0/greph/vendor/autoload.php';\n$result = Phgrep\\Phgrep::buildAstCache('.');\necho json_encode(['file_count' => $result->fileCount, 'index_path' => $result->indexPath], JSON_UNESCAPED_SLASHES);"
+                                "require '/Users/dennis/Local Sites/fabrikat/inline0/greph/vendor/autoload.php';\n$result = Greph\\Greph::buildAstCache('.');\necho json_encode(['file_count' => $result->fileCount, 'index_path' => $result->indexPath], JSON_UNESCAPED_SLASHES);"
                             ],
                             "exit_code": 0,
-                            "stdout": "{\"file_count\":3,\"index_path\":\"/private<workspace>/.phgrep-ast-cache\"}",
+                            "stdout": "{\"file_count\":3,\"index_path\":\"/private<workspace>/.greph-ast-cache\"}",
                             "stderr": "",
                             "note": ""
                         }
@@ -2182,14 +2182,14 @@
                 },
                 {
                     "feature": "Cached AST search",
-                    "notes": "Probe: build cache, then `Phgrep::searchAstCached(array($$$ITEMS), src/App.php)`",
+                    "notes": "Probe: build cache, then `Greph::searchAstCached(array($$$ITEMS), src/App.php)`",
                     "results": {
                         "php/lib": {
                             "status": "Pass",
                             "command": [
                                 "/opt/homebrew/Cellar/php/8.4.5_1/bin/php",
                                 "-r",
-                                "require '/Users/dennis/Local Sites/fabrikat/inline0/greph/vendor/autoload.php';\nPhgrep\\Phgrep::buildAstCache('.');\n$matches = Phgrep\\Phgrep::searchAstCached('array($$$ITEMS)', ['src/App.php']);\necho json_encode(array_map(static fn ($match) => ['file' => $match->file, 'code' => $match->code], $matches), JSON_UNESCAPED_SLASHES);"
+                                "require '/Users/dennis/Local Sites/fabrikat/inline0/greph/vendor/autoload.php';\nGreph\\Greph::buildAstCache('.');\n$matches = Greph\\Greph::searchAstCached('array($$$ITEMS)', ['src/App.php']);\necho json_encode(array_map(static fn ($match) => ['file' => $match->file, 'code' => $match->code], $matches), JSON_UNESCAPED_SLASHES);"
                             ],
                             "exit_code": 0,
                             "stdout": "[{\"file\":\"/private<workspace>/src/App.php\",\"code\":\"array(1, 2, 3)\"}]",
@@ -2207,7 +2207,7 @@
                             "command": [
                                 "/opt/homebrew/Cellar/php/8.4.5_1/bin/php",
                                 "-r",
-                                "require '/Users/dennis/Local Sites/fabrikat/inline0/greph/vendor/autoload.php';\nPhgrep\\Phgrep::buildAstCache('.');\nfile_put_contents('src/App.php', file_get_contents('src/App.php') . \"\\ndispatch(\\$refreshed);\\n\");\nPhgrep\\Phgrep::refreshAstCache('.');\n$matches = Phgrep\\Phgrep::searchAstCached('dispatch($EVENT)', ['src/App.php']);\necho json_encode(array_map(static fn ($match) => ['file' => $match->file, 'code' => $match->code], $matches), JSON_UNESCAPED_SLASHES);"
+                                "require '/Users/dennis/Local Sites/fabrikat/inline0/greph/vendor/autoload.php';\nGreph\\Greph::buildAstCache('.');\nfile_put_contents('src/App.php', file_get_contents('src/App.php') . \"\\ndispatch(\\$refreshed);\\n\");\nGreph\\Greph::refreshAstCache('.');\n$matches = Greph\\Greph::searchAstCached('dispatch($EVENT)', ['src/App.php']);\necho json_encode(array_map(static fn ($match) => ['file' => $match->file, 'code' => $match->code], $matches), JSON_UNESCAPED_SLASHES);"
                             ],
                             "exit_code": 0,
                             "stdout": "[{\"file\":\"/private<workspace>/src/App.php\",\"code\":\"dispatch($event)\"},{\"file\":\"/private<workspace>/src/App.php\",\"code\":\"dispatch($refreshed)\"}]",

@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace Phgrep\Text;
+namespace Greph\Text;
 
-use Phgrep\Walker\FileList;
+use Greph\Walker\FileList;
 
 final class TextSearcher
 {

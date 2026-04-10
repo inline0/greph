@@ -2,15 +2,15 @@
 
 declare(strict_types=1);
 
-namespace Phgrep\Tests\Unit\Index;
+namespace Greph\Tests\Unit\Index;
 
-use Phgrep\Ast\AstMatch;
-use Phgrep\Ast\AstSearchOptions;
-use Phgrep\Ast\PatternParser;
-use Phgrep\Index\CachedAstSearcher;
-use Phgrep\Phgrep;
-use Phgrep\Tests\Support\Workspace;
-use Phgrep\Walker\FileTypeFilter;
+use Greph\Ast\AstMatch;
+use Greph\Ast\AstSearchOptions;
+use Greph\Ast\PatternParser;
+use Greph\Index\CachedAstSearcher;
+use Greph\Greph;
+use Greph\Tests\Support\Workspace;
+use Greph\Walker\FileTypeFilter;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
@@ -35,7 +35,7 @@ final class CachedAstSearcherTest extends TestCase
         $this->externalWorkspace = Workspace::createDirectory('cached-ast-searcher-external');
         Workspace::writeFile($this->externalWorkspace, 'external.php', "<?php\n\$external = new ExternalThing();\n");
 
-        Phgrep::buildAstCache($this->workspace);
+        Greph::buildAstCache($this->workspace);
 
         $this->searcher = new CachedAstSearcher();
         $this->parser = new PatternParser();
@@ -50,7 +50,7 @@ final class CachedAstSearcherTest extends TestCase
     #[Test]
     public function itCoversPublicCachedAstSearchEdgeCases(): void
     {
-        Workspace::remove($this->workspace . '/.phgrep-ast-cache/trees/1.phpbin.gz');
+        Workspace::remove($this->workspace . '/.greph-ast-cache/trees/1.phpbin.gz');
 
         $matches = $this->searcher->search(
             'new $CLASS()',
@@ -185,7 +185,7 @@ final class CachedAstSearcherTest extends TestCase
             $this->searcher,
             'resolveIndexPath',
             [$this->workspace],
-            $this->workspace . '/.phgrep-ast-cache',
+            $this->workspace . '/.greph-ast-cache',
         );
         $missingIndexPath = $this->invokeMethod(
             $this->searcher,
@@ -205,7 +205,7 @@ final class CachedAstSearcherTest extends TestCase
         $this->assertTrue($matchesGlob);
         $this->assertFalse($missesGlob);
         $this->assertFalse($filterMiss);
-        $this->assertSame($this->workspace . '/.phgrep-ast-cache', $resolvedIndexPath);
+        $this->assertSame($this->workspace . '/.greph-ast-cache', $resolvedIndexPath);
         $this->assertNull($missingIndexPath);
     }
 
@@ -218,7 +218,7 @@ final class CachedAstSearcherTest extends TestCase
         $cachedRootMatches = $this->searcher->search($pattern, $this->workspace, new AstSearchOptions());
         $fileMatches = $this->searcher->search($pattern, $this->workspace . '/src/App.php', new AstSearchOptions());
 
-        Workspace::remove($this->workspace . '/.phgrep-ast-cache/trees/1.phpbin.gz');
+        Workspace::remove($this->workspace . '/.greph-ast-cache/trees/1.phpbin.gz');
         $fallbackMatches = $this->searcher->search(
             $pattern,
             $this->workspace,

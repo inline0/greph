@@ -2,14 +2,14 @@
 
 declare(strict_types=1);
 
-namespace Phgrep\Cli;
+namespace Greph\Cli;
 
-use Phgrep\Ast\AstMatch;
-use Phgrep\Ast\AstSearchOptions;
-use Phgrep\Ast\RewriteResult;
-use Phgrep\Phgrep;
-use Phgrep\Support\Filesystem;
-use Phgrep\Walker\FileTypeFilter;
+use Greph\Ast\AstMatch;
+use Greph\Ast\AstSearchOptions;
+use Greph\Ast\RewriteResult;
+use Greph\Greph;
+use Greph\Support\Filesystem;
+use Greph\Walker\FileTypeFilter;
 
 final class AstGrepApplication
 {
@@ -110,7 +110,7 @@ final class AstGrepApplication
             return $this->runRewrite($arguments, $options);
         }
 
-        $matches = Phgrep::searchAst($arguments['pattern'], $arguments['paths'], $options);
+        $matches = Greph::searchAst($arguments['pattern'], $arguments['paths'], $options);
 
         if ($arguments['filesWithMatches']) {
             return $this->writeMatchFiles($matches);
@@ -154,7 +154,7 @@ final class AstGrepApplication
      */
     private function runRewrite(array $arguments, AstSearchOptions $options): int
     {
-        $results = Phgrep::rewriteAst(
+        $results = Greph::rewriteAst(
             (string) $arguments['pattern'],
             (string) $arguments['rewrite'],
             $arguments['paths'],

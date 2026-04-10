@@ -126,8 +126,8 @@ jobs:
         id: paths
         shell: bash
         run: |
-          echo "corpus_root=$RUNNER_TEMP/phgrep-corpora" >> "$GITHUB_OUTPUT"
-          echo "base_worktree=$RUNNER_TEMP/phgrep-base" >> "$GITHUB_OUTPUT"
+          echo "corpus_root=$RUNNER_TEMP/greph-corpora" >> "$GITHUB_OUTPUT"
+          echo "base_worktree=$RUNNER_TEMP/greph-base" >> "$GITHUB_OUTPUT"
 
       - name: Prepare WordPress corpus
         shell: bash

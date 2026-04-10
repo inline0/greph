@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace Phgrep\Output;
+namespace Greph\Output;
 
-use Phgrep\Text\TextFileResult;
-use Phgrep\Text\TextSearchOptions;
+use Greph\Text\TextFileResult;
+use Greph\Text\TextSearchOptions;
 
 final class GrepFormatter
 {

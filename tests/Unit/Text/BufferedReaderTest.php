@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace Phgrep\Tests\Unit\Text;
+namespace Greph\Tests\Unit\Text;
 
-use Phgrep\Tests\Support\Workspace;
-use Phgrep\Text\BufferedReader;
+use Greph\Tests\Support\Workspace;
+use Greph\Text\BufferedReader;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 

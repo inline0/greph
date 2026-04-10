@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace Phgrep\Tests\Integration;
+namespace Greph\Tests\Integration;
 
-use Phgrep\FeatureMatrix\FeatureMatrixGenerator;
-use Phgrep\Support\ToolResolver;
+use Greph\FeatureMatrix\FeatureMatrixGenerator;
+use Greph\Support\ToolResolver;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 

@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace Phgrep\Walker;
+namespace Greph\Walker;
 
-use Phgrep\Exceptions\WalkerException;
+use Greph\Exceptions\WalkerException;
 
 final class FileWalker
 {

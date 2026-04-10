@@ -2,33 +2,33 @@
 
 declare(strict_types=1);
 
-namespace Phgrep;
+namespace Greph;
 
-use Phgrep\Ast\AstMatch;
-use Phgrep\Ast\AstRewriter;
-use Phgrep\Ast\AstSearchOptions;
-use Phgrep\Ast\AstSearcher;
-use Phgrep\Index\AstCacheBuildResult;
-use Phgrep\Index\AstCacheBuilder;
-use Phgrep\Index\AstIndexBuildResult;
-use Phgrep\Index\AstIndexBuilder;
-use Phgrep\Index\CachedAstSearcher;
-use Phgrep\Index\IndexBuildResult;
-use Phgrep\Index\IndexedAstSearcher;
-use Phgrep\Index\IndexedTextSearcher;
-use Phgrep\Index\TextIndexBuilder;
-use Phgrep\Ast\RewriteResult;
-use Phgrep\Parallel\WorkSplitter;
-use Phgrep\Parallel\WorkerPool;
-use Phgrep\Text\TextFileResult;
-use Phgrep\Text\TextResultCodec;
-use Phgrep\Text\TextSearcher;
-use Phgrep\Text\TextSearchOptions;
-use Phgrep\Walker\FileList;
-use Phgrep\Walker\FileWalker;
-use Phgrep\Walker\WalkOptions;
+use Greph\Ast\AstMatch;
+use Greph\Ast\AstRewriter;
+use Greph\Ast\AstSearchOptions;
+use Greph\Ast\AstSearcher;
+use Greph\Index\AstCacheBuildResult;
+use Greph\Index\AstCacheBuilder;
+use Greph\Index\AstIndexBuildResult;
+use Greph\Index\AstIndexBuilder;
+use Greph\Index\CachedAstSearcher;
+use Greph\Index\IndexBuildResult;
+use Greph\Index\IndexedAstSearcher;
+use Greph\Index\IndexedTextSearcher;
+use Greph\Index\TextIndexBuilder;
+use Greph\Ast\RewriteResult;
+use Greph\Parallel\WorkSplitter;
+use Greph\Parallel\WorkerPool;
+use Greph\Text\TextFileResult;
+use Greph\Text\TextResultCodec;
+use Greph\Text\TextSearcher;
+use Greph\Text\TextSearchOptions;
+use Greph\Walker\FileList;
+use Greph\Walker\FileWalker;
+use Greph\Walker\WalkOptions;
 
-final class Phgrep
+final class Greph
 {
     /**
      * @param string|list<string> $paths

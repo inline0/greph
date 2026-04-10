@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace Phgrep\Tests\Oracle;
+namespace Greph\Tests\Oracle;
 
-use Phgrep\Support\Json;
-use Phgrep\Support\ToolResolver;
+use Greph\Support\Json;
+use Greph\Support\ToolResolver;
 
 final class ComplianceReporter
 {
@@ -86,7 +86,7 @@ final class ComplianceReporter
     public function renderText(array $report): string
     {
         $lines = [
-            'phgrep compliance report',
+            'greph compliance report',
             '=======================',
             sprintf('Scenarios: %d', $report['summary']['total']),
             sprintf('Passing: %d', $report['summary']['passing']),

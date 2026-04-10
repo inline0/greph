@@ -2,15 +2,15 @@
 
 declare(strict_types=1);
 
-namespace Phgrep\Index;
+namespace Greph\Index;
 
-use Phgrep\Ast\Parsers\ParserFactory;
-use Phgrep\Exceptions\ParseException;
-use Phgrep\Support\Filesystem;
-use Phgrep\Walker\FileTypeFilter;
-use Phgrep\Walker\FileWalker;
-use Phgrep\Walker\GitignoreFilter;
-use Phgrep\Walker\WalkOptions;
+use Greph\Ast\Parsers\ParserFactory;
+use Greph\Exceptions\ParseException;
+use Greph\Support\Filesystem;
+use Greph\Walker\FileTypeFilter;
+use Greph\Walker\FileWalker;
+use Greph\Walker\GitignoreFilter;
+use Greph\Walker\WalkOptions;
 
 final class AstCacheBuilder
 {

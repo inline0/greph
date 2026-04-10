@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace Phgrep\Parallel;
+namespace Greph\Parallel;
 
-use Phgrep\Walker\FileList;
+use Greph\Walker\FileList;
 
 final class Worker
 {

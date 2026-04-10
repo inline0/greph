@@ -5,10 +5,10 @@ declare(strict_types=1);
 
 require __DIR__ . '/_bootstrap.php';
 
-use Phgrep\Benchmarks\BenchmarkArtifactLocator;
-use Phgrep\Support\CommandRunner;
-use Phgrep\Support\Filesystem;
-use Phgrep\Support\ToolResolver;
+use Greph\Benchmarks\BenchmarkArtifactLocator;
+use Greph\Support\CommandRunner;
+use Greph\Support\Filesystem;
+use Greph\Support\ToolResolver;
 
 $arguments = array_slice($argv, 1);
 $repo = 'inline0/phgrep';
@@ -36,7 +36,7 @@ if (!is_string($runId) || $runId === '') {
     throw new RuntimeException('Usage: bin/bench-run [--repo owner/name] [--output-dir path] <run-id>');
 }
 
-$outputDirectory ??= $phgrepRoot . '/build/benchmarks/runs/' . $runId;
+$outputDirectory ??= $grephRoot . '/build/benchmarks/runs/' . $runId;
 Filesystem::remove($outputDirectory);
 Filesystem::ensureDirectory($outputDirectory);
 
@@ -60,7 +60,7 @@ foreach ($artifactNames as $artifactName) {
         $artifactName,
         '-D',
         $outputDirectory,
-    ], $phgrepRoot);
+    ], $grephRoot);
 
     if (!$download->successful()) {
         throw new RuntimeException(
@@ -82,7 +82,7 @@ if ($comparison === false) {
 
 fwrite(STDOUT, sprintf("Run: %s\n", $runId));
 fwrite(STDOUT, sprintf("Artifact: %s\n", $outputDirectory));
-fwrite(STDOUT, sprintf("Comparison: %s\n", Filesystem::relativePath($phgrepRoot, $comparisonPath)));
-fwrite(STDOUT, sprintf("Head series: %s\n", Filesystem::relativePath($phgrepRoot, $headSeriesPath)));
-fwrite(STDOUT, sprintf("Base series: %s\n\n", Filesystem::relativePath($phgrepRoot, $baseSeriesPath)));
+fwrite(STDOUT, sprintf("Comparison: %s\n", Filesystem::relativePath($grephRoot, $comparisonPath)));
+fwrite(STDOUT, sprintf("Head series: %s\n", Filesystem::relativePath($grephRoot, $headSeriesPath)));
+fwrite(STDOUT, sprintf("Base series: %s\n\n", Filesystem::relativePath($grephRoot, $baseSeriesPath)));
 fwrite(STDOUT, $comparison);

@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace Phgrep\Tests\Oracle;
+namespace Greph\Tests\Oracle;
 
-use Phgrep\Support\Json;
+use Greph\Support\Json;
 
 final class ScenarioComparator
 {
@@ -23,8 +23,8 @@ final class ScenarioComparator
 
         $oracleDir = $scenario->oracleDir();
         $actualDir = $scenario->actualDir();
-        $actualText = is_file($actualDir . '/phgrep.txt') ? file_get_contents($actualDir . '/phgrep.txt') : '';
-        $actualJson = is_file($actualDir . '/phgrep.json') ? Json::decodeFile($actualDir . '/phgrep.json') : [];
+        $actualText = is_file($actualDir . '/greph.txt') ? file_get_contents($actualDir . '/greph.txt') : '';
+        $actualJson = is_file($actualDir . '/greph.json') ? Json::decodeFile($actualDir . '/greph.json') : [];
 
         foreach ($scenario->expectations() as $oracle => $mode) {
             if ($mode === 'skip') {

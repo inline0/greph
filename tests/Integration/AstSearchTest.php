@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace Phgrep\Tests\Integration;
+namespace Greph\Tests\Integration;
 
-use Phgrep\Ast\AstSearchOptions;
-use Phgrep\Phgrep;
-use Phgrep\Tests\Support\Workspace;
+use Greph\Ast\AstSearchOptions;
+use Greph\Greph;
+use Greph\Tests\Support\Workspace;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
@@ -37,7 +37,7 @@ PHP);
     #[Test]
     public function itFindsConstructorCallsWithMetaVariables(): void
     {
-        $matches = Phgrep::searchAst('new $Class()', $this->workspace, new AstSearchOptions());
+        $matches = Greph::searchAst('new $Class()', $this->workspace, new AstSearchOptions());
 
         $this->assertCount(2, $matches);
         $this->assertSame('new Foo()', trim($matches[0]->code));
@@ -47,8 +47,8 @@ PHP);
     #[Test]
     public function itSupportsVariadicAndRepeatedMetaVariables(): void
     {
-        $variadicMatches = Phgrep::searchAst('foo($$$ARGS)', $this->workspace, new AstSearchOptions(jobs: 2));
-        $repeatedMatches = Phgrep::searchAst('$x = $x', $this->workspace, new AstSearchOptions());
+        $variadicMatches = Greph::searchAst('foo($$$ARGS)', $this->workspace, new AstSearchOptions(jobs: 2));
+        $repeatedMatches = Greph::searchAst('$x = $x', $this->workspace, new AstSearchOptions());
 
         $this->assertCount(2, $variadicMatches);
         $this->assertCount(1, $repeatedMatches);

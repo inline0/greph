@@ -2,13 +2,13 @@
 
 declare(strict_types=1);
 
-namespace Phgrep\Ast;
+namespace Greph\Ast;
 
-use Phgrep\Ast\Parsers\ParserFactory;
-use Phgrep\Exceptions\ParseException;
+use Greph\Ast\Parsers\ParserFactory;
+use Greph\Exceptions\ParseException;
 use PhpParser\Node;
 use PhpParser\PrettyPrinter\Standard;
-use Phgrep\Walker\FileList;
+use Greph\Walker\FileList;
 
 final class AstSearcher
 {

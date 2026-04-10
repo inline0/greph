@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace Phgrep\Tests\Unit\Parallel;
+namespace Greph\Tests\Unit\Parallel;
 
-use Phgrep\Parallel\WorkSplitter;
-use Phgrep\Tests\Support\Workspace;
-use Phgrep\Walker\FileList;
+use Greph\Parallel\WorkSplitter;
+use Greph\Tests\Support\Workspace;
+use Greph\Walker\FileList;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 

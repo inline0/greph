@@ -15,7 +15,7 @@
     },
     "oracle_disagreement": {
         "grep_vs_rg": "grep preserves directory entry order while ripgrep prints files in lexical order here",
-        "phgrep_follows": "grep",
+        "greph_follows": "grep",
         "reason": "Count mode still uses grep-compatible file ordering in text output"
     }
 }

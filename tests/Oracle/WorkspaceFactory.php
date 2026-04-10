@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace Phgrep\Tests\Oracle;
+namespace Greph\Tests\Oracle;
 
-use Phgrep\Support\CommandRunner;
-use Phgrep\Support\Filesystem;
-use Phgrep\Tests\Support\Workspace;
+use Greph\Support\CommandRunner;
+use Greph\Support\Filesystem;
+use Greph\Tests\Support\Workspace;
 
 final class WorkspaceFactory
 {
@@ -30,7 +30,7 @@ final class WorkspaceFactory
             $process = $this->commandRunner->run(
                 ['bash', $scenario->setupScriptPath()],
                 $workspaceRoot,
-                ['PHGREP_ROOT' => $scenario->rootPath],
+                ['GREPH_ROOT' => $scenario->rootPath],
             );
 
             if (!$process->successful()) {
