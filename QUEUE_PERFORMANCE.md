@@ -331,6 +331,53 @@ These are not queue items anymore; they are the current floor:
     - avoiding `substr()` for exact-case literal matched text did not move the real benchmark
     - do not carry this micro-optimization forward
 
+- `01ffad9` keep
+  - CI run: `24242569587`
+  - compare: `origin/main` -> `59c3239`
+  - headline:
+    - `Indexed literal whole word` shipped without regressing the existing indexed rows
+  - note:
+    - word / identifier postings landed and merged to `main`
+    - README refresh followed in `124e92f`
+
+- `fa272da` keep
+  - CI run: `24242938246`
+  - compare: `origin/main` -> `68494a0`
+  - headline:
+    - `Indexed literal short "wp"` benchmark row added and cached short root queries shipped
+  - note:
+    - merged to `main`
+    - README refresh followed in `b096d8a`
+
+- `1312a20` keep
+  - local smoke only, then merged to `main`
+  - headline:
+    - added `indexed-text-cold` benchmark category and suite
+  - note:
+    - this became the CI gate for the remaining short-query planner work
+
+- `75689a6` reject
+  - CI runs: `24244083711`, `24244083716`, `24244113910`
+  - compare: `origin/main` -> `75689a6`
+  - headline:
+    - `indexed-text-cold` `Cold indexed literal short "wp"` `-7.10%`
+    - `indexed-build` `Build trigram index` `+48.03%`
+    - `indexed-text` `Indexed regex new instance` `+5.35%`
+  - note:
+    - full-content bigram postings were too expensive to keep
+    - do not merge
+
+- `1706f76` reject
+  - CI runs: `24244442934`, `24244442948`, `24244442955`
+  - compare: `origin/main` -> `1706f76`
+  - headline:
+    - `indexed-text-cold` `Cold indexed literal short "wp"` `-6.18%`
+    - `indexed-text` `Indexed regex array call` `-3.74%`
+    - `indexed-build` `Build trigram index` `+11.01%`
+  - note:
+    - word-fragment bigram postings reduced the build hit, but still regressed indexed build too much
+    - short-query indexed bigram planning is closed as rejected in this form
+
 ## Remaining Execution Queue
 
 This is the remaining work from here onward. Execute it in this order unless a fresh full
@@ -351,7 +398,6 @@ WordPress CI run clearly changes the next hotspot.
    - formatting-cost re-measure after search-path wins
 5. If scan-mode text stops moving, switch to indexed-text planner work:
    - best-seed selection by rarest postings
-   - short-query indexed fallback
    - whole-word indexed planning
    - case-folded planner rules
 6. If planner-only indexed work flattens out, implement the first sharper index structure:
@@ -405,15 +451,15 @@ The current trigram mode still behaves mostly like "candidate filter plus verifi
 ### Query Planning
 
 - [ ] Add best-seed selection for regex and substring queries based on rarest available postings, not just longest extracted literal.
-- [ ] Add short-query indexed planning for 1-2 byte literals, with a deliberate fallback when trigrams are useless.
-- [ ] Add whole-word indexed planning that prefers a sharper exact-word path over trigram substring filtering.
+- [x] Add short-query indexed planning for 1-2 byte literals, with a deliberate fallback when trigrams are useless. Rejected on CI in two forms: full-content bigram postings (`75689a6`) and cheaper word-fragment bigram postings (`1706f76`) both improved the short query row but regressed indexed build.
+- [x] Add whole-word indexed planning that prefers a sharper exact-word path over trigram substring filtering.
 - [ ] Add selectivity heuristics so very broad candidate sets can fall back to scan mode instead of paying index overhead for no gain.
 - [ ] Add case-folded planner rules for case-insensitive literal queries.
 
 ### Sharper Index Structures
 
-- [ ] Add a word / identifier inverted index alongside trigrams.
-- [ ] Add case-folded word postings for case-insensitive word lookups.
+- [x] Add a word / identifier inverted index alongside trigrams.
+- [x] Add case-folded word postings for case-insensitive word lookups.
 - [ ] Add basic token-kind postings where they can help text queries:
   - function names
   - class names
