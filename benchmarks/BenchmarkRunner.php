@@ -107,6 +107,7 @@ final class BenchmarkRunner
                 $results = Phgrep::searchText((string) $suite['pattern'], $corpusPath, new TextSearchOptions(
                     fixedString: (bool) ($suite['fixed'] ?? false),
                     caseInsensitive: (bool) ($suite['case_insensitive'] ?? false),
+                    wholeWord: (bool) ($suite['whole_word'] ?? false),
                     jobs: (int) ($suite['jobs'] ?? 1),
                 ));
 
@@ -190,6 +191,7 @@ final class BenchmarkRunner
             case 'parallel':
                 $results = Phgrep::searchText((string) $suite['pattern'], $corpusPath, new TextSearchOptions(
                     fixedString: (bool) ($suite['fixed'] ?? false),
+                    wholeWord: (bool) ($suite['whole_word'] ?? false),
                     jobs: (int) ($suite['jobs'] ?? 1),
                 ));
 
@@ -212,6 +214,7 @@ final class BenchmarkRunner
                     new TextSearchOptions(
                         fixedString: (bool) ($suite['fixed'] ?? false),
                         caseInsensitive: (bool) ($suite['case_insensitive'] ?? false),
+                        wholeWord: (bool) ($suite['whole_word'] ?? false),
                         countOnly: (bool) ($suite['count_only'] ?? false),
                         filesWithMatches: (bool) ($suite['files_with_matches'] ?? false),
                         filesWithoutMatches: (bool) ($suite['files_without_matches'] ?? false),
@@ -363,6 +366,10 @@ final class BenchmarkRunner
             $command[] = '-i';
         }
 
+        if (($suite['whole_word'] ?? false) === true) {
+            $command[] = '-w';
+        }
+
         if (($suite['count_only'] ?? false) === true) {
             $command[] = '-c';
         }
@@ -400,6 +407,10 @@ final class BenchmarkRunner
 
         if (($suite['case_insensitive'] ?? false) === true) {
             $command[] = '-i';
+        }
+
+        if (($suite['whole_word'] ?? false) === true) {
+            $command[] = '-w';
         }
 
         if (($suite['count_only'] ?? false) === true) {
