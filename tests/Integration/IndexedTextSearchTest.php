@@ -232,4 +232,27 @@ final class IndexedTextSearchTest extends TestCase
         $this->assertSame(1, $matchMap['App.php']);
         $this->assertSame(1, $matchMap['Util.php']);
     }
+
+    #[Test]
+    public function itCachesShortLiteralRootQueries(): void
+    {
+        $firstResults = Phgrep::searchTextIndexed(
+            'fu',
+            $this->workspace,
+            new TextSearchOptions(fixedString: true),
+        );
+        $secondResults = Phgrep::searchTextIndexed(
+            'fu',
+            $this->workspace,
+            new TextSearchOptions(fixedString: true),
+        );
+
+        $cacheFiles = glob($this->workspace . '/.phgrep-index/queries/*.phpbin') ?: [];
+
+        $this->assertNotSame([], $cacheFiles);
+        $this->assertSame(
+            array_map(static fn ($result): int => $result->matchCount(), $firstResults),
+            array_map(static fn ($result): int => $result->matchCount(), $secondResults),
+        );
+    }
 }

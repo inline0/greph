@@ -36,4 +36,11 @@ return [
         'fixed' => true,
         'whole_word' => true,
     ],
+    [
+        'suite' => 'indexed-text',
+        'category' => 'indexed-text',
+        'name' => 'Indexed literal short "wp"',
+        'pattern' => 'wp',
+        'fixed' => true,
+    ],
 ];
