@@ -46,21 +46,43 @@ The Markdown file is the readable summary. The JSON file keeps raw command, exit
 
 ## Performance
 
-Benchmark tables below are always sourced from GitHub Actions CI, never from local runs. Current completed `main` baseline: run [`24234526655`](https://github.com/inline0/phgrep/actions/runs/24234526655) on the WordPress corpus, using `ubuntu-latest`, PHP `8.4`, `5` measured runs, and `1` warmup run. Tables below show the merged `main` head snapshot from that run.
+Benchmark tables below are always sourced from GitHub Actions CI, never from local runs.
+
+Current text baseline on `main`:
+- run [`24239964252`](https://github.com/inline0/phgrep/actions/runs/24239964252)
+- WordPress corpus
+- `ubuntu-latest`
+- PHP `8.4`
+- `5` measured runs
+- `1` warmup run
+
+Current broader non-text baseline on `main`:
+- run [`24234526655`](https://github.com/inline0/phgrep/actions/runs/24234526655)
+- used for traversal, parallel, AST, indexed text, indexed summary, and build tables until the next full sweep lands
 
 Comparison tools:
 - `rg`: ripgrep
 - `grep`: GNU grep
 - `sg`: ast-grep
 
-### Scan Mode: Text And Traversal
+### Scan Mode: Text
 
 | Operation | phgrep | rg | grep |
 | --- | ---: | ---: | ---: |
-| `Literal "function"` | `446.57ms` | `144.78ms` | `223.46ms` |
-| `Literal case insensitive` | `450.35ms` | `156.00ms` | `288.99ms` |
-| `Regex new instance` | `456.58ms` | `80.76ms` | `194.42ms` |
-| `Regex array call` | `398.65ms` | `85.92ms` | `213.37ms` |
+| `Literal "function"` | `446.80ms` | `145.47ms` | `202.24ms` |
+| `Literal case insensitive` | `446.38ms` | `150.32ms` | `267.84ms` |
+| `Literal whole word` | `928.37ms` | `148.87ms` | `203.22ms` |
+| `Regex new instance` | `457.64ms` | `80.69ms` | `171.18ms` |
+| `Regex array call` | `399.52ms` | `85.71ms` | `196.17ms` |
+| `Regex prefix literal` | `435.73ms` | `78.35ms` | `159.11ms` |
+| `Regex suffix literal` | `584.12ms` | `217.36ms` | `284.74ms` |
+| `Regex exact line literal` | `547.26ms` | `142.76ms` | `175.57ms` |
+| `Regex literal collapse` | `431.17ms` | `143.23ms` | `203.36ms` |
+
+### Scan Mode: Traversal
+
+| Operation | phgrep | rg | grep |
+| --- | ---: | ---: | ---: |
 | `Full traversal` | `45.63ms` | `20.18ms` | `55.40ms` |
 
 ### Scan Mode: Parallel Text
