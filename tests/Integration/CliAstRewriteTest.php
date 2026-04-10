@@ -107,7 +107,7 @@ PHP);
      */
     private function runCli(array $arguments, string $stdin = ''): array
     {
-        $command = array_merge([PHP_BINARY, dirname(__DIR__, 2) . '/bin/phgrep'], $arguments);
+        $command = array_merge([PHP_BINARY, dirname(__DIR__, 2) . '/bin/greph'], $arguments);
         $descriptors = [
             0 => ['pipe', 'r'],
             1 => ['pipe', 'w'],

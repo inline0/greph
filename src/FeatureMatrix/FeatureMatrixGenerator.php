@@ -703,10 +703,10 @@ final class FeatureMatrixGenerator
      */
     private function generateNativePhgrepSection(array $providers): array
     {
-        $sectionProviders = ['bin/phgrep'];
+        $sectionProviders = ['bin/greph'];
 
         return [
-            'title' => 'Native phgrep Surface',
+            'title' => 'Native greph Surface',
             'providers' => $sectionProviders,
             'rows' => [
                 $this->buildRow(
@@ -854,10 +854,10 @@ final class FeatureMatrixGenerator
      */
     private function generateIndexedSection(array $providers): array
     {
-        $sectionProviders = ['bin/phgrep-index'];
+        $sectionProviders = ['bin/greph-index'];
 
         return [
-            'title' => 'Indexed phgrep Surface',
+            'title' => 'Indexed greph Surface',
             'providers' => $sectionProviders,
             'rows' => [
                 $this->buildRow(
@@ -1433,7 +1433,7 @@ PHP,
 
     private function createWorkspace(): string
     {
-        $workspace = sys_get_temp_dir() . '/phgrep-feature-matrix-' . bin2hex(random_bytes(6));
+        $workspace = sys_get_temp_dir() . '/greph-feature-matrix-' . bin2hex(random_bytes(6));
 
         Filesystem::ensureDirectory($workspace . '/src');
         Filesystem::ensureDirectory($workspace . '/vendor');
@@ -1477,8 +1477,8 @@ PHP);
             'bin/rg' => [PHP_BINARY, $this->rootPath . '/bin/rg'],
             'sg' => $this->optionalProvider(static fn (ToolResolver $toolResolver): array => $toolResolver->astGrep()),
             'bin/sg' => [PHP_BINARY, $this->rootPath . '/bin/sg'],
-            'bin/phgrep' => [PHP_BINARY, $this->rootPath . '/bin/phgrep'],
-            'bin/phgrep-index' => [PHP_BINARY, $this->rootPath . '/bin/phgrep-index'],
+            'bin/greph' => [PHP_BINARY, $this->rootPath . '/bin/greph'],
+            'bin/greph-index' => [PHP_BINARY, $this->rootPath . '/bin/greph-index'],
             'php/lib' => [PHP_BINARY],
         ];
     }
@@ -1499,7 +1499,7 @@ PHP);
     private function normalizeOutput(string $output, string $workspace): string
     {
         $output = str_replace($workspace, '<workspace>', $output);
-        $output = str_replace($this->rootPath, '<phgrep>', $output);
+        $output = str_replace($this->rootPath, '<greph>', $output);
 
         if (strlen($output) <= 600) {
             return $output;
@@ -1884,7 +1884,7 @@ PHP);
         $decoded = json_decode(trim($result->stdout), true);
 
         if (!is_array($decoded)) {
-            return 'Expected phgrep JSON array output.';
+            return 'Expected greph JSON array output.';
         }
 
         foreach ($decoded as $entry) {

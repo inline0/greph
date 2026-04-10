@@ -827,15 +827,15 @@ final class IndexApplication
     {
         return <<<TEXT
 Usage:
-  phgrep-index build [path] [--index-dir DIR]
-  phgrep-index refresh [path] [--index-dir DIR]
-  phgrep-index search [options] pattern [path...]
-  phgrep-index ast-index build [path] [--index-dir DIR]
-  phgrep-index ast-index refresh [path] [--index-dir DIR]
-  phgrep-index ast-index search [options] pattern [path...]
-  phgrep-index ast-cache build [path] [--index-dir DIR]
-  phgrep-index ast-cache refresh [path] [--index-dir DIR]
-  phgrep-index ast-cache search [options] pattern [path...]
+  greph-index build [path] [--index-dir DIR]
+  greph-index refresh [path] [--index-dir DIR]
+  greph-index search [options] pattern [path...]
+  greph-index ast-index build [path] [--index-dir DIR]
+  greph-index ast-index refresh [path] [--index-dir DIR]
+  greph-index ast-index search [options] pattern [path...]
+  greph-index ast-cache build [path] [--index-dir DIR]
+  greph-index ast-cache refresh [path] [--index-dir DIR]
+  greph-index ast-cache search [options] pattern [path...]
 
 Search Options:
   -F              Fixed-string search.

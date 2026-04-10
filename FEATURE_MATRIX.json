@@ -1,6 +1,6 @@
 {
-    "generated_at": "2026-04-09T22:25:28+00:00",
-    "root_path": "/Users/dennis/Local Sites/fabrikat/inline0/phgrep",
+    "generated_at": "2026-04-10T16:07:22+00:00",
+    "root_path": "/Users/dennis/Local Sites/fabrikat/inline0/greph",
     "sections": [
         {
             "title": "rg Compatibility Surface",
@@ -30,7 +30,7 @@
                             "status": "Pass",
                             "command": [
                                 "/opt/homebrew/Cellar/php/8.4.5_1/bin/php",
-                                "/Users/dennis/Local Sites/fabrikat/inline0/phgrep/bin/rg",
+                                "/Users/dennis/Local Sites/fabrikat/inline0/greph/bin/rg",
                                 "-F",
                                 "needle",
                                 "single.txt"
@@ -64,7 +64,7 @@
                             "status": "Pass",
                             "command": [
                                 "/opt/homebrew/Cellar/php/8.4.5_1/bin/php",
-                                "/Users/dennis/Local Sites/fabrikat/inline0/phgrep/bin/rg",
+                                "/Users/dennis/Local Sites/fabrikat/inline0/greph/bin/rg",
                                 "-F",
                                 "-i",
                                 "needle",
@@ -99,7 +99,7 @@
                             "status": "Pass",
                             "command": [
                                 "/opt/homebrew/Cellar/php/8.4.5_1/bin/php",
-                                "/Users/dennis/Local Sites/fabrikat/inline0/phgrep/bin/rg",
+                                "/Users/dennis/Local Sites/fabrikat/inline0/greph/bin/rg",
                                 "-F",
                                 "-w",
                                 "needle",
@@ -134,7 +134,7 @@
                             "status": "Pass",
                             "command": [
                                 "/opt/homebrew/Cellar/php/8.4.5_1/bin/php",
-                                "/Users/dennis/Local Sites/fabrikat/inline0/phgrep/bin/rg",
+                                "/Users/dennis/Local Sites/fabrikat/inline0/greph/bin/rg",
                                 "-F",
                                 "-v",
                                 "needle",
@@ -169,7 +169,7 @@
                             "status": "Pass",
                             "command": [
                                 "/opt/homebrew/Cellar/php/8.4.5_1/bin/php",
-                                "/Users/dennis/Local Sites/fabrikat/inline0/phgrep/bin/rg",
+                                "/Users/dennis/Local Sites/fabrikat/inline0/greph/bin/rg",
                                 "-F",
                                 "-c",
                                 "needle",
@@ -203,7 +203,7 @@
                             "status": "Pass",
                             "command": [
                                 "/opt/homebrew/Cellar/php/8.4.5_1/bin/php",
-                                "/Users/dennis/Local Sites/fabrikat/inline0/phgrep/bin/rg",
+                                "/Users/dennis/Local Sites/fabrikat/inline0/greph/bin/rg",
                                 "--regexp",
                                 "needle",
                                 "single.txt"
@@ -229,7 +229,7 @@
                                 "."
                             ],
                             "exit_code": 0,
-                            "stdout": "./invert.txt\n./single.txt\n./counts.txt\n./context.txt\n./words.txt\n",
+                            "stdout": "./context.txt\n./words.txt\n./counts.txt\n./invert.txt\n./single.txt\n",
                             "stderr": "",
                             "note": ""
                         },
@@ -237,7 +237,7 @@
                             "status": "Pass",
                             "command": [
                                 "/opt/homebrew/Cellar/php/8.4.5_1/bin/php",
-                                "/Users/dennis/Local Sites/fabrikat/inline0/phgrep/bin/rg",
+                                "/Users/dennis/Local Sites/fabrikat/inline0/greph/bin/rg",
                                 "-F",
                                 "-l",
                                 "needle",
@@ -272,7 +272,7 @@
                             "status": "Pass",
                             "command": [
                                 "/opt/homebrew/Cellar/php/8.4.5_1/bin/php",
-                                "/Users/dennis/Local Sites/fabrikat/inline0/phgrep/bin/rg",
+                                "/Users/dennis/Local Sites/fabrikat/inline0/greph/bin/rg",
                                 "-F",
                                 "--files-without-match",
                                 "needle",
@@ -308,7 +308,7 @@
                             "status": "Pass",
                             "command": [
                                 "/opt/homebrew/Cellar/php/8.4.5_1/bin/php",
-                                "/Users/dennis/Local Sites/fabrikat/inline0/phgrep/bin/rg",
+                                "/Users/dennis/Local Sites/fabrikat/inline0/greph/bin/rg",
                                 "-F",
                                 "-C",
                                 "1",
@@ -345,7 +345,7 @@
                             "status": "Pass",
                             "command": [
                                 "/opt/homebrew/Cellar/php/8.4.5_1/bin/php",
-                                "/Users/dennis/Local Sites/fabrikat/inline0/phgrep/bin/rg",
+                                "/Users/dennis/Local Sites/fabrikat/inline0/greph/bin/rg",
                                 "-F",
                                 "-B",
                                 "1",
@@ -382,7 +382,7 @@
                             "status": "Pass",
                             "command": [
                                 "/opt/homebrew/Cellar/php/8.4.5_1/bin/php",
-                                "/Users/dennis/Local Sites/fabrikat/inline0/phgrep/bin/rg",
+                                "/Users/dennis/Local Sites/fabrikat/inline0/greph/bin/rg",
                                 "-F",
                                 "-A",
                                 "1",
@@ -418,7 +418,7 @@
                             "status": "Pass",
                             "command": [
                                 "/opt/homebrew/Cellar/php/8.4.5_1/bin/php",
-                                "/Users/dennis/Local Sites/fabrikat/inline0/phgrep/bin/rg",
+                                "/Users/dennis/Local Sites/fabrikat/inline0/greph/bin/rg",
                                 "-n",
                                 "-F",
                                 "needle",
@@ -453,7 +453,7 @@
                             "status": "Pass",
                             "command": [
                                 "/opt/homebrew/Cellar/php/8.4.5_1/bin/php",
-                                "/Users/dennis/Local Sites/fabrikat/inline0/phgrep/bin/rg",
+                                "/Users/dennis/Local Sites/fabrikat/inline0/greph/bin/rg",
                                 "-H",
                                 "-F",
                                 "needle",
@@ -488,7 +488,7 @@
                             "status": "Pass",
                             "command": [
                                 "/opt/homebrew/Cellar/php/8.4.5_1/bin/php",
-                                "/Users/dennis/Local Sites/fabrikat/inline0/phgrep/bin/rg",
+                                "/Users/dennis/Local Sites/fabrikat/inline0/greph/bin/rg",
                                 "-I",
                                 "-F",
                                 "needle",
@@ -524,7 +524,7 @@
                             "status": "Pass",
                             "command": [
                                 "/opt/homebrew/Cellar/php/8.4.5_1/bin/php",
-                                "/Users/dennis/Local Sites/fabrikat/inline0/phgrep/bin/rg",
+                                "/Users/dennis/Local Sites/fabrikat/inline0/greph/bin/rg",
                                 "-F",
                                 "-m",
                                 "1",
@@ -560,7 +560,7 @@
                             "status": "Pass",
                             "command": [
                                 "/opt/homebrew/Cellar/php/8.4.5_1/bin/php",
-                                "/Users/dennis/Local Sites/fabrikat/inline0/phgrep/bin/rg",
+                                "/Users/dennis/Local Sites/fabrikat/inline0/greph/bin/rg",
                                 "--glob",
                                 "*.php",
                                 "function",
@@ -595,7 +595,7 @@
                             "status": "Pass",
                             "command": [
                                 "/opt/homebrew/Cellar/php/8.4.5_1/bin/php",
-                                "/Users/dennis/Local Sites/fabrikat/inline0/phgrep/bin/rg",
+                                "/Users/dennis/Local Sites/fabrikat/inline0/greph/bin/rg",
                                 "--type",
                                 "php",
                                 "function",
@@ -630,7 +630,7 @@
                             "status": "Pass",
                             "command": [
                                 "/opt/homebrew/Cellar/php/8.4.5_1/bin/php",
-                                "/Users/dennis/Local Sites/fabrikat/inline0/phgrep/bin/rg",
+                                "/Users/dennis/Local Sites/fabrikat/inline0/greph/bin/rg",
                                 "--type-not",
                                 "php",
                                 "function",
@@ -665,7 +665,7 @@
                             "status": "Pass",
                             "command": [
                                 "/opt/homebrew/Cellar/php/8.4.5_1/bin/php",
-                                "/Users/dennis/Local Sites/fabrikat/inline0/phgrep/bin/rg",
+                                "/Users/dennis/Local Sites/fabrikat/inline0/greph/bin/rg",
                                 "--hidden",
                                 "-F",
                                 "secret",
@@ -692,7 +692,7 @@
                                 "."
                             ],
                             "exit_code": 0,
-                            "stdout": "./src/Other.txt:function ignored\n./vendor/ignored.txt:ignored needle\n./vendor/Ignored.php:dispatch($ignored);\n",
+                            "stdout": "./src/Other.txt:function ignored\n./vendor/Ignored.php:dispatch($ignored);\n./vendor/ignored.txt:ignored needle\n",
                             "stderr": "",
                             "note": ""
                         },
@@ -700,7 +700,7 @@
                             "status": "Pass",
                             "command": [
                                 "/opt/homebrew/Cellar/php/8.4.5_1/bin/php",
-                                "/Users/dennis/Local Sites/fabrikat/inline0/phgrep/bin/rg",
+                                "/Users/dennis/Local Sites/fabrikat/inline0/greph/bin/rg",
                                 "--no-ignore",
                                 "-F",
                                 "ignored",
@@ -735,7 +735,7 @@
                             "status": "Pass",
                             "command": [
                                 "/opt/homebrew/Cellar/php/8.4.5_1/bin/php",
-                                "/Users/dennis/Local Sites/fabrikat/inline0/phgrep/bin/rg",
+                                "/Users/dennis/Local Sites/fabrikat/inline0/greph/bin/rg",
                                 "-L",
                                 "-F",
                                 "needle",
@@ -768,7 +768,7 @@
                             "status": "Pass",
                             "command": [
                                 "/opt/homebrew/Cellar/php/8.4.5_1/bin/php",
-                                "/Users/dennis/Local Sites/fabrikat/inline0/phgrep/bin/rg",
+                                "/Users/dennis/Local Sites/fabrikat/inline0/greph/bin/rg",
                                 "--files",
                                 "."
                             ],
@@ -800,7 +800,7 @@
                             "status": "Pass",
                             "command": [
                                 "/opt/homebrew/Cellar/php/8.4.5_1/bin/php",
-                                "/Users/dennis/Local Sites/fabrikat/inline0/phgrep/bin/rg",
+                                "/Users/dennis/Local Sites/fabrikat/inline0/greph/bin/rg",
                                 "--files",
                                 "--hidden",
                                 "."
@@ -834,7 +834,7 @@
                             "status": "Pass",
                             "command": [
                                 "/opt/homebrew/Cellar/php/8.4.5_1/bin/php",
-                                "/Users/dennis/Local Sites/fabrikat/inline0/phgrep/bin/rg",
+                                "/Users/dennis/Local Sites/fabrikat/inline0/greph/bin/rg",
                                 "--files",
                                 "--type",
                                 "php",
@@ -861,7 +861,7 @@
                                 "single.txt"
                             ],
                             "exit_code": 0,
-                            "stdout": "{\"type\":\"begin\",\"data\":{\"path\":{\"text\":\"single.txt\"}}}\n{\"type\":\"match\",\"data\":{\"path\":{\"text\":\"single.txt\"},\"lines\":{\"text\":\"needle\\n\"},\"line_number\":2,\"absolute_offset\":6,\"submatches\":[{\"match\":{\"text\":\"needle\"},\"start\":0,\"end\":6}]}}\n{\"type\":\"end\",\"data\":{\"path\":{\"text\":\"single.txt\"},\"binary_offset\":null,\"stats\":{\"elapsed\":{\"secs\":0,\"nanos\":64583,\"human\":\"0.000065s\"},\"searches\":1,\"searches_with_match\":1,\"bytes_searched\":20,\"bytes_printed\":235,\"matched_lines\":1,\"matches\":1}}}\n{\"data\":{\"elapsed_total\":{\"human\":\"0.000877s\",\"nanos\":876500,\"secs\":0},\"stats\":{\"bytes_printed\":235,\"bytes_searched\":20\n...[truncated]\n",
+                            "stdout": "{\"type\":\"begin\",\"data\":{\"path\":{\"text\":\"single.txt\"}}}\n{\"type\":\"match\",\"data\":{\"path\":{\"text\":\"single.txt\"},\"lines\":{\"text\":\"needle\\n\"},\"line_number\":2,\"absolute_offset\":6,\"submatches\":[{\"match\":{\"text\":\"needle\"},\"start\":0,\"end\":6}]}}\n{\"type\":\"end\",\"data\":{\"path\":{\"text\":\"single.txt\"},\"binary_offset\":null,\"stats\":{\"elapsed\":{\"secs\":0,\"nanos\":49042,\"human\":\"0.000049s\"},\"searches\":1,\"searches_with_match\":1,\"bytes_searched\":20,\"bytes_printed\":235,\"matched_lines\":1,\"matches\":1}}}\n{\"data\":{\"elapsed_total\":{\"human\":\"0.000557s\",\"nanos\":557375,\"secs\":0},\"stats\":{\"bytes_printed\":235,\"bytes_searched\":20\n...[truncated]\n",
                             "stderr": "",
                             "note": ""
                         },
@@ -869,7 +869,7 @@
                             "status": "Pass",
                             "command": [
                                 "/opt/homebrew/Cellar/php/8.4.5_1/bin/php",
-                                "/Users/dennis/Local Sites/fabrikat/inline0/phgrep/bin/rg",
+                                "/Users/dennis/Local Sites/fabrikat/inline0/greph/bin/rg",
                                 "--json",
                                 "-F",
                                 "needle",
@@ -918,7 +918,7 @@
                             "status": "Pass",
                             "command": [
                                 "/opt/homebrew/Cellar/php/8.4.5_1/bin/php",
-                                "/Users/dennis/Local Sites/fabrikat/inline0/phgrep/bin/sg",
+                                "/Users/dennis/Local Sites/fabrikat/inline0/greph/bin/sg",
                                 "run",
                                 "--pattern",
                                 "array($$$ITEMS)",
@@ -957,7 +957,7 @@
                             "status": "Pass",
                             "command": [
                                 "/opt/homebrew/Cellar/php/8.4.5_1/bin/php",
-                                "/Users/dennis/Local Sites/fabrikat/inline0/phgrep/bin/sg",
+                                "/Users/dennis/Local Sites/fabrikat/inline0/greph/bin/sg",
                                 "--pattern",
                                 "array($$$ITEMS)",
                                 "src/App.php"
@@ -998,7 +998,7 @@
                             "status": "Pass",
                             "command": [
                                 "/opt/homebrew/Cellar/php/8.4.5_1/bin/php",
-                                "/Users/dennis/Local Sites/fabrikat/inline0/phgrep/bin/sg",
+                                "/Users/dennis/Local Sites/fabrikat/inline0/greph/bin/sg",
                                 "run",
                                 "--pattern",
                                 "array($$$ITEMS)",
@@ -1041,7 +1041,7 @@
                             "status": "Pass",
                             "command": [
                                 "/opt/homebrew/Cellar/php/8.4.5_1/bin/php",
-                                "/Users/dennis/Local Sites/fabrikat/inline0/phgrep/bin/sg",
+                                "/Users/dennis/Local Sites/fabrikat/inline0/greph/bin/sg",
                                 "run",
                                 "--json",
                                 "--pattern",
@@ -1083,7 +1083,7 @@
                             "status": "Pass",
                             "command": [
                                 "/opt/homebrew/Cellar/php/8.4.5_1/bin/php",
-                                "/Users/dennis/Local Sites/fabrikat/inline0/phgrep/bin/sg",
+                                "/Users/dennis/Local Sites/fabrikat/inline0/greph/bin/sg",
                                 "run",
                                 "--json=stream",
                                 "--pattern",
@@ -1125,7 +1125,7 @@
                             "status": "Pass",
                             "command": [
                                 "/opt/homebrew/Cellar/php/8.4.5_1/bin/php",
-                                "/Users/dennis/Local Sites/fabrikat/inline0/phgrep/bin/sg",
+                                "/Users/dennis/Local Sites/fabrikat/inline0/greph/bin/sg",
                                 "run",
                                 "--json=compact",
                                 "--pattern",
@@ -1167,7 +1167,7 @@
                             "status": "Pass",
                             "command": [
                                 "/opt/homebrew/Cellar/php/8.4.5_1/bin/php",
-                                "/Users/dennis/Local Sites/fabrikat/inline0/phgrep/bin/sg",
+                                "/Users/dennis/Local Sites/fabrikat/inline0/greph/bin/sg",
                                 "run",
                                 "--files-with-matches",
                                 "--pattern",
@@ -1210,7 +1210,7 @@
                             "status": "Pass",
                             "command": [
                                 "/opt/homebrew/Cellar/php/8.4.5_1/bin/php",
-                                "/Users/dennis/Local Sites/fabrikat/inline0/phgrep/bin/sg",
+                                "/Users/dennis/Local Sites/fabrikat/inline0/greph/bin/sg",
                                 "run",
                                 "--globs",
                                 "src/*.php",
@@ -1254,7 +1254,7 @@
                             "status": "Pass",
                             "command": [
                                 "/opt/homebrew/Cellar/php/8.4.5_1/bin/php",
-                                "/Users/dennis/Local Sites/fabrikat/inline0/phgrep/bin/sg",
+                                "/Users/dennis/Local Sites/fabrikat/inline0/greph/bin/sg",
                                 "run",
                                 "--no-ignore",
                                 "hidden",
@@ -1298,7 +1298,7 @@
                             "status": "Pass",
                             "command": [
                                 "/opt/homebrew/Cellar/php/8.4.5_1/bin/php",
-                                "/Users/dennis/Local Sites/fabrikat/inline0/phgrep/bin/sg",
+                                "/Users/dennis/Local Sites/fabrikat/inline0/greph/bin/sg",
                                 "run",
                                 "--threads",
                                 "2",
@@ -1342,7 +1342,7 @@
                             "status": "Pass",
                             "command": [
                                 "/opt/homebrew/Cellar/php/8.4.5_1/bin/php",
-                                "/Users/dennis/Local Sites/fabrikat/inline0/phgrep/bin/sg",
+                                "/Users/dennis/Local Sites/fabrikat/inline0/greph/bin/sg",
                                 "run",
                                 "--pattern",
                                 "array($$$ITEMS)",
@@ -1387,7 +1387,7 @@
                             "status": "Pass",
                             "command": [
                                 "/opt/homebrew/Cellar/php/8.4.5_1/bin/php",
-                                "/Users/dennis/Local Sites/fabrikat/inline0/phgrep/bin/sg",
+                                "/Users/dennis/Local Sites/fabrikat/inline0/greph/bin/sg",
                                 "run",
                                 "--pattern",
                                 "array($$$ITEMS)",
@@ -1432,7 +1432,7 @@
                             "status": "Pass",
                             "command": [
                                 "/opt/homebrew/Cellar/php/8.4.5_1/bin/php",
-                                "/Users/dennis/Local Sites/fabrikat/inline0/phgrep/bin/sg",
+                                "/Users/dennis/Local Sites/fabrikat/inline0/greph/bin/sg",
                                 "run",
                                 "--lang",
                                 "php",
@@ -1463,7 +1463,7 @@
                             "status": "Pass",
                             "command": [
                                 "/opt/homebrew/Cellar/php/8.4.5_1/bin/php",
-                                "/Users/dennis/Local Sites/fabrikat/inline0/phgrep/bin/sg",
+                                "/Users/dennis/Local Sites/fabrikat/inline0/greph/bin/sg",
                                 "run",
                                 "--hidden",
                                 "--pattern",
@@ -1485,7 +1485,7 @@
                             "status": "Pass",
                             "command": [
                                 "/opt/homebrew/Cellar/php/8.4.5_1/bin/php",
-                                "/Users/dennis/Local Sites/fabrikat/inline0/phgrep/bin/sg",
+                                "/Users/dennis/Local Sites/fabrikat/inline0/greph/bin/sg",
                                 "scan",
                                 "-p",
                                 "array($$$ITEMS)",
@@ -1506,7 +1506,7 @@
                             "status": "Pass",
                             "command": [
                                 "/opt/homebrew/Cellar/php/8.4.5_1/bin/php",
-                                "/Users/dennis/Local Sites/fabrikat/inline0/phgrep/bin/sg",
+                                "/Users/dennis/Local Sites/fabrikat/inline0/greph/bin/sg",
                                 "rewrite",
                                 "-p",
                                 "array($$$ITEMS)",
@@ -1530,7 +1530,7 @@
                             "status": "Pass",
                             "command": [
                                 "/opt/homebrew/Cellar/php/8.4.5_1/bin/php",
-                                "/Users/dennis/Local Sites/fabrikat/inline0/phgrep/bin/sg",
+                                "/Users/dennis/Local Sites/fabrikat/inline0/greph/bin/sg",
                                 "rewrite",
                                 "-p",
                                 "array($$$ITEMS)",
@@ -1554,7 +1554,7 @@
                             "status": "Pass",
                             "command": [
                                 "/opt/homebrew/Cellar/php/8.4.5_1/bin/php",
-                                "/Users/dennis/Local Sites/fabrikat/inline0/phgrep/bin/sg",
+                                "/Users/dennis/Local Sites/fabrikat/inline0/greph/bin/sg",
                                 "rewrite",
                                 "-p",
                                 "array($$$ITEMS)",
@@ -1573,20 +1573,20 @@
             ]
         },
         {
-            "title": "Native phgrep Surface",
+            "title": "Native greph Surface",
             "providers": [
-                "bin/phgrep"
+                "bin/greph"
             ],
             "rows": [
                 {
                     "feature": "Native text JSON output",
                     "notes": "Probe: `-F --json needle .`",
                     "results": {
-                        "bin/phgrep": {
+                        "bin/greph": {
                             "status": "Pass",
                             "command": [
                                 "/opt/homebrew/Cellar/php/8.4.5_1/bin/php",
-                                "/Users/dennis/Local Sites/fabrikat/inline0/phgrep/bin/phgrep",
+                                "/Users/dennis/Local Sites/fabrikat/inline0/greph/bin/greph",
                                 "-F",
                                 "--json",
                                 "needle",
@@ -1603,11 +1603,11 @@
                     "feature": "Native text count mode",
                     "notes": "Probe: `-F -c needle counts.txt`",
                     "results": {
-                        "bin/phgrep": {
+                        "bin/greph": {
                             "status": "Pass",
                             "command": [
                                 "/opt/homebrew/Cellar/php/8.4.5_1/bin/php",
-                                "/Users/dennis/Local Sites/fabrikat/inline0/phgrep/bin/phgrep",
+                                "/Users/dennis/Local Sites/fabrikat/inline0/greph/bin/greph",
                                 "-F",
                                 "-c",
                                 "needle",
@@ -1624,11 +1624,11 @@
                     "feature": "Native files with matches",
                     "notes": "Probe: `-F -l needle .`",
                     "results": {
-                        "bin/phgrep": {
+                        "bin/greph": {
                             "status": "Pass",
                             "command": [
                                 "/opt/homebrew/Cellar/php/8.4.5_1/bin/php",
-                                "/Users/dennis/Local Sites/fabrikat/inline0/phgrep/bin/phgrep",
+                                "/Users/dennis/Local Sites/fabrikat/inline0/greph/bin/greph",
                                 "-F",
                                 "-l",
                                 "needle",
@@ -1645,11 +1645,11 @@
                     "feature": "Native text context lines",
                     "notes": "Probe: `-F -C 1 needle context.txt`",
                     "results": {
-                        "bin/phgrep": {
+                        "bin/greph": {
                             "status": "Pass",
                             "command": [
                                 "/opt/homebrew/Cellar/php/8.4.5_1/bin/php",
-                                "/Users/dennis/Local Sites/fabrikat/inline0/phgrep/bin/phgrep",
+                                "/Users/dennis/Local Sites/fabrikat/inline0/greph/bin/greph",
                                 "-F",
                                 "-C",
                                 "1",
@@ -1667,11 +1667,11 @@
                     "feature": "Native text max count",
                     "notes": "Probe: `-F -m 1 needle counts.txt`",
                     "results": {
-                        "bin/phgrep": {
+                        "bin/greph": {
                             "status": "Pass",
                             "command": [
                                 "/opt/homebrew/Cellar/php/8.4.5_1/bin/php",
-                                "/Users/dennis/Local Sites/fabrikat/inline0/phgrep/bin/phgrep",
+                                "/Users/dennis/Local Sites/fabrikat/inline0/greph/bin/greph",
                                 "-F",
                                 "-m",
                                 "1",
@@ -1689,11 +1689,11 @@
                     "feature": "Native invert match",
                     "notes": "Probe: `-F -v needle invert.txt`",
                     "results": {
-                        "bin/phgrep": {
+                        "bin/greph": {
                             "status": "Pass",
                             "command": [
                                 "/opt/homebrew/Cellar/php/8.4.5_1/bin/php",
-                                "/Users/dennis/Local Sites/fabrikat/inline0/phgrep/bin/phgrep",
+                                "/Users/dennis/Local Sites/fabrikat/inline0/greph/bin/greph",
                                 "-F",
                                 "-v",
                                 "needle",
@@ -1710,11 +1710,11 @@
                     "feature": "Native glob filter",
                     "notes": "Probe: `--glob *.php function .`",
                     "results": {
-                        "bin/phgrep": {
+                        "bin/greph": {
                             "status": "Pass",
                             "command": [
                                 "/opt/homebrew/Cellar/php/8.4.5_1/bin/php",
-                                "/Users/dennis/Local Sites/fabrikat/inline0/phgrep/bin/phgrep",
+                                "/Users/dennis/Local Sites/fabrikat/inline0/greph/bin/greph",
                                 "--glob",
                                 "*.php",
                                 "function",
@@ -1731,11 +1731,11 @@
                     "feature": "Native hidden files",
                     "notes": "Probe: `--hidden -F secret .`",
                     "results": {
-                        "bin/phgrep": {
+                        "bin/greph": {
                             "status": "Pass",
                             "command": [
                                 "/opt/homebrew/Cellar/php/8.4.5_1/bin/php",
-                                "/Users/dennis/Local Sites/fabrikat/inline0/phgrep/bin/phgrep",
+                                "/Users/dennis/Local Sites/fabrikat/inline0/greph/bin/greph",
                                 "--hidden",
                                 "-F",
                                 "secret",
@@ -1752,11 +1752,11 @@
                     "feature": "Native no ignore",
                     "notes": "Probe: `--no-ignore -F ignored .`",
                     "results": {
-                        "bin/phgrep": {
+                        "bin/greph": {
                             "status": "Pass",
                             "command": [
                                 "/opt/homebrew/Cellar/php/8.4.5_1/bin/php",
-                                "/Users/dennis/Local Sites/fabrikat/inline0/phgrep/bin/phgrep",
+                                "/Users/dennis/Local Sites/fabrikat/inline0/greph/bin/greph",
                                 "--no-ignore",
                                 "-F",
                                 "ignored",
@@ -1773,11 +1773,11 @@
                     "feature": "Native AST JSON output",
                     "notes": "Probe: `-p dispatch($EVENT) --json src/App.php`",
                     "results": {
-                        "bin/phgrep": {
+                        "bin/greph": {
                             "status": "Pass",
                             "command": [
                                 "/opt/homebrew/Cellar/php/8.4.5_1/bin/php",
-                                "/Users/dennis/Local Sites/fabrikat/inline0/phgrep/bin/phgrep",
+                                "/Users/dennis/Local Sites/fabrikat/inline0/greph/bin/greph",
                                 "-p",
                                 "dispatch($EVENT)",
                                 "--json",
@@ -1794,11 +1794,11 @@
                     "feature": "Native AST plain output",
                     "notes": "Probe: `-p array($$$ITEMS) src/App.php`",
                     "results": {
-                        "bin/phgrep": {
+                        "bin/greph": {
                             "status": "Pass",
                             "command": [
                                 "/opt/homebrew/Cellar/php/8.4.5_1/bin/php",
-                                "/Users/dennis/Local Sites/fabrikat/inline0/phgrep/bin/phgrep",
+                                "/Users/dennis/Local Sites/fabrikat/inline0/greph/bin/greph",
                                 "-p",
                                 "array($$$ITEMS)",
                                 "src/App.php"
@@ -1814,11 +1814,11 @@
                     "feature": "Native AST rewrite dry-run",
                     "notes": "Probe: `-p array($$$ITEMS) -r [$$$ITEMS] --dry-run src/App.php`",
                     "results": {
-                        "bin/phgrep": {
+                        "bin/greph": {
                             "status": "Pass",
                             "command": [
                                 "/opt/homebrew/Cellar/php/8.4.5_1/bin/php",
-                                "/Users/dennis/Local Sites/fabrikat/inline0/phgrep/bin/phgrep",
+                                "/Users/dennis/Local Sites/fabrikat/inline0/greph/bin/greph",
                                 "-p",
                                 "array($$$ITEMS)",
                                 "-r",
@@ -1836,20 +1836,20 @@
             ]
         },
         {
-            "title": "Indexed phgrep Surface",
+            "title": "Indexed greph Surface",
             "providers": [
-                "bin/phgrep-index"
+                "bin/greph-index"
             ],
             "rows": [
                 {
                     "feature": "Index build",
                     "notes": "Probe: `build .`",
                     "results": {
-                        "bin/phgrep-index": {
+                        "bin/greph-index": {
                             "status": "Pass",
                             "command": [
                                 "/opt/homebrew/Cellar/php/8.4.5_1/bin/php",
-                                "/Users/dennis/Local Sites/fabrikat/inline0/phgrep/bin/phgrep-index",
+                                "/Users/dennis/Local Sites/fabrikat/inline0/greph/bin/greph-index",
                                 "build",
                                 "."
                             ],
@@ -1864,11 +1864,11 @@
                     "feature": "Index refresh",
                     "notes": "Probe: `refresh .` after editing a tracked file",
                     "results": {
-                        "bin/phgrep-index": {
+                        "bin/greph-index": {
                             "status": "Pass",
                             "command": [
                                 "/opt/homebrew/Cellar/php/8.4.5_1/bin/php",
-                                "/Users/dennis/Local Sites/fabrikat/inline0/phgrep/bin/phgrep-index",
+                                "/Users/dennis/Local Sites/fabrikat/inline0/greph/bin/greph-index",
                                 "search",
                                 "-F",
                                 "refreshed needle",
@@ -1885,11 +1885,11 @@
                     "feature": "Indexed fixed-string search",
                     "notes": "Probe: `search -F needle .`",
                     "results": {
-                        "bin/phgrep-index": {
+                        "bin/greph-index": {
                             "status": "Pass",
                             "command": [
                                 "/opt/homebrew/Cellar/php/8.4.5_1/bin/php",
-                                "/Users/dennis/Local Sites/fabrikat/inline0/phgrep/bin/phgrep-index",
+                                "/Users/dennis/Local Sites/fabrikat/inline0/greph/bin/greph-index",
                                 "search",
                                 "-F",
                                 "needle",
@@ -1906,11 +1906,11 @@
                     "feature": "Indexed case-insensitive fixed-string search",
                     "notes": "Probe: `search -F -i needle .`",
                     "results": {
-                        "bin/phgrep-index": {
+                        "bin/greph-index": {
                             "status": "Pass",
                             "command": [
                                 "/opt/homebrew/Cellar/php/8.4.5_1/bin/php",
-                                "/Users/dennis/Local Sites/fabrikat/inline0/phgrep/bin/phgrep-index",
+                                "/Users/dennis/Local Sites/fabrikat/inline0/greph/bin/greph-index",
                                 "search",
                                 "-F",
                                 "-i",
@@ -1928,11 +1928,11 @@
                     "feature": "Indexed regex search",
                     "notes": "Probe: `search new\\s+instance .`",
                     "results": {
-                        "bin/phgrep-index": {
+                        "bin/greph-index": {
                             "status": "Pass",
                             "command": [
                                 "/opt/homebrew/Cellar/php/8.4.5_1/bin/php",
-                                "/Users/dennis/Local Sites/fabrikat/inline0/phgrep/bin/phgrep-index",
+                                "/Users/dennis/Local Sites/fabrikat/inline0/greph/bin/greph-index",
                                 "search",
                                 "new\\s+instance",
                                 "notes.txt"
@@ -1948,11 +1948,11 @@
                     "feature": "Indexed count mode",
                     "notes": "Probe: `search -F -c needle counts.txt`",
                     "results": {
-                        "bin/phgrep-index": {
+                        "bin/greph-index": {
                             "status": "Pass",
                             "command": [
                                 "/opt/homebrew/Cellar/php/8.4.5_1/bin/php",
-                                "/Users/dennis/Local Sites/fabrikat/inline0/phgrep/bin/phgrep-index",
+                                "/Users/dennis/Local Sites/fabrikat/inline0/greph/bin/greph-index",
                                 "search",
                                 "-F",
                                 "-c",
@@ -1970,11 +1970,11 @@
                     "feature": "Indexed max count",
                     "notes": "Probe: `search -F -m 1 needle counts.txt`",
                     "results": {
-                        "bin/phgrep-index": {
+                        "bin/greph-index": {
                             "status": "Pass",
                             "command": [
                                 "/opt/homebrew/Cellar/php/8.4.5_1/bin/php",
-                                "/Users/dennis/Local Sites/fabrikat/inline0/phgrep/bin/phgrep-index",
+                                "/Users/dennis/Local Sites/fabrikat/inline0/greph/bin/greph-index",
                                 "search",
                                 "-F",
                                 "-m",
@@ -1993,11 +1993,11 @@
                     "feature": "Indexed files with matches",
                     "notes": "Probe: `search -F -l needle .`",
                     "results": {
-                        "bin/phgrep-index": {
+                        "bin/greph-index": {
                             "status": "Pass",
                             "command": [
                                 "/opt/homebrew/Cellar/php/8.4.5_1/bin/php",
-                                "/Users/dennis/Local Sites/fabrikat/inline0/phgrep/bin/phgrep-index",
+                                "/Users/dennis/Local Sites/fabrikat/inline0/greph/bin/greph-index",
                                 "search",
                                 "-F",
                                 "-l",
@@ -2015,11 +2015,11 @@
                     "feature": "Indexed files without matches",
                     "notes": "Probe: `search -F -L needle .`",
                     "results": {
-                        "bin/phgrep-index": {
+                        "bin/greph-index": {
                             "status": "Pass",
                             "command": [
                                 "/opt/homebrew/Cellar/php/8.4.5_1/bin/php",
-                                "/Users/dennis/Local Sites/fabrikat/inline0/phgrep/bin/phgrep-index",
+                                "/Users/dennis/Local Sites/fabrikat/inline0/greph/bin/greph-index",
                                 "search",
                                 "-F",
                                 "-L",
@@ -2037,11 +2037,11 @@
                     "feature": "Indexed JSON output",
                     "notes": "Probe: `search -F --json needle .`",
                     "results": {
-                        "bin/phgrep-index": {
+                        "bin/greph-index": {
                             "status": "Pass",
                             "command": [
                                 "/opt/homebrew/Cellar/php/8.4.5_1/bin/php",
-                                "/Users/dennis/Local Sites/fabrikat/inline0/phgrep/bin/phgrep-index",
+                                "/Users/dennis/Local Sites/fabrikat/inline0/greph/bin/greph-index",
                                 "search",
                                 "-F",
                                 "--json",
@@ -2059,11 +2059,11 @@
                     "feature": "Indexed glob filter",
                     "notes": "Probe: `search -F --glob *.php function .`",
                     "results": {
-                        "bin/phgrep-index": {
+                        "bin/greph-index": {
                             "status": "Pass",
                             "command": [
                                 "/opt/homebrew/Cellar/php/8.4.5_1/bin/php",
-                                "/Users/dennis/Local Sites/fabrikat/inline0/phgrep/bin/phgrep-index",
+                                "/Users/dennis/Local Sites/fabrikat/inline0/greph/bin/greph-index",
                                 "search",
                                 "-F",
                                 "--glob",
@@ -2082,11 +2082,11 @@
                     "feature": "Indexed type exclusion",
                     "notes": "Probe: `search --type-not php function .`",
                     "results": {
-                        "bin/phgrep-index": {
+                        "bin/greph-index": {
                             "status": "Pass",
                             "command": [
                                 "/opt/homebrew/Cellar/php/8.4.5_1/bin/php",
-                                "/Users/dennis/Local Sites/fabrikat/inline0/phgrep/bin/phgrep-index",
+                                "/Users/dennis/Local Sites/fabrikat/inline0/greph/bin/greph-index",
                                 "search",
                                 "--type-not",
                                 "php",
@@ -2117,7 +2117,7 @@
                             "command": [
                                 "/opt/homebrew/Cellar/php/8.4.5_1/bin/php",
                                 "-r",
-                                "require '/Users/dennis/Local Sites/fabrikat/inline0/phgrep/vendor/autoload.php';\n$result = Phgrep\\Phgrep::buildAstIndex('.');\necho json_encode(['file_count' => $result->fileCount, 'index_path' => $result->indexPath], JSON_UNESCAPED_SLASHES);"
+                                "require '/Users/dennis/Local Sites/fabrikat/inline0/greph/vendor/autoload.php';\n$result = Phgrep\\Phgrep::buildAstIndex('.');\necho json_encode(['file_count' => $result->fileCount, 'index_path' => $result->indexPath], JSON_UNESCAPED_SLASHES);"
                             ],
                             "exit_code": 0,
                             "stdout": "{\"file_count\":3,\"index_path\":\"/private<workspace>/.phgrep-ast-index\"}",
@@ -2135,7 +2135,7 @@
                             "command": [
                                 "/opt/homebrew/Cellar/php/8.4.5_1/bin/php",
                                 "-r",
-                                "require '/Users/dennis/Local Sites/fabrikat/inline0/phgrep/vendor/autoload.php';\nPhgrep\\Phgrep::buildAstIndex('.');\n$matches = Phgrep\\Phgrep::searchAstIndexed('array($$$ITEMS)', ['src/App.php']);\necho json_encode(array_map(static fn ($match) => ['file' => $match->file, 'code' => $match->code], $matches), JSON_UNESCAPED_SLASHES);"
+                                "require '/Users/dennis/Local Sites/fabrikat/inline0/greph/vendor/autoload.php';\nPhgrep\\Phgrep::buildAstIndex('.');\n$matches = Phgrep\\Phgrep::searchAstIndexed('array($$$ITEMS)', ['src/App.php']);\necho json_encode(array_map(static fn ($match) => ['file' => $match->file, 'code' => $match->code], $matches), JSON_UNESCAPED_SLASHES);"
                             ],
                             "exit_code": 0,
                             "stdout": "[{\"file\":\"/private<workspace>/src/App.php\",\"code\":\"array(1, 2, 3)\"}]",
@@ -2153,7 +2153,7 @@
                             "command": [
                                 "/opt/homebrew/Cellar/php/8.4.5_1/bin/php",
                                 "-r",
-                                "require '/Users/dennis/Local Sites/fabrikat/inline0/phgrep/vendor/autoload.php';\nPhgrep\\Phgrep::buildAstIndex('.');\nfile_put_contents('src/App.php', file_get_contents('src/App.php') . \"\\ndispatch(\\$refreshed);\\n\");\nPhgrep\\Phgrep::refreshAstIndex('.');\n$matches = Phgrep\\Phgrep::searchAstIndexed('dispatch($EVENT)', ['src/App.php']);\necho json_encode(array_map(static fn ($match) => ['file' => $match->file, 'code' => $match->code], $matches), JSON_UNESCAPED_SLASHES);"
+                                "require '/Users/dennis/Local Sites/fabrikat/inline0/greph/vendor/autoload.php';\nPhgrep\\Phgrep::buildAstIndex('.');\nfile_put_contents('src/App.php', file_get_contents('src/App.php') . \"\\ndispatch(\\$refreshed);\\n\");\nPhgrep\\Phgrep::refreshAstIndex('.');\n$matches = Phgrep\\Phgrep::searchAstIndexed('dispatch($EVENT)', ['src/App.php']);\necho json_encode(array_map(static fn ($match) => ['file' => $match->file, 'code' => $match->code], $matches), JSON_UNESCAPED_SLASHES);"
                             ],
                             "exit_code": 0,
                             "stdout": "[{\"file\":\"/private<workspace>/src/App.php\",\"code\":\"dispatch($event)\"},{\"file\":\"/private<workspace>/src/App.php\",\"code\":\"dispatch($refreshed)\"}]",
@@ -2171,7 +2171,7 @@
                             "command": [
                                 "/opt/homebrew/Cellar/php/8.4.5_1/bin/php",
                                 "-r",
-                                "require '/Users/dennis/Local Sites/fabrikat/inline0/phgrep/vendor/autoload.php';\n$result = Phgrep\\Phgrep::buildAstCache('.');\necho json_encode(['file_count' => $result->fileCount, 'index_path' => $result->indexPath], JSON_UNESCAPED_SLASHES);"
+                                "require '/Users/dennis/Local Sites/fabrikat/inline0/greph/vendor/autoload.php';\n$result = Phgrep\\Phgrep::buildAstCache('.');\necho json_encode(['file_count' => $result->fileCount, 'index_path' => $result->indexPath], JSON_UNESCAPED_SLASHES);"
                             ],
                             "exit_code": 0,
                             "stdout": "{\"file_count\":3,\"index_path\":\"/private<workspace>/.phgrep-ast-cache\"}",
@@ -2189,7 +2189,7 @@
                             "command": [
                                 "/opt/homebrew/Cellar/php/8.4.5_1/bin/php",
                                 "-r",
-                                "require '/Users/dennis/Local Sites/fabrikat/inline0/phgrep/vendor/autoload.php';\nPhgrep\\Phgrep::buildAstCache('.');\n$matches = Phgrep\\Phgrep::searchAstCached('array($$$ITEMS)', ['src/App.php']);\necho json_encode(array_map(static fn ($match) => ['file' => $match->file, 'code' => $match->code], $matches), JSON_UNESCAPED_SLASHES);"
+                                "require '/Users/dennis/Local Sites/fabrikat/inline0/greph/vendor/autoload.php';\nPhgrep\\Phgrep::buildAstCache('.');\n$matches = Phgrep\\Phgrep::searchAstCached('array($$$ITEMS)', ['src/App.php']);\necho json_encode(array_map(static fn ($match) => ['file' => $match->file, 'code' => $match->code], $matches), JSON_UNESCAPED_SLASHES);"
                             ],
                             "exit_code": 0,
                             "stdout": "[{\"file\":\"/private<workspace>/src/App.php\",\"code\":\"array(1, 2, 3)\"}]",
@@ -2207,7 +2207,7 @@
                             "command": [
                                 "/opt/homebrew/Cellar/php/8.4.5_1/bin/php",
                                 "-r",
-                                "require '/Users/dennis/Local Sites/fabrikat/inline0/phgrep/vendor/autoload.php';\nPhgrep\\Phgrep::buildAstCache('.');\nfile_put_contents('src/App.php', file_get_contents('src/App.php') . \"\\ndispatch(\\$refreshed);\\n\");\nPhgrep\\Phgrep::refreshAstCache('.');\n$matches = Phgrep\\Phgrep::searchAstCached('dispatch($EVENT)', ['src/App.php']);\necho json_encode(array_map(static fn ($match) => ['file' => $match->file, 'code' => $match->code], $matches), JSON_UNESCAPED_SLASHES);"
+                                "require '/Users/dennis/Local Sites/fabrikat/inline0/greph/vendor/autoload.php';\nPhgrep\\Phgrep::buildAstCache('.');\nfile_put_contents('src/App.php', file_get_contents('src/App.php') . \"\\ndispatch(\\$refreshed);\\n\");\nPhgrep\\Phgrep::refreshAstCache('.');\n$matches = Phgrep\\Phgrep::searchAstCached('dispatch($EVENT)', ['src/App.php']);\necho json_encode(array_map(static fn ($match) => ['file' => $match->file, 'code' => $match->code], $matches), JSON_UNESCAPED_SLASHES);"
                             ],
                             "exit_code": 0,
                             "stdout": "[{\"file\":\"/private<workspace>/src/App.php\",\"code\":\"dispatch($event)\"},{\"file\":\"/private<workspace>/src/App.php\",\"code\":\"dispatch($refreshed)\"}]",

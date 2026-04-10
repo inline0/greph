@@ -1,5 +1,5 @@
 {
-    "name": "inline0/phgrep",
+    "name": "grepg/greph",
     "description": "Pure PHP code search and structural refactoring tool.",
     "type": "library",
     "license": "proprietary",
@@ -32,6 +32,8 @@
     "bin": [
         "bin/rg",
         "bin/sg",
+        "bin/greph",
+        "bin/greph-index",
         "bin/phgrep",
         "bin/phgrep-index",
         "bin/oracle",

@@ -148,9 +148,9 @@ PHP,
         $this->assertSame(0, $searchHelpExit);
         $this->assertSame(0, $buildExit);
         $this->assertSame(0, $searchExit);
-        $this->assertStringContainsString('phgrep-index build [path] [--index-dir DIR]', $stdout);
-        $this->assertStringContainsString('phgrep-index ast-index build [path] [--index-dir DIR]', $stdout);
-        $this->assertStringContainsString('phgrep-index ast-cache search [options] pattern [path...]', $stdout);
+        $this->assertStringContainsString('greph-index build [path] [--index-dir DIR]', $stdout);
+        $this->assertStringContainsString('greph-index ast-index build [path] [--index-dir DIR]', $stdout);
+        $this->assertStringContainsString('greph-index ast-cache search [options] pattern [path...]', $stdout);
         $this->assertStringContainsString('.custom-index', $stdout);
     }
 

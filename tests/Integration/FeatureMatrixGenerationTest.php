@@ -27,15 +27,15 @@ final class FeatureMatrixGenerationTest extends TestCase
         $this->assertStringContainsString('## rg Compatibility Surface', $markdown);
         $this->assertStringContainsString('## sg Compatibility Surface', $markdown);
         $this->assertStringContainsString('## sg Wrapper-only Surface (bin/sg only)', $markdown);
-        $this->assertStringContainsString('## Native phgrep Surface', $markdown);
-        $this->assertStringContainsString('## Indexed phgrep Surface', $markdown);
+        $this->assertStringContainsString('## Native greph Surface', $markdown);
+        $this->assertStringContainsString('## Indexed greph Surface', $markdown);
         $this->assertStringContainsString('## Indexed AST Library Surface', $markdown);
         $this->assertStringContainsString('| Fixed-string search | Unavailable', $markdown);
         $this->assertStringContainsString('| Fixed-string search | Unavailable<br><sub>Provider command was not available in this environment.</sub> |', $markdown);
         $this->assertStringContainsString('Provider command was not available in this environment.', $markdown);
         $this->assertStringContainsString('"bin/rg"', $json);
         $this->assertStringContainsString('"bin/sg"', $json);
-        $this->assertStringContainsString('"bin/phgrep-index"', $json);
+        $this->assertStringContainsString('"bin/greph-index"', $json);
         $this->assertStringContainsString('"php/lib"', $json);
         $this->assertStringContainsString('"status": "Unavailable"', $json);
         $this->assertStringContainsString('"status": "Pass"', $json);

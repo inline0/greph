@@ -2,7 +2,7 @@
 
 Generated from live command probes, not hand-maintained guesses.
 
-Generated at `2026-04-09T22:25:28+00:00` from real fixture workspaces. Raw evidence is stored in [FEATURE_MATRIX.json](FEATURE_MATRIX.json).
+Generated at `2026-04-10T16:07:22+00:00` from real fixture workspaces. Raw evidence is stored in [FEATURE_MATRIX.json](FEATURE_MATRIX.json).
 
 Status legend:
 - `Pass`: the command probe succeeded.
@@ -67,9 +67,9 @@ Status legend:
 | Rewrite alias interactive accept | Pass | Probe: `rewrite -p array($$$ITEMS) -r [$$$ITEMS] --interactive src/App.php` with `y` |
 | Rewrite alias interactive decline | Pass | Probe: `rewrite -p array($$$ITEMS) -r [$$$ITEMS] --interactive src/App.php` with `n` |
 
-## Native phgrep Surface
+## Native greph Surface
 
-| Feature | bin/phgrep | Notes |
+| Feature | bin/greph | Notes |
 | --- | --- | --- |
 | Native text JSON output | Pass | Probe: `-F --json needle .` |
 | Native text count mode | Pass | Probe: `-F -c needle counts.txt` |
@@ -84,9 +84,9 @@ Status legend:
 | Native AST plain output | Pass | Probe: `-p array($$$ITEMS) src/App.php` |
 | Native AST rewrite dry-run | Pass | Probe: `-p array($$$ITEMS) -r [$$$ITEMS] --dry-run src/App.php` |
 
-## Indexed phgrep Surface
+## Indexed greph Surface
 
-| Feature | bin/phgrep-index | Notes |
+| Feature | bin/greph-index | Notes |
 | --- | --- | --- |
 | Index build | Pass | Probe: `build .` |
 | Index refresh | Pass | Probe: `refresh .` after editing a tracked file |

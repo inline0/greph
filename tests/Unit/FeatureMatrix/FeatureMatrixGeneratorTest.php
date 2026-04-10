@@ -235,7 +235,7 @@ final class FeatureMatrixGeneratorTest extends TestCase
                 'bad-count',
             );
 
-            $this->assertStringContainsString('<workspace>/path <phgrep>', $normalized);
+            $this->assertStringContainsString('<workspace>/path <greph>', $normalized);
             $this->assertStringContainsString('...[truncated]', $normalized);
             $this->assertStringContainsString('Fail<br><sub>bad\|note wrapped</sub>', $markdown);
             $this->assertStringContainsString('Unavailable<br><sub>missing\|tool wrapped</sub>', $markdown);
@@ -442,7 +442,7 @@ final class FeatureMatrixGeneratorTest extends TestCase
         $this->assertSame('Expected JSON payload to include `single.txt`.', $phgrepInvalid);
         $this->assertSame('Expected exit 0, got 1.', $phgrepExit);
         $this->assertSame('Expected JSON payload to include `single.txt`.', $phgrepMissingFile);
-        $this->assertSame('Expected phgrep JSON array output.', $phgrepNonArray);
+        $this->assertSame('Expected greph JSON array output.', $phgrepNonArray);
     }
 
     #[Test]

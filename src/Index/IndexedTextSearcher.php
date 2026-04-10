@@ -48,7 +48,7 @@ final class IndexedTextSearcher
         $indexPath = $this->resolveIndexPath($resolvedPaths, $indexPath);
 
         if ($indexPath === null) {
-            throw new \RuntimeException('No index found for the requested paths. Build one with phgrep-index build first.');
+            throw new \RuntimeException('No index found for the requested paths. Build one with greph-index build first.');
         }
 
         $index = $this->store->load($indexPath);

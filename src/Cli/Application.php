@@ -510,9 +510,9 @@ final class Application
     {
         return <<<TEXT
 Usage:
-  phgrep [options] pattern [path...]
-  phgrep -p pattern [options] [path...]
-  phgrep -p pattern -r replacement [options] [path...]
+  greph [options] pattern [path...]
+  greph -p pattern [options] [path...]
+  greph -p pattern -r replacement [options] [path...]
 
 Options:
   -F              Fixed-string search.

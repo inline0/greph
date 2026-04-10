@@ -94,4 +94,22 @@ final class ToolResolverTest extends TestCase
         $this->assertNull($reflection->invoke(null, " \n"));
         $this->assertSame('/mock/bin', $reflection->invoke(null, " /mock/bin \n"));
     }
+
+    #[Test]
+    public function itPrefersTheGrephEntryPointWhenItExists(): void
+    {
+        $workspace = sys_get_temp_dir() . '/greph-tool-resolver-' . bin2hex(random_bytes(4));
+
+        mkdir($workspace . '/bin', 0777, true);
+        file_put_contents($workspace . '/bin/greph', "#!/usr/bin/env php\n");
+
+        try {
+            $resolver = new ToolResolver(static fn (string $candidate): ?string => null);
+            $this->assertSame([PHP_BINARY, $workspace . '/bin/greph'], $resolver->phgrep($workspace));
+        } finally {
+            @unlink($workspace . '/bin/greph');
+            @rmdir($workspace . '/bin');
+            @rmdir($workspace);
+        }
+    }
 }

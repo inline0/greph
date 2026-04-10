@@ -1,4 +1,4 @@
-# phgrep
+# greph
 
 Pure PHP code search and structural refactoring tool.
 
@@ -6,14 +6,16 @@ Pure PHP code search and structural refactoring tool.
 
 - `bin/rg`: ripgrep-style compatibility wrapper backed by the PHP engine.
 - `bin/sg`: ast-grep-style compatibility wrapper backed by the PHP engine.
-- `bin/phgrep`: native combined text + AST CLI.
-- `bin/phgrep-index`: separate indexed mode. Build or refresh on-disk text indexes, AST fact indexes, and cached AST stores, then run searches against those warmed artifacts.
+- `bin/greph`: native combined text + AST CLI.
+- `bin/greph-index`: separate indexed mode. Build or refresh on-disk text indexes, AST fact indexes, and cached AST stores, then run searches against those warmed artifacts.
 
 Indexed mode is intentionally separate from scan mode, and the benchmark tables below keep those paths separate too.
 
 Compatibility note:
 - `rg` and `sg` are compatibility entrypoints for agent/tooling use, not full reimplementations of every upstream flag.
 - [FEATURE_MATRIX.md](FEATURE_MATRIX.md) tracks exactly what the PHP port implements, what is partial, and what is still out of scope.
+- Composer package: `grepg/greph`
+- Legacy native entrypoints `bin/phgrep` and `bin/phgrep-index` remain as compatibility aliases.
 
 ## Quick Start
 
@@ -24,15 +26,15 @@ composer verify
 bin/rg -F "function" src
 bin/sg -p 'new $CLASS()' src
 
-bin/phgrep-index build .
-bin/phgrep-index search -F "function" .
-bin/phgrep-index ast-index build .
-bin/phgrep-index ast-index search 'new $CLASS()' src
-bin/phgrep-index ast-cache build .
-bin/phgrep-index ast-cache search 'array($$$ITEMS)' src
+bin/greph-index build .
+bin/greph-index search -F "function" .
+bin/greph-index ast-index build .
+bin/greph-index ast-index search 'new $CLASS()' src
+bin/greph-index ast-cache build .
+bin/greph-index ast-cache search 'array($$$ITEMS)' src
 ```
 
-By default, `bin/phgrep-index` stores its index in `.phgrep-index` under the indexed root.
+By default, `bin/greph-index` stores its index in `.phgrep-index` under the indexed root.
 The current text index is still trigram-first, with auxiliary whole-word / identifier postings used by the sharper indexed paths.
 AST fact indexes default to `.phgrep-ast-index`, and cached AST trees default to `.phgrep-ast-cache`.
 
@@ -101,7 +103,7 @@ Comparison tools:
 
 ### Scan Mode: Text
 
-| Operation | phgrep | rg | grep |
+| Operation | greph | rg | grep |
 | --- | ---: | ---: | ---: |
 | `Literal "function"` | `446.80ms` | `145.47ms` | `202.24ms` |
 | `Literal case insensitive` | `446.38ms` | `150.32ms` | `267.84ms` |
@@ -115,13 +117,13 @@ Comparison tools:
 
 ### Scan Mode: Traversal
 
-| Operation | phgrep | rg | grep |
+| Operation | greph | rg | grep |
 | --- | ---: | ---: | ---: |
 | `Full traversal` | `45.63ms` | `20.18ms` | `55.40ms` |
 
 ### Scan Mode: Parallel Text
 
-| Operation | phgrep | rg | grep |
+| Operation | greph | rg | grep |
 | --- | ---: | ---: | ---: |
 | `1 worker` | `456.99ms` | `143.65ms` | `223.35ms` |
 | `2 workers` | `446.09ms` | `147.18ms` | `223.39ms` |
@@ -129,14 +131,14 @@ Comparison tools:
 
 ### Scan Mode: AST
 
-| Operation | phgrep | sg |
+| Operation | greph | sg |
 | --- | ---: | ---: |
 | `new $CLASS()` | `3436.26ms` | `8564.72ms` |
 | `array($$$ITEMS)` | `6669.04ms` | `8652.00ms` |
 
 ### Indexed Text Mode
 
-| Operation | phgrep | rg | grep |
+| Operation | greph | rg | grep |
 | --- | ---: | ---: | ---: |
 | `Indexed literal "function"` | `62.93ms` | `138.89ms` | `203.94ms` |
 | `Indexed literal case insensitive` | `71.35ms` | `145.51ms` | `267.65ms` |
@@ -145,7 +147,7 @@ Comparison tools:
 | `Indexed regex new instance` | `6.67ms` | `67.46ms` | `169.57ms` |
 | `Indexed regex array call` | `18.82ms` | `78.25ms` | `192.38ms` |
 
-`bin/phgrep-index` now exposes both AST fast paths directly:
+`bin/greph-index` now exposes both AST fast paths directly:
 - `ast-index`: fact-backed AST narrowing with on-disk query caches
 - `ast-cache`: cached parsed trees with the same AST search surface
 
@@ -155,7 +157,7 @@ CI also tracks `indexed-text-cold` as a separate category for cold-query behavio
 
 ### Indexed Summary Queries
 
-| Operation | phgrep | rg | grep |
+| Operation | greph | rg | grep |
 | --- | ---: | ---: | ---: |
 | `Indexed count "function"` | `277.81ms` | `109.83ms` | `181.37ms` |
 | `Indexed files with "function"` | `81.44ms` | `100.21ms` | `121.04ms` |
@@ -163,7 +165,7 @@ CI also tracks `indexed-text-cold` as a separate category for cold-query behavio
 
 ### Indexed / Cached AST
 
-| Operation | phgrep | sg |
+| Operation | greph | sg |
 | --- | ---: | ---: |
 | `Indexed new $CLASS()` | `2724.44ms` | `8554.87ms` |
 | `Indexed array($$$ITEMS)` | `6178.27ms` | `8642.14ms` |
@@ -172,7 +174,7 @@ CI also tracks `indexed-text-cold` as a separate category for cold-query behavio
 
 ### Build Costs
 
-| Operation | phgrep |
+| Operation | greph |
 | --- | ---: |
 | `Build trigram index` | `10403.94ms` |
 | `Build AST fact index` | `1418.25ms` |

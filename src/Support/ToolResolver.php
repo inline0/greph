@@ -77,6 +77,12 @@ final class ToolResolver
      */
     public function phgrep(string $rootPath): array
     {
+        $grephPath = $rootPath . '/bin/greph';
+
+        if (is_file($grephPath)) {
+            return [PHP_BINARY, $grephPath];
+        }
+
         return [PHP_BINARY, $rootPath . '/bin/phgrep'];
     }
 
