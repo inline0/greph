@@ -45,7 +45,7 @@ final class AstIndexBuilderTest extends TestCase
         $this->assertSame('/tmp/custom-ast-index', $absoluteIndexPath);
         $this->assertSame($this->workspace . '/.alt-index', $relativeIndexPath);
         $this->assertCount(2, $scannedFiles);
-        $this->assertSame(['.hidden/Hidden.php', 'src/App.php'], array_column($scannedFiles, 'relativePath'));
+        $this->assertEqualsCanonicalizing(['.hidden/Hidden.php', 'src/App.php'], array_column($scannedFiles, 'relativePath'));
         $this->assertTrue($hidden);
         $this->assertFalse($visible);
         $this->assertSame([

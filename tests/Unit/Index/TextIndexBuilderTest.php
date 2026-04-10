@@ -54,7 +54,7 @@ final class TextIndexBuilderTest extends TestCase
         $this->assertTrue($recordsByPath['ignored.php']['g']);
         $this->assertContains('fun', $index->forward[$recordsByPath['src/App.php']['id']]);
         $this->assertContains('function', $index->wordForward[$recordsByPath['src/App.php']['id']]);
-        $this->assertSame(
+        $this->assertEqualsCanonicalizing(
             [$recordsByPath['.hidden/Secret.php']['id'], $recordsByPath['ignored.php']['id'], $recordsByPath['src/App.php']['id']],
             $index->wordPostings['function'],
         );

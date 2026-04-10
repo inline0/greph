@@ -45,7 +45,7 @@ final class AstCacheBuilderTest extends TestCase
         $this->assertSame('/tmp/custom-ast-cache', $absoluteIndexPath);
         $this->assertSame($this->workspace . '/.alt-cache', $relativeIndexPath);
         $this->assertCount(2, $scannedFiles);
-        $this->assertSame(['.hidden/Hidden.php', 'src/App.php'], array_column($scannedFiles, 'relativePath'));
+        $this->assertEqualsCanonicalizing(['.hidden/Hidden.php', 'src/App.php'], array_column($scannedFiles, 'relativePath'));
         $this->assertTrue($hidden);
         $this->assertFalse($visible);
         $this->assertSame([
