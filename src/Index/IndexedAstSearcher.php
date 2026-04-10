@@ -100,6 +100,10 @@ final class IndexedAstSearcher
             $cachedMatches = $this->queryCacheStore->load($index->indexPath, $index->builtAt, $pattern, $options);
 
             if ($cachedMatches !== null) {
+                if ($this->canPopulateQueryCache($resolvedPaths, $index->rootPath, $options, $explicitSelections, $fallbackPaths)) {
+                    return $cachedMatches;
+                }
+
                 return $this->filterCachedMatches($cachedMatches, $selection);
             }
         }

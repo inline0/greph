@@ -215,6 +215,7 @@ final class CachedAstSearcherTest extends TestCase
         $pattern = 'new $CLASS()';
 
         $rootMatches = $this->searcher->search($pattern, $this->workspace, new AstSearchOptions());
+        $cachedRootMatches = $this->searcher->search($pattern, $this->workspace, new AstSearchOptions());
         $fileMatches = $this->searcher->search($pattern, $this->workspace . '/src/App.php', new AstSearchOptions());
 
         Workspace::remove($this->workspace . '/.phgrep-ast-cache/trees/1.phpbin.gz');
@@ -233,6 +234,7 @@ final class CachedAstSearcherTest extends TestCase
         );
 
         $this->assertCount(1, $rootMatches);
+        $this->assertCount(1, $cachedRootMatches);
         $this->assertCount(1, $fileMatches);
         $this->assertCount(2, $fallbackMatches);
         $this->assertFalse($typeFiltered);
