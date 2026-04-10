@@ -39,6 +39,7 @@ Do not leave vague "maybe later" items behind.
 8. After every 2 to 4 accepted wins in one area, run a broader WordPress sweep again.
 9. Use local benchmarks only for smoke checks and direction, never as the final gate.
 10. Record accepted and rejected experiments with commit and CI run id.
+11. Merge accepted performance wins back to `main` promptly so the next experiment starts from the real baseline.
 
 ## Current Baseline
 
@@ -220,6 +221,70 @@ These are not queue items anymore; they are the current floor:
   - note:
     - the new `Indexed literal whole word` row was functional at `207.41ms`, but existing indexed regex paths regressed
     - keep the idea for later, but do not keep this version on the perf branch
+
+- `73431bc` reject
+  - CI run: `24229704476`
+  - compare: `main` -> `73431bc` on `indexed-text`
+  - headline:
+    - `Indexed literal "function"` `+0.45%`
+    - `Indexed literal case insensitive` `+0.95%`
+    - `Indexed regex array call` `+0.52%`
+    - `Indexed regex new instance` `+1.49%`
+  - note:
+    - indexed selectivity fallback looked better locally but was pure CI noise
+    - do not carry the candidate-filter heuristic forward
+
+- `ae4c077` keep
+  - CI run: `24230108021`
+  - compare: `main` -> `ae4c077` on `indexed-text`
+  - headline:
+    - `Indexed literal "function"` `-45.58%`
+    - `Indexed literal case insensitive` `-45.60%`
+    - `Indexed regex array call` `-32.83%`
+    - `Indexed regex new instance` `-9.24%`
+  - note:
+    - warm query caches now load from uncompressed `.phpbin` payloads with legacy `.phpbin.gz` reads still supported
+    - this is a real indexed-text keep and should be merged to `main`
+
+- `ae4c077` keep
+  - CI run: `24230207619`
+  - compare: `main` -> `ae4c077` on `ast-indexed`
+  - headline:
+    - `Indexed array($$$ITEMS)` `-3.56%`
+    - `Indexed new $CLASS()` `-2.88%` noise
+  - note:
+    - warm AST indexed query loads also benefit from the cache-format change
+    - keep the branch result; `Indexed array($$$ITEMS)` cleared the CI win threshold
+
+- `ae4c077` keep
+  - CI run: `24230858092`
+  - compare: `main` -> `ae4c077` on `ast-cached`
+  - headline:
+    - `Cached array($$$ITEMS)` `-3.05%`
+    - `Cached new $CLASS()` `-6.02%`
+  - note:
+    - cached AST query loads also improved materially under the same uncompressed query-cache change
+    - this completes validation for the whole affected surface
+
+- `9c8d8e1` keep
+  - CI run: `24232280932`
+  - compare: `main` -> `9c8d8e1` on `ast-indexed`
+  - headline:
+    - `Indexed array($$$ITEMS)` `-94.18%`
+    - `Indexed new $CLASS()` `-11.88%`
+  - note:
+    - AST query caches now store compact scalar payloads instead of full serialized `AstMatch` graphs
+    - this is a major warm indexed-AST win and should merge back to `main`
+
+- `9c8d8e1` keep
+  - CI run: `24232280923`
+  - compare: `main` -> `9c8d8e1` on `ast-cached`
+  - headline:
+    - `Cached array($$$ITEMS)` `-92.71%`
+    - `Cached new $CLASS()` `-12.75%`
+  - note:
+    - the same compact query-cache payload change materially improved warm cached-AST queries
+    - both AST warm modes now serve wide match sets much more cheaply
 
 ## Phase 1: Scan-Mode Text Search
 
