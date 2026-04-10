@@ -7,6 +7,7 @@ namespace Phgrep\Tests\Unit\Index;
 use Phgrep\Ast\AstMatch;
 use Phgrep\Ast\AstSearchOptions;
 use Phgrep\Ast\PatternParser;
+use Phgrep\Ast\StoredNode;
 use Phgrep\Index\AstQueryCacheStore;
 use Phgrep\Index\TextIndex;
 use Phgrep\Index\TextQueryCacheStore;
@@ -155,6 +156,7 @@ final class QueryCacheStoreTest extends TestCase
         $this->assertNotNull($loaded);
         $this->assertCount(1, $loaded);
         $this->assertSame('array(1, 2, 3)', $loaded[0]->code);
+        $this->assertInstanceOf(StoredNode::class, $loaded[0]->node);
         $this->assertNull($store->load($indexPath, 124, 'array($$$ITEMS)', $options));
 
         $path = (glob($indexPath . '/queries/*.phpbin*') ?: [])[0] ?? null;
@@ -176,6 +178,23 @@ final class QueryCacheStoreTest extends TestCase
         } catch (\RuntimeException $exception) {
             $this->assertStringContainsString('AST query cache is corrupt', $exception->getMessage());
         }
+
+        file_put_contents($path, serialize([
+            'built_at' => 123,
+            'matches' => [[
+                'f' => '/tmp/demo.php',
+                't' => 'Expr_Array',
+                'sl' => 2,
+                'el' => 2,
+                'sp' => 10,
+                'ep' => 20,
+                'c' => 'array(1, 2, 3)',
+                'p' => [],
+            ]],
+        ]));
+
+        $decoded = $store->load($indexPath, 123, 'array($$$ITEMS)', $options);
+        $this->assertInstanceOf(StoredNode::class, $decoded[0]->node);
 
         file_put_contents($path, serialize('bad'));
 
