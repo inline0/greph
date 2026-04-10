@@ -60,6 +60,10 @@ Current broader non-text baseline on `main`:
 - run [`24234526655`](https://github.com/inline0/phgrep/actions/runs/24234526655)
 - used for traversal, parallel, AST, indexed text, indexed summary, and build tables until the next full sweep lands
 
+Current indexed-text baseline on `main`:
+- run [`24242681605`](https://github.com/inline0/phgrep/actions/runs/24242681605)
+- used for the indexed-text table below after the `perf/indexed-word-postings` merge
+
 Comparison tools:
 - `rg`: ripgrep
 - `grep`: GNU grep
@@ -104,10 +108,11 @@ Comparison tools:
 
 | Operation | phgrep | rg | grep |
 | --- | ---: | ---: | ---: |
-| `Indexed literal "function"` | `282.41ms` | `146.33ms` | `223.19ms` |
-| `Indexed literal case insensitive` | `299.89ms` | `155.58ms` | `289.34ms` |
-| `Indexed regex new instance` | `179.69ms` | `80.44ms` | `194.05ms` |
-| `Indexed regex array call` | `163.27ms` | `85.78ms` | `213.71ms` |
+| `Indexed literal "function"` | `70.87ms` | `150.37ms` | `203.94ms` |
+| `Indexed literal case insensitive` | `74.35ms` | `155.31ms` | `267.65ms` |
+| `Indexed literal whole word` | `72.46ms` | `150.00ms` | `203.59ms` |
+| `Indexed regex new instance` | `7.06ms` | `79.29ms` | `169.57ms` |
+| `Indexed regex array call` | `21.13ms` | `85.07ms` | `192.38ms` |
 
 The CLI-exposed indexed mode is text-first today. CI also tracks separate indexed/cached AST search modes below.
 
