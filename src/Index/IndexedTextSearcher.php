@@ -124,13 +124,19 @@ final class IndexedTextSearcher
             $seeds = $this->querySeeds($pattern, $options);
 
             if ($seeds === []) {
-                return $this->mergeResults(
+                $results = $this->mergeResults(
                     $selectedPaths,
                     $fallbackPaths,
                     $pattern,
                     $options,
                     null,
                 );
+
+                if ($this->canPopulateQueryCache($pattern, $options, $resolvedPaths, $explicitSelections, $fallbackPaths, $index)) {
+                    $this->queryCacheStore->save($index, $pattern, $options, $results);
+                }
+
+                return $results;
             }
 
             $candidateIds = $this->candidateIds($index->indexPath, $seeds);

@@ -389,6 +389,23 @@ final class IndexedTextSearcherTest extends TestCase
         );
     }
 
+    #[Test]
+    public function itCachesWarmShortLiteralRootQueries(): void
+    {
+        $pattern = 'fu';
+        $options = new TextSearchOptions(fixedString: true, countOnly: true);
+
+        $rootResults = $this->searcher->search($pattern, $this->workspace, $options);
+        $cachedRootResults = $this->searcher->search($pattern, $this->workspace, $options);
+        $cacheFiles = glob($this->workspace . '/.phgrep-index/queries/*.phpbin') ?: [];
+
+        $this->assertNotSame([], $cacheFiles);
+        $this->assertSame(
+            array_map(static fn (TextFileResult $result): int => $result->matchCount(), $rootResults),
+            array_map(static fn (TextFileResult $result): int => $result->matchCount(), $cachedRootResults),
+        );
+    }
+
     /**
      * @return mixed
      */
