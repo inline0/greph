@@ -1,0 +1,143 @@
+---
+title: AST Search
+description: Structural PHP search with metavariables, repeated captures, and variadic patterns.
+---
+
+# AST Search
+
+Greph's AST mode searches PHP source by structure, not by text. Patterns are written as ordinary PHP code with `$VARIABLE` and `$$$VARIADIC` metavariables. The pattern is parsed by [nikic/php-parser](https://github.com/nikic/PHP-Parser) into the same AST shape as the source it is searching, then matched node-by-node.
+
+This is the same model as [ast-grep](https://ast-grep.github.io/), and the `sg` compatibility wrapper exposes ast-grep's CLI surface on top of the same engine.
+
+## Quick examples
+
+```bash
+# Find every constructor call
+./vendor/bin/greph -p 'new $CLASS()' src
+
+# Find every method call with any number of arguments
+./vendor/bin/greph -p '$obj->$method($$$ARGS)' src
+
+# Find old-style array() calls
+./vendor/bin/greph -p 'array($$$ITEMS)' src
+
+# Find void-returning functions
+./vendor/bin/greph -p 'function $name($$$PARAMS): void {}' src
+
+# Find isset ternaries that should be ??
+./vendor/bin/greph -p 'isset($x) ? $x : $default' src
+```
+
+## Pattern syntax
+
+A pattern is valid PHP source. Anywhere a real expression or statement could go, you can substitute a metavariable to capture that node.
+
+| Syntax | Matches | Example |
+|---|---|---|
+| `$VAR` | Any single AST node, captured as `VAR` | `$x + $y` matches `foo() + bar` |
+| `$_` | Any single AST node, not captured | `$_->method()` matches any receiver |
+| `$$$ARGS` | Zero or more nodes (variadic), captured as `ARGS` | `func($$$ARGS)` matches `func()`, `func(1)`, `func(1, 2, 3)` |
+| `$VAR` (repeated) | Same `$VAR` must match the same structure both times | `$x == $x` matches `a == a`, not `a == b` |
+
+The metavariable name is uppercase by convention but does not have to be. `$_` is a non-capturing wildcard.
+
+`$$$VARIADIC` works wherever PHP allows a list of nodes: function arguments, array items, parameter lists, statement bodies. The capture stores the entire matched sequence (including zero items).
+
+## Identifier metavariables
+
+Class, function, interface, trait, and enum names are identifiers, not expressions, so PHP would not normally accept `$Name` after `class`. Greph rewrites these patterns before parsing so the metavariable still works:
+
+```bash
+./vendor/bin/greph -p 'class $NAME extends BaseController {}' src
+./vendor/bin/greph -p 'function $NAME(): void {}' src
+./vendor/bin/greph -p 'interface $NAME {}' src
+```
+
+The same rewrite happens for `class`, `interface`, `trait`, `enum`, and `function`.
+
+## Repeated metavariables
+
+Re-using a metavariable inside the same pattern asserts that both occurrences must match the same node structurally. This is useful for spotting redundant code:
+
+```bash
+# Tautological comparisons
+./vendor/bin/greph -p '$X == $X' src
+
+# Redundant ternaries
+./vendor/bin/greph -p '$X ? $X : null' src
+```
+
+The same rule applies to `$$$VARIADIC`: two occurrences of `$$$ARGS` must match the same sequence.
+
+## Filtering files
+
+AST mode walks the file tree with the same walker as text mode and defaults to the `php` file type filter. Override with `--type`, `--type-not`, `--glob`, `--no-ignore`, and `--hidden`. The walker still respects `.gitignore` and `.grephignore` and skips binary files.
+
+```bash
+./vendor/bin/greph -p 'new $CLASS()' --glob 'src/**/*.php' .
+./vendor/bin/greph -p 'new $CLASS()' --type-not phpt src
+```
+
+## Output
+
+The default output uses the same `file:line:content` format as text mode, with the matched code collapsed onto a single line:
+
+```text
+src/Greph.php:38:return (new FileWalker())->walk($paths, $options);
+src/Greph.php:49:$searcher = new TextSearcher();
+```
+
+Pass `--json` to emit structured matches:
+
+```json
+[
+  {
+    "file": "src/Greph.php",
+    "start_line": 38,
+    "end_line": 38,
+    "start_file_pos": 1234,
+    "end_file_pos": 1252,
+    "code": "new FileWalker()"
+  }
+]
+```
+
+## Parse errors
+
+By default Greph silently skips files that fail to parse. This is the right behavior when running across a large codebase that contains experimental or generated PHP. Pass `--strict-parse` (on `greph-index ast-index search` and `greph-index ast-cache search`) to raise the parse error instead, or set `skipParseErrors: false` on `AstSearchOptions` when using the facade directly.
+
+## Programmatic use
+
+```php
+use Greph\Greph;
+use Greph\Ast\AstSearchOptions;
+
+$matches = Greph::searchAst(
+    '$obj->$method($$$ARGS)',
+    'src',
+    new AstSearchOptions(jobs: 4),
+);
+
+foreach ($matches as $match) {
+    echo "{$match->file}:{$match->startLine}\n";
+    echo $match->code . "\n";
+
+    foreach ($match->captures as $name => $node) {
+        echo "  {$name} = " . get_debug_type($node) . "\n";
+    }
+}
+```
+
+`$match->node` is the captured `PhpParser\Node` (so you can walk it with PHP-Parser's `NodeVisitor`), and `$match->captures` maps each metavariable name to its captured node or list of nodes.
+
+## How it works
+
+The pipeline is:
+
+1. **Pattern parsing**: `Greph\Ast\PatternParser` rewrites identifier metavariables, then parses the pattern with PHP-Parser.
+2. **Source parsing**: each candidate file is parsed once. In `ast-cache` mode this step is replaced by a deserialization from the cache store.
+3. **Candidate filtering**: `Greph\Ast\AstPatternPrefilter` extracts a coarse signature from the pattern (call name, class name, statement type) and uses it to skip files that obviously cannot contain a match. In `ast-index` mode this step queries a precomputed fact store instead.
+4. **Matching**: `Greph\Ast\PatternMatcher` walks the source AST and compares it against the pattern AST, binding metavariables along the way and enforcing repeated-variable consistency.
+5. **Result emission**: matched nodes are converted into `AstMatch` objects with line/byte positions and the original source slice.
+
+For repeated workloads, [indexed AST search](/docs/indexed/ast) and [cached AST search](/docs/indexed/cache) skip most of steps 2 and 3.

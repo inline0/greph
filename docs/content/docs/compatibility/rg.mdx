@@ -1,0 +1,121 @@
+---
+title: rg Compatibility
+description: Drop-in ripgrep wrapper backed by the Greph engine.
+---
+
+# rg Compatibility
+
+`vendor/bin/rg` is a ripgrep-style compatibility wrapper. It accepts the most commonly used ripgrep flags, walks the file tree the same way ripgrep does, and emits matching output. The verified surface is reproduced from probe runs against the upstream `rg` binary and lives in [Advanced / Feature Matrix](/docs/advanced/feature-matrix).
+
+The wrapper is a thin CLI translator; the actual search work is done by the same `Greph\Text\TextSearcher` engine that `vendor/bin/greph` uses.
+
+## When to use it
+
+Use the wrapper when:
+
+- You have an existing tool, agent, or script that already invokes `rg`.
+- You want a drop-in replacement that works in environments where you cannot install ripgrep itself (shared hosting, hardened containers, restricted PaaS).
+- You want ripgrep ergonomics on PHP-only infrastructure.
+
+Use native `vendor/bin/greph` when:
+
+- You are writing new code and do not need the ripgrep CLI shape.
+- You want access to native flags that the wrapper does not expose (for example AST mode).
+
+## Usage
+
+```bash
+rg [options] pattern [path...]
+rg --files [options] [path...]
+```
+
+A bare invocation searches `.` recursively:
+
+```bash
+./vendor/bin/rg -F "function"
+```
+
+`--files` lists candidate files instead of searching:
+
+```bash
+./vendor/bin/rg --files
+./vendor/bin/rg --files --type php
+./vendor/bin/rg --files --hidden
+```
+
+## JSON output
+
+`--json` emits the same event-shaped payload that ripgrep produces:
+
+```bash
+./vendor/bin/rg --json -F "function" src
+```
+
+```json
+{"type":"begin","data":{"path":{"text":"src/Greph.php"}}}
+{"type":"match","data":{"path":{"text":"src/Greph.php"},"lines":{"text":"final class Greph"},"line_number":31,"absolute_offset":1234,"submatches":[{"match":{"text":"function"},"start":0,"end":8}]}}
+{"type":"end","data":{"path":{"text":"src/Greph.php"}}}
+```
+
+This is the schema that downstream tools expect when they enable ripgrep's structured output. If you want a simpler shape, use `vendor/bin/greph --json` instead.
+
+## Verified surface
+
+The following flags are verified against `rg` itself in the [feature matrix](/docs/advanced/feature-matrix). Both the upstream binary and the wrapper produce equivalent output for each probe.
+
+### Search flags
+
+- `-F`, `--fixed-strings`
+- `-i`, `--ignore-case`
+- `-w`, `--word-regexp`
+- `-v`, `--invert-match`
+- `-c`, `--count`
+- `-l`, `--files-with-matches`
+- `--files-without-match`
+- `-I`, `--no-filename`
+- `-H`, `--with-filename`
+- `-n`, `--line-number`
+- `-A N`, `--after-context N`
+- `-B N`, `--before-context N`
+- `-C N`, `--context N`
+- `-m N`, `--max-count N`
+- `-e P`, `--regexp P`
+
+### Walker flags
+
+- `-L`, `--follow`
+- `--glob GLOB`
+- `--type NAME`
+- `--type-not NAME`
+- `--no-ignore`
+- `--hidden`
+- `--files`
+- `--files --hidden`
+- `--files --type NAME`
+
+### Output flags
+
+- `--json`
+
+### Worker flags
+
+- `-j N`, `--threads N`
+
+## Limitations
+
+Greph's `rg` wrapper covers the search and walker surface that most tools and agents use. It does not currently expose the following ripgrep features:
+
+- Multiline regex (`-U`, `--multiline`)
+- Replacement (`-r`, `--replace`) for text mode (use `vendor/bin/greph` AST rewrite instead)
+- Custom type definitions (`--type-add`, `--type-clear`)
+- Encoding flags (`-E`, `--encoding`)
+- `--pre` filter scripts
+- `--sort`, `--sortr`
+
+If you hit a missing flag, file an issue with the probe you ran against upstream `rg` and the expected output. New features land alongside their oracle probes so the verified surface only grows.
+
+## Behavior parity
+
+The wrapper aims for behavior parity, not byte parity. Output is line-equivalent but may differ in cosmetic details (color codes, terminal-width truncation). The probes used by the [feature matrix](/docs/advanced/feature-matrix) check semantic equivalence, not byte-exact diffs.
+
+For agents and tools that parse output, the parser-relevant fields (file path, line number, content, match position) are byte-identical to upstream `rg` for every verified probe.

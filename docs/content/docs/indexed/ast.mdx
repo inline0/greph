@@ -1,0 +1,118 @@
+---
+title: Indexed AST Search
+description: Warmed AST fact index for repeated structural queries.
+---
+
+# Indexed AST Search
+
+Indexed AST search is the warmed-cache version of [AST search](/docs/modes/ast). The first call extracts node-level facts (call names, instantiations, class declarations, method declarations) into an on-disk store; subsequent calls use the store to skip files that obviously cannot contain a structural match. The matcher then re-verifies the candidates against the source.
+
+The fact index is exposed under the `greph-index ast-index` CLI subcommand and the `Greph::buildAstIndex()` / `Greph::searchAstIndexed()` facade methods.
+
+## Building the index
+
+```bash
+# Full build at the current directory
+./vendor/bin/greph-index ast-index build .
+
+# Full build at an explicit root
+./vendor/bin/greph-index ast-index build path/to/repo
+
+# Use a non-default index directory
+./vendor/bin/greph-index ast-index build . --index-dir /tmp/greph-ast-index
+```
+
+The fact index is stored at `<root>/.greph-ast-index/` by default.
+
+A successful build prints a one-line summary:
+
+```text
+Built AST index for 2547 files in .greph-ast-index (84931 fact rows, +2547 ~0 -0 =0)
+```
+
+The four counters track added, updated, deleted, and unchanged files since the last build.
+
+## Refreshing the index
+
+```bash
+./vendor/bin/greph-index ast-index refresh .
+```
+
+`refresh` re-walks the indexed root, re-parses changed files, and rewrites only the fact rows that moved. The output uses the same four counters as the text index.
+
+## Querying the index
+
+```bash
+./vendor/bin/greph-index ast-index search 'new $CLASS()' src
+./vendor/bin/greph-index ast-index search '$obj->$method($$$ARGS)' src
+./vendor/bin/greph-index ast-index search --json 'array($$$ITEMS)' src
+./vendor/bin/greph-index ast-index search -l 'array($$$ITEMS)' src
+```
+
+The metavariable syntax is identical to native AST search. See [Modes / AST Search](/docs/modes/ast) for the full grammar.
+
+### Options
+
+| Flag | Meaning |
+|---|---|
+| `--lang NAME` | AST language. Default: `php` |
+| `-j N`, `--jobs N` | Number of parallel workers |
+| `-l`, `--files-with-matches` | List matching files only |
+| `--glob GLOB` | Include only files whose paths match GLOB |
+| `--type NAME` / `--type-not NAME` | File type filter |
+| `--json` | Emit JSON output |
+| `--no-ignore` | Ignore `.gitignore` and `.grephignore` |
+| `--hidden` | Include hidden files |
+| `--strict-parse` | Fail on parse errors instead of skipping them |
+| `--fallback MODE` | Missing-index behavior: `fail` (default) or `scan` |
+| `--index-dir DIR` | Use a non-default index directory |
+
+### Missing-index fallback
+
+By default, `ast-index search` raises an error when no index exists at the requested location. Pass `--fallback scan` to fall back to a native AST scan instead. This is the right setting for tools that want indexed search when available but should still produce results when the index has not been built yet.
+
+```bash
+./vendor/bin/greph-index ast-index search --fallback scan 'new $CLASS()' src
+```
+
+## What the index stores
+
+For every indexed file the AST fact extractor records a row per "interesting" node. The set of fact kinds covers the constructs that AST patterns most commonly target:
+
+- Function and method calls (by called name)
+- Class instantiations (by class name)
+- Class, interface, trait, and enum declarations (by name)
+- Function declarations (by name)
+- Method declarations (by name and visibility)
+- Use statements
+
+When a query arrives, `Greph\Ast\AstFactQuery` translates the search pattern into a coarse fact signature (for example, "must contain a `new` of any class") and intersects the fact store. Files that survive the intersection are then re-parsed and matched against the full pattern.
+
+This means the fact index is a *prefilter*, not a full-fidelity match store. The match step still parses the source, so structural correctness is identical to native AST search; only the candidate set is smaller.
+
+## When to use it
+
+Indexed AST mode is the right tool when:
+
+- You run the same structural queries against the same codebase repeatedly.
+- The patterns target identifiable shapes (call name, class name, declaration kind) that the fact extractor stores.
+- You want lower latency than re-parsing every file.
+
+For patterns whose distinguishing feature is not in the fact set (for example, complex nested expressions without a recognizable head), the [cached AST mode](/docs/indexed/cache) is usually a better fit because it skips the parse step entirely without relying on a coarse signature.
+
+## Programmatic use
+
+```php
+use Greph\Greph;
+use Greph\Ast\AstSearchOptions;
+
+Greph::buildAstIndex('.');
+
+$matches = Greph::searchAstIndexed(
+    'new $CLASS()',
+    'src',
+    new AstSearchOptions(jobs: 4),
+);
+```
+
+`searchAstIndexed` accepts the same `AstSearchOptions` as native AST search and returns the same `list<AstMatch>` shape.

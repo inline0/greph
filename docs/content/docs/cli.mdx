@@ -1,0 +1,291 @@
+---
+title: CLI
+description: Complete command reference for the greph, greph-index, rg, and sg executables.
+---
+
+# CLI Reference
+
+Greph ships four executables. All four share the same engine; the difference is the surface they expose.
+
+| Binary | Purpose |
+|---|---|
+| `greph` | Native text search, AST search, and AST rewrite |
+| `greph-index` | Warmed text index, AST fact index, and cached AST search |
+| `rg` | ripgrep-style compatibility wrapper |
+| `sg` | ast-grep-style compatibility wrapper |
+
+All paths in the examples use `./vendor/bin/<binary>`. Substitute `./bin/<binary>` if you are working from a clone of the repository.
+
+---
+
+## `greph`
+
+Native text search, AST search, and AST rewrite.
+
+```bash
+greph [options] pattern [path...]
+greph -p pattern [options] [path...]
+greph -p pattern -r replacement [options] [path...]
+```
+
+If a path is omitted, the current directory is searched.
+
+### Text mode
+
+Default mode. Patterns are PCRE2 regexes unless `-F` is set.
+
+```bash
+# Regex search
+./vendor/bin/greph "function\s+\w+" src
+
+# Fixed-string search
+./vendor/bin/greph -F "function" src
+
+# Case-insensitive whole-word with two lines of context
+./vendor/bin/greph -F -i -w -C 2 "function" src
+```
+
+Output format matches `grep -rn`:
+
+```text
+src/Greph.php:31:final class Greph
+src/Greph.php:36:    public static function walk(...
+```
+
+### AST mode
+
+Activated by `-p`. Patterns are written as ordinary PHP with `$VAR` and `$$$VARIADIC` metavariables. See [Modes / AST Search](/docs/modes/ast) for the full pattern grammar.
+
+```bash
+./vendor/bin/greph -p 'new $CLASS()' src
+./vendor/bin/greph -p '$obj->$method($$$ARGS)' src
+./vendor/bin/greph -p 'function $name($$$PARAMS): void {}' src
+```
+
+### Rewrite mode
+
+Activated by combining `-p` with `-r`. The replacement template uses the same metavariables as the search pattern; captured nodes are spliced in by name.
+
+```bash
+# Preview only
+./vendor/bin/greph -p 'array($$$ITEMS)' -r '[$$$ITEMS]' --dry-run src
+
+# Apply
+./vendor/bin/greph -p 'array($$$ITEMS)' -r '[$$$ITEMS]' src
+
+# Confirm each file before writing
+./vendor/bin/greph -p 'array($$$ITEMS)' -r '[$$$ITEMS]' --interactive src
+```
+
+### Options
+
+| Flag | Meaning |
+|---|---|
+| `-F` | Fixed-string search (no regex) |
+| `-i` | Case-insensitive matching |
+| `-w` | Whole-word matching |
+| `-v` | Invert match |
+| `-c` | Count matches per file |
+| `-l` | List matching file paths only |
+| `-L` | List non-matching file paths only |
+| `-h` | Suppress filename prefixes in text mode |
+| `-H` | Always print filename prefixes in text mode |
+| `-n` | Show line numbers (default: on) |
+| `-A N` | Show N lines after each match |
+| `-B N` | Show N lines before each match |
+| `-C N` | Show N lines of context before and after each match |
+| `-m N` | Stop after N matches per file |
+| `-j N` | Use N parallel workers |
+| `-p PATTERN` | AST search pattern |
+| `-r TEMPLATE` | AST rewrite template (requires `-p`) |
+| `--glob GLOB` | Include only files whose paths match GLOB |
+| `--type NAME` | Include a file type alias (`php`, `js`, `md`, ...) |
+| `--type-not NAME` | Exclude a file type alias |
+| `--lang NAME` | AST language. Default: `php` |
+| `--json` | Emit JSON output |
+| `--no-ignore` | Ignore `.gitignore` and `.grephignore` rules |
+| `--hidden` | Include hidden files |
+| `--dry-run` | Print rewrites without writing files |
+| `--interactive` | Confirm each rewritten file |
+| `--help` | Show inline usage |
+
+---
+
+## `greph-index`
+
+Warmed text index, AST fact index, and cached AST search.
+
+```bash
+greph-index build [path] [--index-dir DIR]
+greph-index refresh [path] [--index-dir DIR]
+greph-index search [options] pattern [path...]
+
+greph-index ast-index build [path] [--index-dir DIR]
+greph-index ast-index refresh [path] [--index-dir DIR]
+greph-index ast-index search [options] pattern [path...]
+
+greph-index ast-cache build [path] [--index-dir DIR]
+greph-index ast-cache refresh [path] [--index-dir DIR]
+greph-index ast-cache search [options] pattern [path...]
+```
+
+### Text index
+
+```bash
+# Build (full)
+./vendor/bin/greph-index build .
+
+# Refresh (incremental: added, updated, deleted, unchanged)
+./vendor/bin/greph-index refresh .
+
+# Query
+./vendor/bin/greph-index search -F "function" .
+./vendor/bin/greph-index search -i -w "function" .
+./vendor/bin/greph-index search -c "function" .
+```
+
+The text index is a trigram + identifier postings store. It lives at `.greph-index/` in the indexed root by default.
+
+### AST fact index
+
+```bash
+./vendor/bin/greph-index ast-index build .
+./vendor/bin/greph-index ast-index refresh .
+./vendor/bin/greph-index ast-index search 'new $CLASS()' src
+```
+
+The AST fact index extracts node-level facts (calls, instantiations, classes, methods) into a queryable store. Lookups are O(log n) on the fact key, then verified against the source. Stored at `.greph-ast-index/` by default.
+
+### AST cache
+
+```bash
+./vendor/bin/greph-index ast-cache build .
+./vendor/bin/greph-index ast-cache refresh .
+./vendor/bin/greph-index ast-cache search 'array($$$ITEMS)' src
+```
+
+The AST cache stores parsed trees on disk so searches skip the parser entirely. Stored at `.greph-ast-cache/` by default.
+
+### Options
+
+Text search options match the `greph` flag set (`-F`, `-i`, `-w`, `-v`, `-c`, `-l`, `-L`, `-A`, `-B`, `-C`, `-m`, `--glob`, `--type`, `--type-not`, `--json`, `--no-ignore`, `--hidden`).
+
+Additional flags:
+
+| Flag | Meaning |
+|---|---|
+| `--index-dir DIR` | Use a non-default index directory |
+| `--lang NAME` | AST language for `ast-index` / `ast-cache` searches. Default: `php` |
+| `-j N`, `--jobs N` | Workers for AST scans |
+| `-l`, `--files-with-matches` | List matching file paths only (AST mode) |
+| `--strict-parse` | Fail on parse errors instead of skipping |
+| `--fallback MODE` | Missing-index behavior: `fail` (default) or `scan` |
+| `--help` | Show inline usage |
+
+---
+
+## `rg`
+
+ripgrep-style compatibility wrapper. Supports the most commonly used ripgrep flags. The verified surface is published in the [feature matrix](/docs/advanced/feature-matrix).
+
+```bash
+rg [options] pattern [path...]
+rg --files [options] [path...]
+```
+
+### Examples
+
+```bash
+./vendor/bin/rg -F "function" src
+./vendor/bin/rg --json -F "function" src
+./vendor/bin/rg --files src
+./vendor/bin/rg --files --type php .
+./vendor/bin/rg --type-not js -F "function" .
+```
+
+### Supported options
+
+| Flag | Meaning |
+|---|---|
+| `-F`, `--fixed-strings` | Fixed-string search |
+| `-i`, `--ignore-case` | Case-insensitive search |
+| `-w`, `--word-regexp` | Whole-word search |
+| `-v`, `--invert-match` | Invert matches |
+| `-c`, `--count` | Count matching lines |
+| `-l`, `--files-with-matches` | List matching files |
+| `--files-without-match` | List non-matching files |
+| `-I`, `--no-filename` | Suppress filename prefixes |
+| `-H`, `--with-filename` | Always print filename prefixes |
+| `-n`, `--line-number` | Show line numbers |
+| `-A N`, `--after-context N` | Show N lines after each match |
+| `-B N`, `--before-context N` | Show N lines before each match |
+| `-C N`, `--context N` | Show N lines before and after each match |
+| `-m N`, `--max-count N` | Stop after N matches per file |
+| `-j N`, `--threads N` | Use N parallel workers |
+| `-e P`, `--regexp P` | Search pattern |
+| `-L`, `--follow` | Follow symlinks |
+| `--glob GLOB` | Include only files whose paths match GLOB |
+| `--type NAME` | Include a file type |
+| `--type-not NAME` | Exclude a file type |
+| `--json` | Emit ripgrep-style JSON events |
+| `--no-ignore` | Ignore `.gitignore` and `.grephignore` rules |
+| `--hidden` | Include hidden files |
+| `--files` | List candidate files instead of searching |
+| `--help` | Show inline usage |
+
+---
+
+## `sg`
+
+ast-grep-style compatibility wrapper. Supports the most commonly used ast-grep flags. The verified surface is published in the [feature matrix](/docs/advanced/feature-matrix).
+
+```bash
+sg run --pattern PATTERN [options] [path...]
+sg scan -p PATTERN [options] [path...]
+sg rewrite -p PATTERN -r TEMPLATE [options] [path...]
+```
+
+`run` is the canonical ast-grep verb. `scan` and `rewrite` are wrapper-only aliases that mirror common usage. A bare invocation (`sg --pattern ... .`) also works as a one-shot search.
+
+### Examples
+
+```bash
+./vendor/bin/sg run --pattern 'array($$$ITEMS)' src/App.php
+./vendor/bin/sg run --pattern 'array($$$ITEMS)' --rewrite '[$$$ITEMS]' src/App.php
+./vendor/bin/sg run --pattern 'array($$$ITEMS)' --rewrite '[$$$ITEMS]' --update-all src/App.php
+./vendor/bin/sg run --json --pattern 'dispatch($EVENT)' src/App.php
+./vendor/bin/sg scan -p 'array($$$ITEMS)' src/App.php
+./vendor/bin/sg rewrite -p 'array($$$ITEMS)' -r '[$$$ITEMS]' --dry-run src/App.php
+```
+
+### Supported options
+
+| Flag | Meaning |
+|---|---|
+| `-p`, `--pattern PATTERN` | AST pattern |
+| `-r`, `--rewrite TEMPLATE` | Rewrite template |
+| `-l`, `--lang NAME` | AST language. Default: `php` |
+| `-j`, `--threads N` | Use N parallel workers |
+| `-i`, `--interactive` | Confirm each rewrite |
+| `-U`, `--update-all` | Apply rewrites without confirmation |
+| `--files-with-matches` | Print only file paths with matches |
+| `--json[=STYLE]` | Emit JSON output. STYLE = `pretty`, `stream`, or `compact` |
+| `--no-ignore [MODE]` | Ignore repository ignore rules |
+| `--hidden` | Include hidden files |
+| `--glob GLOB`, `--globs GLOB` | Include only files whose paths match GLOB |
+| `--type NAME` | Include a file type |
+| `--type-not NAME` | Exclude a file type |
+| `--dry-run` | Preview rewrites without writing files |
+| `--help` | Show inline usage |
+
+---
+
+## Exit codes
+
+Greph follows grep / ripgrep conventions:
+
+| Code | Meaning |
+|---|---|
+| `0` | At least one match was found (or, for rewrites, at least one file changed) |
+| `1` | No matches found |
+| `2` | Usage error or runtime failure (bad arguments, missing index, parse error in `--strict-parse` mode) |

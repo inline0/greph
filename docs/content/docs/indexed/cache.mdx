@@ -1,0 +1,91 @@
+---
+title: Cached AST Search
+description: Cached parsed-tree store that skips the PHP-Parser pipeline on repeated queries.
+---
+
+# Cached AST Search
+
+Cached AST search is a complementary warm-cache mode to the [fact index](/docs/indexed/ast). Instead of storing extracted facts and re-parsing matched files, the cache stores serialized parsed trees on disk. Subsequent queries deserialize the trees and run the matcher directly, skipping the PHP-Parser pipeline entirely.
+
+The cache is exposed under the `greph-index ast-cache` CLI subcommand and the `Greph::buildAstCache()` / `Greph::searchAstCached()` facade methods.
+
+## Building the cache
+
+```bash
+# Full build at the current directory
+./vendor/bin/greph-index ast-cache build .
+
+# Use a non-default cache directory
+./vendor/bin/greph-index ast-cache build . --index-dir /tmp/greph-ast-cache
+```
+
+The cache is stored at `<root>/.greph-ast-cache/` by default. Cache builds are typically the slowest of the three index modes because every file must be parsed once.
+
+A successful build prints a one-line summary:
+
+```text
+Built AST cache for 2547 files in .greph-ast-cache (2541 cached trees, +2541 ~0 -0 =0)
+```
+
+The cached tree count is usually slightly lower than the file count because files that fail to parse (and are silently skipped) do not produce a cache entry. Pass `--strict-parse` on the search command if you want parse errors to surface instead.
+
+## Refreshing the cache
+
+```bash
+./vendor/bin/greph-index ast-cache refresh .
+```
+
+`refresh` re-walks the indexed root, re-parses changed files, and rewrites only the cached trees that moved.
+
+## Querying the cache
+
+```bash
+./vendor/bin/greph-index ast-cache search 'new $CLASS()' src
+./vendor/bin/greph-index ast-cache search '$obj->$method($$$ARGS)' src
+./vendor/bin/greph-index ast-cache search --json 'array($$$ITEMS)' src
+./vendor/bin/greph-index ast-cache search --fallback scan 'new $CLASS()' src
+```
+
+The flag set is identical to [`ast-index search`](/docs/indexed/ast#querying-the-index), including `--fallback scan` for missing caches.
+
+## Cache vs fact index
+
+Both modes accelerate AST search but optimize for different shapes of work.
+
+| Aspect | Fact index (`ast-index`) | Cache (`ast-cache`) |
+|---|---|---|
+| What is stored | Extracted facts (call names, class names, declarations) | Serialized parsed trees |
+| Build cost | Lower | Higher (parses everything) |
+| Build size | Smaller | Larger |
+| Query path | Filter by facts, then parse and match candidates | Deserialize tree, then match |
+| Best for | Patterns with a recognizable head (call name, class name) | Patterns whose distinguishing feature is structural, not nominal |
+| Worst for | Patterns whose head is a metavariable | Cold queries on a tree that no longer fits in OS page cache |
+
+In practice the fact index has the fastest cold query and the cache has the fastest warm query. Use whichever fits your workload, or build both and let your tooling pick.
+
+## Programmatic use
+
+```php
+use Greph\Greph;
+use Greph\Ast\AstSearchOptions;
+
+Greph::buildAstCache('.');
+
+$matches = Greph::searchAstCached(
+    'array($$$ITEMS)',
+    'src',
+    new AstSearchOptions(jobs: 4),
+);
+```
+
+`searchAstCached` accepts the same `AstSearchOptions` as native AST search and returns the same `list<AstMatch>` shape. The only difference is that the parser pipeline is bypassed for files that are already in the cache.
+
+## When to use it
+
+Cached AST mode is the right tool when:
+
+- You run repeated structural queries against the same codebase.
+- The bottleneck on your previous runs was PHP-Parser (visible in profiles as time spent in the lexer and parser).
+- You can afford the disk space for the serialized tree store.
+
+If your queries usually hit a small fraction of the codebase and the matches concentrate around recognizable call names or class names, the [fact index](/docs/indexed/ast) is usually a better fit. If your queries reach broadly across the codebase but you can pay a one-time parsing cost, the cache wins.

@@ -1,0 +1,172 @@
+---
+title: Getting Started
+description: Install Greph and run your first text, AST, and rewrite searches.
+---
+
+# Getting Started
+
+## Installation
+
+Install Greph via Composer:
+
+```bash
+composer require greph/greph
+```
+
+This installs the library plus four executables in `vendor/bin/`:
+
+- `greph`: native text search, AST search, and AST rewrite
+- `greph-index`: warmed text index, AST fact index, and cached AST search
+- `rg`: ripgrep-style compatibility wrapper
+- `sg`: ast-grep-style compatibility wrapper
+
+## Requirements
+
+- **PHP 8.2+** for readonly classes, enums, first-class callable syntax, and constructor promotion
+- **ext-json** for JSON output and on-disk index payloads
+- **nikic/php-parser** (installed automatically as a Composer dependency)
+
+Optional:
+
+- **ext-pcntl** for parallel scans. Greph degrades gracefully to single-process execution when it is missing.
+- External `rg`, `grep`, and `sg` binaries for benchmark comparisons. They are never required at runtime.
+
+## Your first text search
+
+Greph's default mode is grep-compatible text search:
+
+```bash
+vendor/bin/greph -F "function" src
+```
+
+The output uses the canonical `file:line:content` format that grep, ripgrep, and most editor integrations expect.
+
+```text
+src/Greph.php:31:final class Greph
+src/Greph.php:36:    public static function walk(string|array $paths, ?WalkOptions $options = null): FileList
+src/Text/TextSearcher.php:14:final class TextSearcher
+```
+
+Add `-i` for case-insensitive matching, `-w` for whole-word matching, `-c` for counts, `-l` for file paths only, `-C 2` for two lines of context, and so on. The full list lives in the [CLI reference](/docs/cli).
+
+## Your first AST search
+
+Pass `-p` and a PHP-shaped pattern to switch to structural search:
+
+```bash
+vendor/bin/greph -p 'new $CLASS()' src
+```
+
+`$CLASS` is a metavariable that captures any class name. The pattern `new $CLASS()` matches every constructor call regardless of class, formatting, or comments.
+
+```text
+src/Greph.php:38:return (new FileWalker())->walk($paths, $options);
+src/Greph.php:49:$searcher = new TextSearcher();
+src/Greph.php:50:$codec = new TextResultCodec();
+```
+
+Other useful patterns:
+
+```bash
+# Any method call with any arguments
+vendor/bin/greph -p '$obj->$method($$$ARGS)' src
+
+# Any function declaration with a void return type
+vendor/bin/greph -p 'function $name($$$PARAMS): void {}' src
+
+# Old-style array calls
+vendor/bin/greph -p 'array($$$ITEMS)' src
+```
+
+See [Modes / AST Search](/docs/modes/ast) for the full pattern syntax.
+
+## Your first rewrite
+
+Add `-r` to turn the AST search into a rewrite:
+
+```bash
+# Preview only
+vendor/bin/greph -p 'array($$$ITEMS)' -r '[$$$ITEMS]' --dry-run src
+
+# Apply
+vendor/bin/greph -p 'array($$$ITEMS)' -r '[$$$ITEMS]' src
+
+# Confirm each file before writing
+vendor/bin/greph -p 'array($$$ITEMS)' -r '[$$$ITEMS]' --interactive src
+```
+
+Rewrites are format-preserving: only the matched node is replaced, and the surrounding whitespace, indentation, and comments stay intact. See [Modes / Rewrite](/docs/modes/rewrite) for details.
+
+## PHP API
+
+The static `Greph\Greph` facade exposes the same operations as the CLI:
+
+```php
+use Greph\Greph;
+use Greph\Ast\AstSearchOptions;
+use Greph\Text\TextSearchOptions;
+
+$results = Greph::searchText(
+    'function',
+    'src',
+    new TextSearchOptions(fixedString: true, caseInsensitive: true),
+);
+
+foreach ($results as $file) {
+    foreach ($file->matches as $match) {
+        echo "{$file->file}:{$match->line}:{$match->content}\n";
+    }
+}
+
+$matches = Greph::searchAst(
+    'new $CLASS()',
+    'src',
+    new AstSearchOptions(),
+);
+
+foreach ($matches as $match) {
+    echo "{$match->file}:{$match->startLine}:{$match->code}\n";
+}
+```
+
+The full surface is covered in [API](/docs/api).
+
+## Indexed search
+
+Repeated workloads benefit from warmed indexes. Build once, then query many times:
+
+```bash
+# Text index
+vendor/bin/greph-index build .
+vendor/bin/greph-index search -F "function" .
+
+# AST fact index
+vendor/bin/greph-index ast-index build .
+vendor/bin/greph-index ast-index search 'new $CLASS()' src
+
+# Cached parsed-tree index
+vendor/bin/greph-index ast-cache build .
+vendor/bin/greph-index ast-cache search 'array($$$ITEMS)' src
+```
+
+Indexes live in `.greph-index`, `.greph-ast-index`, and `.greph-ast-cache` at the project root. Use `refresh` after editing tracked files to apply incremental updates. See [Indexed / Text](/docs/indexed/text) and [Indexed / AST](/docs/indexed/ast) for details.
+
+## Compatibility wrappers
+
+If you have tools or agents that already speak ripgrep or ast-grep, drop in the wrappers:
+
+```bash
+vendor/bin/rg --json -F "function" src
+vendor/bin/sg --pattern 'new $CLASS()' src --lang php
+```
+
+Both wrappers reuse the same engine and are probe-verified against the upstream binaries. The verified surface is documented in [Compatibility / rg](/docs/compatibility/rg) and [Compatibility / sg](/docs/compatibility/sg) and reproduced in the generated [feature matrix](/docs/advanced/feature-matrix).
+
+## Configuration
+
+Greph picks up two on-disk conventions:
+
+- `.gitignore`: respected by default. Pass `--no-ignore` to disable.
+- `.grephignore`: same syntax as `.gitignore`, applied on top. Useful for tool-specific exclusions you do not want in version control.
+
+The default index directories are `.greph-index`, `.greph-ast-index`, and `.greph-ast-cache` at the chosen root. Override with `--index-dir` on any `greph-index` subcommand.

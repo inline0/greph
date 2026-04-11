@@ -1,0 +1,71 @@
+---
+title: Feature Matrix
+description: Probe-driven compatibility report for the rg and sg wrappers and the native greph surface.
+---
+
+# Feature Matrix
+
+The feature matrix is a generated report that records, for every supported flag and behavior, whether the native tool and the Greph wrapper produce equivalent output. It is the source of truth for "does Greph support this?" questions.
+
+The matrix is regenerated from real command probes against a deterministic fixture workspace. The raw evidence lives in [`FEATURE_MATRIX.json`](https://github.com/inline0/greph/blob/main/FEATURE_MATRIX.json) and the rendered table lives in [`FEATURE_MATRIX.md`](https://github.com/inline0/greph/blob/main/FEATURE_MATRIX.md).
+
+## Status legend
+
+| Status | Meaning |
+|---|---|
+| `Pass` | The probe ran and matched the expected behavior |
+| `Fail` | The probe ran but did not satisfy the expected behavior |
+| `Unavailable` | The provider command was not present in this environment |
+
+## Sections
+
+The matrix is organized into four sections:
+
+1. **rg Compatibility Surface**: every probe is run against both the upstream `rg` binary and `bin/rg`. Both must `Pass` for the row to be marked as supported.
+2. **sg Compatibility Surface**: every probe is run against both the upstream `sg` binary and `bin/sg`. Both must `Pass` for the row to be marked as supported.
+3. **sg Wrapper-only Surface**: probes that only target `bin/sg` (extras the wrapper exposes that ast-grep itself does not have).
+4. **Native greph Surface**: probes that exercise `bin/greph` and `bin/greph-index` directly. There is no upstream tool to compare against; the probes assert behavior against committed expectations.
+
+## Regenerating the matrix
+
+```bash
+php bin/feature-matrix
+```
+
+This walks the fixture workspace, runs every probe twice (once against the native binary if available, once against the Greph wrapper), records the structured result, and writes both `FEATURE_MATRIX.json` and `FEATURE_MATRIX.md`.
+
+`bin/feature-matrix` is also wired into the regression suite so an unintentional regression in the wrappers shows up immediately as a failing probe.
+
+## What lives in the matrix vs the docs
+
+The CLI reference and the [Compatibility / rg](/docs/compatibility/rg) and [Compatibility / sg](/docs/compatibility/sg) pages describe the *intended* surface. The feature matrix records the *verified* surface, with the exact probe arguments next to each row.
+
+If something is documented but missing from the matrix, the docs are out of date. If something is in the matrix but not documented, the docs need a backfill. Both should match.
+
+## Example rows
+
+### rg compatibility (excerpt)
+
+| Feature | rg | bin/rg | Notes |
+|---|---|---|---|
+| Fixed-string search | Pass | Pass | Probe: `-F needle single.txt` |
+| Case-insensitive fixed-string search | Pass | Pass | Probe: `-F -i needle single.txt` |
+| Whole-word search | Pass | Pass | Probe: `-F -w needle words.txt` |
+| Glob filter | Pass | Pass | Probe: `--glob *.php function .` |
+| Hidden files | Pass | Pass | Probe: `--hidden -F secret .` |
+| Structured JSON output | Pass | Pass | Probe: `--json -F needle single.txt` using ripgrep JSON-event semantics |
+
+### sg compatibility (excerpt)
+
+| Feature | sg | bin/sg | Notes |
+|---|---|---|---|
+| Pattern search with `run --pattern` | Pass | Pass | Probe: `run --pattern array($$$ITEMS) src/App.php` |
+| Rewrite via `run --rewrite` | Pass | Pass | Probe: `run --pattern array($$$ITEMS) --rewrite [$$$ITEMS] src/App.php` |
+| Structured JSON stream output | Pass | Pass | Probe: `run --json=stream --pattern dispatch($EVENT) src/App.php` |
+| Update-all rewrite | Pass | Pass | Probe: `run --pattern array($$$ITEMS) --rewrite [$$$ITEMS] --update-all src/App.php` |
+
+For the full table, see [`FEATURE_MATRIX.md`](https://github.com/inline0/greph/blob/main/FEATURE_MATRIX.md).
+
+## Why probe-driven
+
+A hand-maintained compatibility table drifts. The whole point of the wrappers is "drop them in where you used to call `rg` or `sg` and they keep working", and the only way to keep that promise is to actually run the upstream tool and the wrapper side by side and diff the results. The probe runner does exactly that, and a CI job fails the build if any probe regresses.

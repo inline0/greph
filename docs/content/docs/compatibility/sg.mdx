@@ -1,0 +1,133 @@
+---
+title: sg Compatibility
+description: Drop-in ast-grep wrapper backed by the Greph engine.
+---
+
+# sg Compatibility
+
+`vendor/bin/sg` is an ast-grep-style compatibility wrapper. It accepts the most commonly used `ast-grep` flags and reuses the same `Greph\Ast\AstSearcher` engine that `vendor/bin/greph -p` uses. The verified surface is reproduced from probe runs against the upstream `sg` binary and lives in [Advanced / Feature Matrix](/docs/advanced/feature-matrix).
+
+## When to use it
+
+Use the wrapper when:
+
+- You have an existing tool, agent, or script that already invokes `sg`.
+- You want a drop-in replacement that works in environments where you cannot install `ast-grep` itself.
+- You want ast-grep ergonomics from a Composer-only install.
+
+Use native `vendor/bin/greph -p` when:
+
+- You are writing new code and do not need the ast-grep CLI shape.
+- You want the same flag set as text mode (the native binary unifies both).
+
+## Usage
+
+```bash
+sg run --pattern PATTERN [options] [path...]
+sg scan -p PATTERN [options] [path...]
+sg rewrite -p PATTERN -r TEMPLATE [options] [path...]
+```
+
+`run` is the canonical ast-grep verb. `scan` and `rewrite` are wrapper-only aliases that mirror common usage. A bare invocation works as a one-shot search:
+
+```bash
+./vendor/bin/sg --pattern 'array($$$ITEMS)' src
+```
+
+## Patterns
+
+The pattern grammar is identical to native AST search. See [Modes / AST Search](/docs/modes/ast) for the full reference.
+
+```bash
+./vendor/bin/sg run --pattern 'array($$$ITEMS)' src
+./vendor/bin/sg run --pattern '$obj->$method($$$ARGS)' src
+./vendor/bin/sg run --pattern 'new $CLASS()' src
+```
+
+## Rewrites
+
+The wrapper supports the same dry-run / interactive / write workflow as native rewrite, with ast-grep flag names:
+
+```bash
+# Preview only (default)
+./vendor/bin/sg run --pattern 'array($$$ITEMS)' --rewrite '[$$$ITEMS]' src
+
+# Apply without confirmation
+./vendor/bin/sg run --pattern 'array($$$ITEMS)' --rewrite '[$$$ITEMS]' --update-all src
+
+# Confirm each match
+./vendor/bin/sg run --pattern 'array($$$ITEMS)' --rewrite '[$$$ITEMS]' --interactive src
+
+# Wrapper-only aliases
+./vendor/bin/sg rewrite -p 'array($$$ITEMS)' -r '[$$$ITEMS]' --dry-run src
+./vendor/bin/sg rewrite -p 'array($$$ITEMS)' -r '[$$$ITEMS]' --interactive src
+```
+
+## JSON output
+
+`--json` emits ast-grep-shaped JSON. Three styles are supported:
+
+```bash
+./vendor/bin/sg run --json --pattern 'dispatch($EVENT)' src
+./vendor/bin/sg run --json=stream --pattern 'dispatch($EVENT)' src
+./vendor/bin/sg run --json=compact --pattern 'dispatch($EVENT)' src
+```
+
+| Style | Shape |
+|---|---|
+| `--json` (default `pretty`) | Single pretty-printed JSON array |
+| `--json=stream` | One match per line, newline-delimited JSON |
+| `--json=compact` | Single compact JSON array |
+
+## Verified surface
+
+The following flags are verified against the upstream `sg` binary in the [feature matrix](/docs/advanced/feature-matrix).
+
+### Pattern flags
+
+- `--pattern PATTERN` (top-level and inside `run`)
+- `-p PATTERN` (alias)
+- `--rewrite TEMPLATE`
+- `-r TEMPLATE`
+- `--lang NAME`, `-l NAME`
+
+### Match flags
+
+- `--files-with-matches`
+- `--json` (`pretty`, `stream`, `compact`)
+- `--update-all`, `-U`
+
+### Walker flags
+
+- `--no-ignore`
+- `--no-ignore hidden` (combined form)
+- `--glob GLOB`, `--globs GLOB`
+- `--type NAME`, `--type-not NAME`
+
+### Worker flags
+
+- `-j N`, `--threads N`
+
+### Wrapper-only extras
+
+The wrapper exposes a few helpers that ast-grep itself does not have:
+
+- `scan` and `rewrite` aliases for `run`
+- `--hidden` flag (ast-grep folds this into `--no-ignore hidden`)
+- `--dry-run` rewrite preview alias
+- `--interactive` rewrite confirmation flow
+
+## Limitations
+
+Greph's `sg` wrapper covers the structural search and rewrite surface that most tools and agents use. It does not currently expose the following ast-grep features:
+
+- YAML rule files (`--rule`, `--config`)
+- Multi-language scanning beyond PHP
+- Non-pattern transformers (`--debug-query`, `--inspect`)
+- LSP integration
+
+If you hit a missing flag, file an issue with the probe you ran against upstream `sg` and the expected output.
+
+## Behavior parity
+
+The wrapper aims for behavior parity, not byte parity. Output is semantically equivalent but may differ in cosmetic details. The probes used by the [feature matrix](/docs/advanced/feature-matrix) check the parser-relevant fields (file path, line number, captured code, captures, JSON shape) for equivalence, not the byte stream.

@@ -1,0 +1,97 @@
+---
+title: File Walker
+description: Recursive directory traversal with gitignore, .grephignore, glob, and binary detection.
+---
+
+# File Walker
+
+Every Greph mode (text, AST, rewrite, indexed text, indexed AST, cached AST, `rg` wrapper, `sg` wrapper) starts by walking the file tree and producing a `Greph\Walker\FileList`. The walker is shared, so the same flags and behaviors apply everywhere.
+
+## Default behavior
+
+Out of the box the walker:
+
+- Recurses into every directory below the requested paths.
+- Respects `.gitignore` and `.grephignore` rules at every level, including nested overrides and negations.
+- Skips the `.git` directory.
+- Skips hidden files and directories (anything starting with `.`).
+- Skips binary files (detected by null bytes in the first 512 bytes of the file).
+- Skips files larger than 10 MiB.
+- Does not follow symlinks.
+
+## Override flags
+
+| Flag | Effect |
+|---|---|
+| `--no-ignore` | Stop respecting `.gitignore` and `.grephignore` |
+| `--hidden` | Include hidden files and directories |
+| `--type NAME` | Include only files matching the named type alias |
+| `--type-not NAME` | Exclude files matching the named type alias |
+| `--glob GLOB` | Include only files whose paths match GLOB. Repeatable. |
+
+The same options are exposed through `Greph\Walker\WalkOptions` for programmatic use.
+
+```php
+use Greph\Greph;
+use Greph\Walker\FileTypeFilter;
+use Greph\Walker\WalkOptions;
+
+$files = Greph::walk('src', new WalkOptions(
+    respectIgnore: false,
+    includeHidden: true,
+    fileTypeFilter: new FileTypeFilter(['php']),
+    globPatterns: ['src/**/*.php'],
+));
+```
+
+## File type aliases
+
+Greph ships a small set of named file types. Each alias resolves to a list of extensions:
+
+| Alias | Extensions |
+|---|---|
+| `css` | `css`, `sass`, `scss` |
+| `html` | `htm`, `html`, `phtml` |
+| `js` | `cjs`, `js`, `mjs` |
+| `json` | `json` |
+| `md` | `markdown`, `md` |
+| `php` | `inc`, `php`, `php3`, `php4`, `php5`, `php7`, `php8`, `phpt`, `phtml` |
+| `txt` | `txt` |
+| `ts` | `ts`, `tsx` |
+| `xml` | `xml` |
+| `yaml` | `yaml`, `yml` |
+
+The full list lives in `Greph\Walker\FileTypeFilter::TYPE_MAP`.
+
+## .gitignore semantics
+
+Greph implements gitignore matching in pure PHP. The semantics are aligned with `git check-ignore`:
+
+- Patterns are evaluated relative to the directory they live in.
+- Nested `.gitignore` files override parent rules.
+- Negation (`!pattern`) re-includes a previously excluded path.
+- Trailing `/` restricts a pattern to directories.
+- Leading `/` anchors a pattern to the directory of the `.gitignore`.
+- `**` matches any number of path segments.
+
+`.grephignore` uses the same syntax and is layered on top of `.gitignore`. It is the right place for tool-specific exclusions you do not want in version control.
+
+The implementation lives in `Greph\Walker\GitignoreFilter`.
+
+## Binary detection
+
+The walker checks the first 512 bytes of every file for null bytes. If any are present the file is treated as binary and skipped. This catches the common case where a repository contains image, archive, or compiled artifacts inside an indexed directory.
+
+To search binary files anyway, set `skipBinaryFiles: false` on the relevant `Options` object. The CLI does not currently expose a flag for this; use the facade.
+
+## Symlinks
+
+Symlinks are not followed by default. Set `followSymlinks: true` (or pass `-L` / `--follow` on the `rg` wrapper) to follow them. The walker tracks visited directories so symlink loops do not cause infinite recursion.
+
+## Maximum file size
+
+Files larger than `maxFileSizeBytes` (default 10 MiB) are skipped. This protects scans against accidentally pulling a 1 GB log file into memory. Override the limit on the `Options` object when you need to cover larger inputs.
+
+## Why a custom walker
+
+Greph could rely on `glob()` or `RecursiveDirectoryIterator`, but neither implements gitignore semantics, neither understands `.grephignore`, and neither integrates cleanly with the worker pool. Writing the walker once and sharing it across modes also means every mode applies exactly the same filtering rules, which is critical for the oracle-driven test strategy: the only way to compare against `grep`, `ripgrep`, and `ast-grep` is to walk the same set of files those tools walk.

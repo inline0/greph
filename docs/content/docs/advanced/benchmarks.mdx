@@ -1,0 +1,110 @@
+---
+title: Benchmarks
+description: Repo-local benchmark harness, real-world corpora, and CI-published numbers.
+---
+
+# Benchmarks
+
+Greph ships a benchmark harness under `bin/` and `benchmarks/`. The harness measures every search mode against real corpora (WordPress, Laravel) and synthetic datasets, captures structured reports, and lets you diff two reports against each other.
+
+The published numbers in the [README](https://github.com/inline0/greph#performance) are sourced from GitHub Actions runs, never from local machines. Local runs are useful for iteration; CI runs are the source of truth.
+
+## Running benchmarks
+
+```bash
+# Full benchmark suite
+./bin/bench
+
+# Specific category
+./bin/bench --category text
+./bin/bench --category ast
+
+# Compare against external tools when available
+./bin/bench --compare rg,grep
+./bin/bench --compare sg
+
+# Choose a corpus
+./bin/bench --corpus wordpress
+./bin/bench --corpus laravel
+./bin/bench --corpus synthetic
+
+# Aggregate multiple runs
+./bin/bench-series 5 1   # 5 measured runs, 1 warmup
+./bin/bench-aggregate reports/run-*.json
+```
+
+The harness writes JSON reports per run. `bin/bench-compare` diffs two reports and prints a summary, useful when iterating on a hot path.
+
+## Categories
+
+The harness covers six benchmark categories, each measuring a specific layer of the engine.
+
+### Scan Mode: Text
+
+Native text search against literal, regex, and combined patterns. The published baseline runs on the WordPress corpus and includes:
+
+- Literal `function`
+- Literal case insensitive
+- Literal whole word
+- Regex new instance
+- Regex array call
+- Regex prefix literal
+- Regex suffix literal
+- Regex exact line literal
+- Regex literal collapse
+
+### Scan Mode: Traversal
+
+File walking only, no search. Measures the cost of the gitignore-aware walker on its own.
+
+### Scan Mode: Parallel Text
+
+Same text-search workloads with `1`, `2`, and `4` workers, to measure pcntl scaling overhead.
+
+### Scan Mode: AST
+
+Native AST search against representative patterns:
+
+- `new $CLASS()`
+- `array($$$ITEMS)`
+
+### Indexed Text Mode
+
+Warmed indexed text search against the same patterns as the scan mode. Includes literal, case-insensitive, whole-word, short-token, and regex queries.
+
+### Indexed Summary Queries
+
+Warmed indexed text search using count, files-with-matches, and files-without-matches outputs. These benefit most from the postings store because the per-file work is the cheapest.
+
+### Indexed / Cached AST
+
+Warmed AST fact search and cached AST search against the same patterns as the AST scan mode.
+
+### Build Costs
+
+Cold-build costs for the trigram index, the AST fact index, and the AST cache. Useful when deciding which mode to maintain for a given workload.
+
+## Reading the published numbers
+
+The README publishes a snapshot of the latest CI run for each baseline. Each section is sourced from a specific GitHub Actions run and labeled with the corpus, runner, PHP version, and number of measured runs and warmups. If you need to reproduce a number, use the same combination locally.
+
+The comparison columns (`rg`, `grep`, `sg`) are gathered in the same job, on the same runner, against the same corpus. They are not extrapolated from external benchmarks.
+
+## How to add a benchmark
+
+1. Add a benchmark definition under `benchmarks/`.
+2. Add a corresponding scenario to the regression suite if there is no equivalent yet (so the behavior under measurement is also verified).
+3. Run `./bin/bench --category <yours>` to validate the new benchmark.
+4. Capture a baseline with `./bin/bench-series 5 1` and commit the report under `benchmarks/baselines/`.
+5. Update the README table once the CI run that includes the new benchmark has landed on `main`.
+
+## Performance philosophy
+
+Greph is not trying to outrun ripgrep. Ripgrep is implemented in Rust with hand-tuned SIMD literal scanning, and a pure-PHP implementation cannot beat that. The goal is different:
+
+- Be fast enough that interactive use and agent loops feel native.
+- Beat `grep` on the workloads users care about.
+- Beat `ast-grep` on indexed and cached AST workloads (where Greph's warm caches outperform ast-grep's cold parser).
+- Make every performance improvement measurable and reproducible.
+
+Performance claims that are not backed by a benchmark report are not landed.

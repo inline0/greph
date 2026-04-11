@@ -1,0 +1,78 @@
+---
+title: Greph
+description: Pure PHP code search, structural search, and rewrite engine. grep, ripgrep, and ast-grep workflows in a single Composer package.
+---
+
+# Greph
+
+Greph is a pure PHP search and refactoring engine for source trees. It covers three related modes:
+
+- **Text search** with grep-compatible output and ripgrep-style ergonomics.
+- **AST search** with PHP structural patterns and metavariables.
+- **AST rewrite** with format-preserving structural refactoring.
+
+It also ships warmed indexed modes for both text and AST workloads, plus `rg` and `sg` compatibility wrappers for tool and agent environments.
+
+## Why Greph exists
+
+PHP applications and agents that need fast code search usually shell out to native tools (`grep`, `ripgrep`, `ast-grep`), giving up portability and adding deployment friction. Structural search and rewrite is even worse: it normally means leaving the PHP process entirely.
+
+Greph eliminates that gap. Your PHP code can run text searches, structural matches, and refactoring rewrites using only the standard library plus `nikic/php-parser`. Output and exit codes are compatible with the canonical tools, so existing scripts and agents do not need to change.
+
+## What it does
+
+- Fixed-string and regex text search with whole-word, case-insensitive, context, count, and file-only modes
+- Structural PHP AST search with `$VAR`, `$$$VARIADIC`, and repeated metavariables
+- Format-preserving AST rewrite with dry-run, interactive, and write modes
+- Warmed text indexes (trigram + identifier postings) for repeated workloads
+- Warmed AST fact index and cached AST search for repeated structural queries
+- ripgrep and ast-grep CLI compatibility wrappers backed by the same engine
+- pcntl-based parallel worker pool with single-process fallback
+- gitignore- and `.grephignore`-aware file walker with binary detection
+
+## What it requires
+
+- PHP 8.2 or later
+- `ext-json` (built-in on virtually every PHP install)
+- `nikic/php-parser` (the only Composer dependency)
+
+Core text and AST features run in pure PHP. Optional benchmark comparisons depend on external tools like `rg`, `grep`, and `sg`, but Greph itself does not require them to operate. Parallel scans use `ext-pcntl` when available and gracefully fall back to single-process execution otherwise.
+
+## Quick example
+
+```bash
+# Text search
+vendor/bin/greph -F "function" src
+
+# Structural search
+vendor/bin/greph -p 'new $CLASS()' src
+
+# Structural rewrite preview
+vendor/bin/greph -p 'array($$$ITEMS)' -r '[$$$ITEMS]' --dry-run src
+```
+
+```php
+use Greph\Greph;
+use Greph\Ast\AstSearchOptions;
+use Greph\Text\TextSearchOptions;
+
+$matches = Greph::searchText(
+    'function',
+    'src',
+    new TextSearchOptions(fixedString: true),
+);
+
+$asts = Greph::searchAst(
+    'new $CLASS()',
+    'src',
+    new AstSearchOptions(),
+);
+
+$rewrites = Greph::rewriteAst(
+    'array($$$ITEMS)',
+    '[$$$ITEMS]',
+    'src',
+);
+```
+
+Start with [Getting Started](/docs/getting-started), then use [CLI](/docs/cli) and [API](/docs/api) for the rest of the surface area. The [Modes](/docs/modes/text), [Indexed](/docs/indexed/text), and [Compatibility](/docs/compatibility/rg) sections cover specific workflows in depth.

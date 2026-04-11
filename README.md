@@ -1,63 +1,198 @@
-# greph
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="./docs/public/logo-dark.svg">
+    <source media="(prefers-color-scheme: light)" srcset="./docs/public/logo-light.svg">
+    <img alt="Greph" src="./docs/public/logo-light.svg" height="56">
+  </picture>
+</p>
 
-Pure PHP code search and structural refactoring tool.
+<p align="center">
+  Pure PHP code search, structural search, and rewrite engine
+</p>
 
-## Modes
+<p align="center">
+  <a href="https://github.com/inline0/greph/actions/workflows/ci.yml"><img src="https://github.com/inline0/greph/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
+  <a href="https://packagist.org/packages/greph/greph"><img src="https://img.shields.io/packagist/v/greph/greph.svg" alt="Packagist"></a>
+  <a href="https://github.com/inline0/greph/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="license"></a>
+</p>
 
-- `bin/rg`: ripgrep-style compatibility wrapper backed by the PHP engine.
-- `bin/sg`: ast-grep-style compatibility wrapper backed by the PHP engine.
-- `bin/greph`: native combined text + AST CLI.
-- `bin/greph-index`: separate indexed mode. Build or refresh on-disk text indexes, AST fact indexes, and cached AST stores, then run searches against those warmed artifacts.
+---
 
-Indexed mode is intentionally separate from scan mode, and the benchmark tables below keep those paths separate too.
+## What is Greph?
 
-Compatibility note:
-- `rg` and `sg` are compatibility entrypoints for agent/tooling use, not full reimplementations of every upstream flag.
-- [FEATURE_MATRIX.md](FEATURE_MATRIX.md) tracks exactly what the PHP port implements, what is partial, and what is still out of scope.
-- Composer package: `grepg/greph`
-- Native entrypoints: `bin/greph` and `bin/greph-index`
+Greph is a pure PHP search and refactoring engine for source trees. It covers three related modes in a single Composer package: text search, PHP AST search, and PHP AST rewrite. It also ships warmed indexed modes for both text and AST workloads, plus `rg` and `sg` compatibility wrappers for tool and agent environments.
+
+**The problem:** PHP applications and agents that need fast code search usually shell out to native tools (`grep`, `ripgrep`, `ast-grep`), giving up portability and adding deployment friction. Structural search and rewrite is even worse: it normally means leaving the PHP process entirely.
+
+**Greph solves this** by keeping the engine in PHP while still exposing familiar interfaces:
+
+- Native text search and structural AST search backed by `nikic/php-parser`
+- Format-preserving AST rewrite with dry-run, interactive, and write modes
+- Warmed trigram + identifier text indexes for repeated workloads
+- Warmed AST fact index and cached AST search for repeated structural queries
+- ripgrep and ast-grep CLI compatibility wrappers backed by the same engine
+- pcntl-based parallel worker pool with single-process fallback
 
 ## Quick Start
 
 ```bash
-composer install
-composer verify
-
-bin/rg -F "function" src
-bin/sg -p 'new $CLASS()' src
-
-bin/greph-index build .
-bin/greph-index search -F "function" .
-bin/greph-index ast-index build .
-bin/greph-index ast-index search 'new $CLASS()' src
-bin/greph-index ast-cache build .
-bin/greph-index ast-cache search 'array($$$ITEMS)' src
+composer require greph/greph
 ```
-
-By default, `bin/greph-index` stores its index in `.greph-index` under the indexed root.
-The current text index is still trigram-first, with auxiliary whole-word / identifier postings used by the sharper indexed paths.
-AST fact indexes default to `.greph-ast-index`, and cached AST trees default to `.greph-ast-cache`.
-
-## Feature Matrix
-
-`FEATURE_MATRIX.md` is generated from live command probes, not maintained by hand.
 
 ```bash
-bin/feature-matrix
+# Text search
+vendor/bin/greph -F "function" src
+
+# Structural search
+vendor/bin/greph -p 'new $CLASS()' src
+
+# Structural rewrite preview
+vendor/bin/greph -p 'array($$$ITEMS)' -r '[$$$ITEMS]' --dry-run src
+
+# ripgrep-style compatibility
+vendor/bin/rg --json -F "function" src
+
+# ast-grep-style compatibility
+vendor/bin/sg --pattern 'new $CLASS()' src --lang php
+
+# Warm text index
+vendor/bin/greph-index build .
+vendor/bin/greph-index search -F "function" .
+
+# Warm AST index / cache
+vendor/bin/greph-index ast-index build .
+vendor/bin/greph-index ast-index search 'new $CLASS()' src
+vendor/bin/greph-index ast-cache build .
+vendor/bin/greph-index ast-cache search 'array($$$ITEMS)' src
 ```
 
-That command refreshes:
-- `FEATURE_MATRIX.md`
-- `FEATURE_MATRIX.json`
+## PHP API
 
-The Markdown file is the readable summary. The JSON file keeps raw command, exit code, stdout, stderr, and note data for each probe.
+```php
+use Greph\Greph;
+use Greph\Ast\AstSearchOptions;
+use Greph\Text\TextSearchOptions;
+
+// Text search
+$results = Greph::searchText(
+    'function',
+    'src',
+    new TextSearchOptions(fixedString: true, caseInsensitive: true),
+);
+
+// AST search
+$matches = Greph::searchAst(
+    'new $CLASS()',
+    'src',
+    new AstSearchOptions(),
+);
+
+// AST rewrite (returns the rewritten contents; the caller decides whether to write)
+$rewrites = Greph::rewriteAst(
+    'array($$$ITEMS)',
+    '[$$$ITEMS]',
+    'src',
+);
+
+// Indexed text
+Greph::buildTextIndex('.');
+$results = Greph::searchTextIndexed('function', 'src');
+
+// Indexed AST (fact index)
+Greph::buildAstIndex('.');
+$matches = Greph::searchAstIndexed('new $CLASS()', 'src');
+
+// Cached AST (parsed-tree cache)
+Greph::buildAstCache('.');
+$matches = Greph::searchAstCached('array($$$ITEMS)', 'src');
+```
+
+## CLI
+
+Greph exposes four executables:
+
+- `greph`: native text + AST search + AST rewrite
+- `greph-index`: warmed text index, AST fact index, and cached AST search
+- `rg`: ripgrep-style compatibility wrapper
+- `sg`: ast-grep-style compatibility wrapper
+
+```bash
+./vendor/bin/greph -F "function" src
+./vendor/bin/greph -p 'new $CLASS()' src
+./vendor/bin/greph -p 'array($$$ITEMS)' -r '[$$$ITEMS]' src
+
+./vendor/bin/greph-index build .
+./vendor/bin/greph-index search -F "function" .
+./vendor/bin/greph-index ast-index build .
+./vendor/bin/greph-index ast-index search 'new $CLASS()' src
+./vendor/bin/greph-index ast-cache build .
+./vendor/bin/greph-index ast-cache search 'array($$$ITEMS)' src
+
+./vendor/bin/rg -F "function" src
+./vendor/bin/rg --files src
+
+./vendor/bin/sg run --pattern 'new $CLASS()' src
+./vendor/bin/sg run --pattern 'array($$$ITEMS)' --rewrite '[$$$ITEMS]' src
+```
+
+The compatibility wrappers are intentionally probe-driven rather than hand-waved. See [FEATURE_MATRIX.md](FEATURE_MATRIX.md) for the current supported surface and the raw evidence in [FEATURE_MATRIX.json](FEATURE_MATRIX.json).
+
+## Documentation
+
+The repo includes a dedicated docs app under [`docs/`](docs) that mirrors the same release/docs structure used in sibling projects.
+
+```bash
+cd docs
+npm install
+npm run dev
+```
+
+Topics covered:
+
+- Getting started, CLI reference, and PHP API
+- Text mode, AST mode, and rewrite mode
+- Indexed text, indexed AST, and cached AST
+- `rg` and `sg` compatibility wrappers
+- File walker, parallel workers, feature matrix, testing, and benchmarks
+
+## Testing
+
+Greph is validated with unit tests, an oracle-style regression corpus, and a probe-driven feature matrix.
+
+```bash
+# PHPUnit unit + integration tests
+composer test
+
+# Oracle regression corpus (text, AST, rewrite)
+composer test:oracle
+
+# Static analysis
+composer analyse
+
+# Coding standards
+composer cs
+
+# Full release-grade verification (analyse + cs + test + test:oracle)
+composer verify
+
+# Refresh the generated feature matrix
+php bin/feature-matrix
+```
+
+The oracle harness diffs Greph output against the canonical `grep`, `ripgrep`, and `ast-grep` binaries on a fixed scenario set. Scenarios live under [`scenarios/`](scenarios), the runner lives under [`tests/Oracle/`](tests/Oracle), and the verified compatibility surface lives in [FEATURE_MATRIX.md](FEATURE_MATRIX.md).
+
+Current local verification baseline:
+
+- `249` PHPUnit tests
+- `1328` assertions
+- oracle regression summary `39/39`
 
 ## Performance
 
-Benchmark tables below are always sourced from GitHub Actions CI, never from local runs.
+Benchmark tables below are sourced from GitHub Actions CI, never from local runs.
 
 Current text baseline on `main`:
-- run [`24239964252`](https://github.com/inline0/phgrep/actions/runs/24239964252)
+- run [`24239964252`](https://github.com/inline0/greph/actions/runs/24239964252)
 - WordPress corpus
 - `ubuntu-latest`
 - PHP `8.4`
@@ -65,36 +200,10 @@ Current text baseline on `main`:
 - `1` warmup run
 
 Current broader non-text baseline on `main`:
-- run [`24234526655`](https://github.com/inline0/phgrep/actions/runs/24234526655)
-- used for traversal, parallel, AST, indexed text, indexed summary, and build tables until the next full sweep lands
+- run [`24234526655`](https://github.com/inline0/greph/actions/runs/24234526655)
 
 Current indexed-text baseline on `main`:
-- run [`24243036470`](https://github.com/inline0/phgrep/actions/runs/24243036470)
-- used for the indexed-text table below after the short-query cache merge
-
-Recent indexed-text outcome notes:
-- accepted and merged:
-  - whole-word / identifier postings via `01ffad9`
-  - short root-query caching via `fa272da`
-  - cold indexed-text benchmark coverage via `1312a20`
-- rejected after CI:
-  - full-content bigram postings `75689a6`
-    - `Cold indexed literal short "wp"` `-7.10%`
-    - but `indexed-build` regressed `+48.03%`
-    - run set:
-      - [`24244083711`](https://github.com/inline0/phgrep/actions/runs/24244083711)
-      - [`24244083716`](https://github.com/inline0/phgrep/actions/runs/24244083716)
-      - [`24244113910`](https://github.com/inline0/phgrep/actions/runs/24244113910)
-  - cheaper word-fragment bigram postings `1706f76`
-    - `Cold indexed literal short "wp"` `-6.18%`
-    - `Indexed regex array call` `-3.74%`
-    - but `indexed-build` still regressed `+11.01%`
-    - run set:
-      - [`24244442955`](https://github.com/inline0/phgrep/actions/runs/24244442955)
-      - [`24244442934`](https://github.com/inline0/phgrep/actions/runs/24244442934)
-      - [`24244442948`](https://github.com/inline0/phgrep/actions/runs/24244442948)
-
-So the published indexed-text table below is still the latest accepted `main` baseline, while the rejected short-query experiments are documented here instead of being mixed into the baseline claims.
+- run [`24243036470`](https://github.com/inline0/greph/actions/runs/24243036470)
 
 Comparison tools:
 - `rg`: ripgrep
@@ -147,14 +256,6 @@ Comparison tools:
 | `Indexed regex new instance` | `6.67ms` | `67.46ms` | `169.57ms` |
 | `Indexed regex array call` | `18.82ms` | `78.25ms` | `192.38ms` |
 
-`bin/greph-index` now exposes both AST fast paths directly:
-- `ast-index`: fact-backed AST narrowing with on-disk query caches
-- `ast-cache`: cached parsed trees with the same AST search surface
-
-Both support `build`, `refresh`, and `search`, plus shared search flags like `--json`, `--glob`, `--type`, `--hidden`, `--no-ignore`, and `--fallback scan` when you want missing warmed state to fall back to cold AST scanning.
-
-CI also tracks `indexed-text-cold` as a separate category for cold-query behavior, but those rows are not published as the default baseline table unless they come from accepted `main` work.
-
 ### Indexed Summary Queries
 
 | Operation | greph | rg | grep |
@@ -179,3 +280,47 @@ CI also tracks `indexed-text-cold` as a separate category for cold-query behavio
 | `Build trigram index` | `10403.94ms` |
 | `Build AST fact index` | `1418.25ms` |
 | `Build cached AST store` | `10381.02ms` |
+
+## Requirements
+
+- PHP 8.2+
+- `ext-json` (built-in on virtually every PHP install)
+- `nikic/php-parser` ^5.7 (the only Composer dependency)
+
+Optional:
+
+- `ext-pcntl` for parallel worker scans. Greph degrades gracefully to single-process execution when missing.
+- External `rg`, `grep`, and `sg` binaries for benchmark comparisons. Greph itself does not require them at runtime.
+
+## Features
+
+| Category | Features |
+|----------|----------|
+| Text Search | fixed-string, regex, case-insensitive, whole-word, context, counts, file-only modes |
+| AST Search | PHP structural search with captures, repeated metavariables, variadics, JSON output |
+| Rewrite | dry-run, interactive, write mode, format-preserving, captured-variable splicing |
+| Indexed Text | warmed trigram + identifier postings, summary queries, cold/warm benchmark coverage |
+| Indexed AST | fact-backed search and cached parsed-tree search |
+| Compatibility | `rg` and `sg` wrappers backed by the same engine, probe-verified against the upstream binaries |
+| Validation | probe-driven feature matrix, oracle regressions, CI benchmarks, 100% `src/` coverage |
+
+## Architecture
+
+```text
+src/
+├── Greph.php                  # Static facade (open, search, rewrite, index)
+├── Cli/                       # greph, greph-index, rg, sg frontends
+├── Text/                      # grep-style search engine
+├── Ast/                       # PHP AST search and rewrite engine
+├── Index/                     # warmed text / AST indexes and caches
+├── Walker/                    # filesystem traversal and ignore rules
+├── Parallel/                  # worker pool and result collection
+├── FeatureMatrix/             # generated compatibility probes
+├── Output/                    # grep-style formatting
+├── Support/                   # filesystem, command, JSON, tool helpers
+└── Exceptions/                # typed exceptions
+```
+
+## License
+
+MIT

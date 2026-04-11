@@ -1,0 +1,162 @@
+---
+title: Text Search
+description: Fixed-string and regex text search with grep-compatible output and ripgrep-style ergonomics.
+---
+
+# Text Search
+
+Greph's text mode is a line-oriented byte search over a walked file tree. It is the default mode of the `greph` CLI and the `Greph::searchText()` facade. Output uses the canonical `file:line:content` format that grep, ripgrep, and most editor integrations parse.
+
+## Quick examples
+
+```bash
+# Regex search across the current directory
+./vendor/bin/greph "function\s+\w+"
+
+# Fixed-string search across src/
+./vendor/bin/greph -F "function" src
+
+# Case-insensitive whole-word search
+./vendor/bin/greph -F -i -w "function" src
+
+# Two lines of context around each match
+./vendor/bin/greph -F -C 2 "TODO" src
+
+# Stop after the first three matches per file
+./vendor/bin/greph -F -m 3 "TODO" src
+
+# Files that contain the pattern
+./vendor/bin/greph -F -l "TODO" src
+
+# Files that do not contain the pattern
+./vendor/bin/greph -F -L "TODO" src
+
+# Count matches per file
+./vendor/bin/greph -F -c "TODO" src
+
+# Inverted match
+./vendor/bin/greph -F -v "TODO" src/notes.txt
+```
+
+## Patterns
+
+By default the pattern is treated as a PCRE2 regular expression. PHP's `preg_*` functions back the engine, so the syntax matches the [PHP PCRE reference](https://www.php.net/manual/en/pcre.pattern.php).
+
+Switch off the regex engine with `-F` to treat the pattern as a literal byte sequence. Fixed-string mode is the fast path: it uses `strpos()` for matching and skips the PCRE2 compile step entirely.
+
+`-i` makes both modes case-insensitive. `-w` adds whole-word boundaries on either side of the match.
+
+## Filtering files
+
+Greph walks the file tree before searching. The walker is shared with AST mode and indexed mode, so the same filtering flags apply everywhere.
+
+| Flag | Effect |
+|---|---|
+| `--type NAME` | Include only files matching the named type alias (`php`, `js`, `md`, ...) |
+| `--type-not NAME` | Exclude files matching the named type alias |
+| `--glob GLOB` | Include only files whose paths match GLOB. Repeatable. |
+| `--no-ignore` | Do not respect `.gitignore` or `.grephignore` |
+| `--hidden` | Include hidden files |
+
+The walker respects `.gitignore` and `.grephignore` by default, skips binary files (detected by null bytes in the first 512 bytes), and caps file size at 10 MiB. Both limits are configurable through `WalkOptions`.
+
+See [API / FileTypeFilter](/docs/api#grephwalkerfiletypefilter) for the full list of built-in type aliases.
+
+## Context, counts, and file-only modes
+
+```bash
+# Two lines before and after each match
+./vendor/bin/greph -F -C 2 "needle" src
+
+# Two lines after, no lines before
+./vendor/bin/greph -F -A 2 "needle" src
+
+# Two lines before, no lines after
+./vendor/bin/greph -F -B 2 "needle" src
+
+# Count matches per file
+./vendor/bin/greph -F -c "needle" src
+
+# List matching files only
+./vendor/bin/greph -F -l "needle" src
+
+# List non-matching files only
+./vendor/bin/greph -F -L "needle" src
+```
+
+`-c`, `-l`, and `-L` short-circuit the formatter so they avoid materializing every line. They are the right modes for "how many" and "where" queries.
+
+## Parallel scans
+
+Pass `-j N` to dispatch the scan across N workers. Greph uses `pcntl_fork()` for the worker pool and falls back to single-process execution when `ext-pcntl` is unavailable.
+
+```bash
+./vendor/bin/greph -F -j 8 "function" src
+```
+
+The facade computes whether parallel execution is worth the overhead based on file count, mode, and pattern shape. Below the threshold it stays single-process. See [Advanced / Parallel Workers](/docs/advanced/parallel) for the heuristics.
+
+## JSON output
+
+`--json` emits a structured payload that downstream tools can parse without screen-scraping the grep format:
+
+```bash
+./vendor/bin/greph --json -F "function" src
+```
+
+```json
+[
+  {
+    "file": "src/Greph.php",
+    "matches": [
+      {
+        "line": 31,
+        "column": 1,
+        "content": "final class Greph",
+        "matched_text": "function",
+        "captures": []
+      }
+    ]
+  }
+]
+```
+
+The `rg` wrapper emits ripgrep-event-shaped JSON instead. Use it when an existing consumer expects the ripgrep schema.
+
+## Programmatic use
+
+```php
+use Greph\Greph;
+use Greph\Text\TextSearchOptions;
+
+$results = Greph::searchText(
+    'function',
+    'src',
+    new TextSearchOptions(
+        fixedString: true,
+        caseInsensitive: true,
+        beforeContext: 1,
+        afterContext: 1,
+        jobs: 4,
+    ),
+);
+
+foreach ($results as $file) {
+    foreach ($file->matches as $match) {
+        echo "{$file->file}:{$match->line}:{$match->content}\n";
+    }
+}
+```
+
+The result objects are documented in [API / Result objects](/docs/api#result-objects).
+
+## How it works
+
+The text engine has two paths:
+
+- **Literal path**: when `-F` is set, the search runs `strpos()` over a 64 KiB buffered reader and tracks newlines for line numbering. There is no regex compile step.
+- **Regex path**: when `-F` is not set, Greph extracts literal substrings from the pattern using a small PCRE-shaped analyzer (`Greph\Text\LiteralExtractor`) and uses them as a `strpos()` pre-filter. Lines that pass the pre-filter are then matched against the compiled PCRE2 pattern with JIT enabled.
+
+Both paths use the same `BufferedReader` for I/O. The reader reads in 64 KiB chunks instead of `fgets()`-per-line, which reduces the syscall count dramatically on large files.
+
+For repeated workloads, the [indexed text mode](/docs/indexed/text) replaces the buffered reader with a warmed trigram + identifier postings store and skips most files entirely.

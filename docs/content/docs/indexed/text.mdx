@@ -1,0 +1,123 @@
+---
+title: Indexed Text Search
+description: Warmed trigram and identifier postings index for repeated text-search workloads.
+---
+
+# Indexed Text Search
+
+Indexed text search is the warmed-cache version of [text search](/docs/modes/text). The first call builds an on-disk store of trigrams and identifier postings; subsequent calls use the store to skip files that obviously cannot contain the pattern. The result is order-of-magnitude lower latency for repeated literal queries on large repositories.
+
+The index is exposed under the `greph-index` CLI and the `Greph::buildTextIndex()` / `Greph::searchTextIndexed()` facade methods.
+
+## Building the index
+
+```bash
+# Full build at the current directory
+./vendor/bin/greph-index build .
+
+# Full build at an explicit root
+./vendor/bin/greph-index build path/to/repo
+
+# Use a non-default index directory
+./vendor/bin/greph-index build . --index-dir /tmp/greph-index
+```
+
+The index is stored at `<root>/.greph-index/` by default.
+
+A successful build prints a one-line summary:
+
+```text
+Built index for 2547 files in .greph-index (193428 trigrams, +2547 ~0 -0 =0)
+```
+
+The four counters are added, updated, deleted, and unchanged file counts. On a fresh build the added counter equals the file count and everything else is zero.
+
+## Refreshing the index
+
+```bash
+./vendor/bin/greph-index refresh .
+```
+
+`refresh` re-walks the indexed root, hashes every file, and rewrites only the entries whose hash has changed. The output uses the same four counters so you can see exactly what moved:
+
+```text
+Refreshed index for 2547 files in .greph-index (193428 trigrams, +3 ~7 -1 =2536)
+```
+
+Run `refresh` after editing tracked files. There is no watcher; refreshes are explicit.
+
+## Querying the index
+
+```bash
+# Fixed-string search
+./vendor/bin/greph-index search -F "function" .
+
+# Case-insensitive whole-word
+./vendor/bin/greph-index search -F -i -w "function" .
+
+# Counts
+./vendor/bin/greph-index search -F -c "function" .
+
+# Files only
+./vendor/bin/greph-index search -F -l "function" .
+
+# Regex search
+./vendor/bin/greph-index search "function\s+\w+" .
+
+# JSON output
+./vendor/bin/greph-index search --json -F "function" .
+```
+
+The flag set is the same as native text search. See the [CLI reference](/docs/cli#greph-index) for the full list.
+
+If the index does not exist at the requested location, `greph-index search` raises an error. There is no automatic fallback to a non-indexed scan in this command (the AST commands have an opt-in `--fallback scan`, but the text command does not). Build the index first.
+
+## What the index stores
+
+The text index is a trigram + identifier postings store. For every indexed file Greph extracts:
+
+- **Trigram set**: the set of three-byte sequences present in the file content. Used as a coarse pre-filter for both literal and regex queries.
+- **Identifier postings**: the set of identifier-shaped tokens (`[A-Za-z_][A-Za-z0-9_]*`) present in the file. Used to accelerate whole-word queries.
+- **Content hash**: the digest of the file content. Used by `refresh` to detect changes.
+
+When a query arrives, Greph extracts the same shapes from the pattern (trigrams from literal substrings, identifier tokens from whole-word patterns), intersects the postings, and only re-reads the matching files. Files that survive the intersection are searched with the same engine as native text mode.
+
+This is the same idea as ripgrep's optional preindexing and codesearch's trigram index, but built specifically around the on-disk shapes that warmed PHP can hit fastest.
+
+## When to use it
+
+Indexed mode is the right tool when:
+
+- You query the same repository many times in a row (CI jobs, agent loops, IDE integrations).
+- The repository is large enough that native scanning is the bottleneck.
+- The patterns include literal substrings or identifier tokens that the index can prefilter on.
+
+Native scanning is still the right tool when:
+
+- You query a small repository where the build cost dominates.
+- You search a one-off path that you will not query again.
+- You need every match in a single ad-hoc invocation and do not want to maintain an index.
+
+The published benchmark numbers in the [README](https://github.com/inline0/greph#performance) show the warmed indexed mode outperforming both `rg` and `grep` on literal queries against the WordPress corpus.
+
+## Programmatic use
+
+```php
+use Greph\Greph;
+use Greph\Text\TextSearchOptions;
+
+// Build once
+Greph::buildTextIndex('.');
+
+// Refresh after edits
+Greph::refreshTextIndex('.');
+
+// Query
+$results = Greph::searchTextIndexed(
+    'function',
+    'src',
+    new TextSearchOptions(fixedString: true),
+);
+```
+
+`searchTextIndexed` accepts the same `TextSearchOptions` as native text search and returns the same `list<TextFileResult>` shape. The only difference is the path that produced the results.

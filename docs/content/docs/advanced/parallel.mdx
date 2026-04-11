@@ -1,0 +1,71 @@
+---
+title: Parallel Workers
+description: pcntl-based worker pool with single-process fallback for parallel text and AST scans.
+---
+
+# Parallel Workers
+
+Greph dispatches text and AST scans across a worker pool when the work is large enough to justify the overhead. The pool is built on `pcntl_fork()` and falls back to in-process execution when `ext-pcntl` is not available (Windows, some PaaS environments, restricted hosting).
+
+## Enabling parallel scans
+
+Set `-j N` on the CLI or `jobs: N` on the relevant options object:
+
+```bash
+./vendor/bin/greph -F -j 8 "function" src
+./vendor/bin/greph -p '$obj->$method($$$ARGS)' -j 4 src
+./vendor/bin/rg --threads 8 -F "function" src
+./vendor/bin/sg run --threads 8 --pattern '$obj->$method($$$ARGS)' src
+```
+
+```php
+use Greph\Greph;
+use Greph\Text\TextSearchOptions;
+
+Greph::searchText(
+    'function',
+    'src',
+    new TextSearchOptions(fixedString: true, jobs: 8),
+);
+```
+
+## When parallel kicks in
+
+Greph does not parallelize unconditionally. Forking N processes and round-tripping their results through pipes is overhead, and on small file lists that overhead dominates the search itself. Instead, the facade computes a threshold from the job count, the search mode, and the pattern shape. Only file lists above the threshold are dispatched to the worker pool.
+
+The current heuristics (in `Greph\Greph::shouldUseTextWorkers` and friends):
+
+- Single-job runs (`-j 1`) always run in-process.
+- Default text scans require roughly `jobs * 2_000` files before the pool turns on.
+- Count, files-with-matches, and files-without-matches modes lower the threshold to roughly `jobs * 750` because the per-file work is cheaper.
+- Short, identifier-shaped fixed-string patterns raise the threshold to roughly `jobs * 4_000` because the literal fast path is already so cheap that forking rarely pays.
+- AST search and AST rewrite use the `jobs * 750` threshold.
+
+These numbers are heuristics, not promises. They are tuned against the WordPress benchmark corpus and may be revisited.
+
+## How the pool works
+
+`Greph\Parallel\WorkSplitter` distributes the file list across N chunks. `Greph\Parallel\WorkerPool` forks one worker process per chunk, each worker runs the same closure on its slice, and `Greph\Parallel\ResultCollector` reads the serialized results back through pipes. The parent process waits for every worker, then merges and re-sorts the combined result set so the output ordering is stable regardless of how the work was split.
+
+For text mode the worker pool uses a custom on-the-wire codec (`Greph\Text\TextResultCodec`) to keep the serialized payload compact. AST mode uses PHP's standard `serialize()`.
+
+## When pcntl is unavailable
+
+If `pcntl_fork` is not callable (Windows, hardened PHP builds), the pool transparently falls back to running every chunk in-process. The result is the same as `-j 1`. Greph does not raise an error; it just runs single-threaded.
+
+You can detect this at runtime by checking `function_exists('pcntl_fork')`.
+
+## Tuning advice
+
+- Start with `-j` set to half your physical core count and raise it until you stop seeing improvements.
+- For literal-only fixed-string searches on small repositories, single-process is usually faster than any parallel configuration.
+- For AST scans on large repositories, parallel scaling is usually close to linear up to the available core count.
+- The published benchmark numbers in the [README](https://github.com/inline0/greph#performance) include `1`, `2`, and `4` worker scaling on the WordPress corpus.
+
+## Limitations
+
+- The current pool does not support work-stealing. If one chunk is much heavier than the others, the pool waits for the slowest worker.
+- Worker results are buffered until every worker finishes. Streaming output from a long-running scan (the way `rg --json` streams events) is not supported in parallel mode.
+- The parent process re-sorts results after merging, so the worker pool does not reduce peak memory usage compared to a single-process scan.
+
+These limitations are acceptable for the workloads Greph targets (interactive code search, agent loops, CI jobs over snapshots). They will be revisited if profiling shows them as a bottleneck on real corpora.

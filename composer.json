@@ -1,8 +1,31 @@
 {
-    "name": "grepg/greph",
-    "description": "Pure PHP code search and structural refactoring tool.",
+    "name": "greph/greph",
+    "description": "Pure PHP code search, structural search, and rewrite engine. grep, ripgrep, and ast-grep workflows in a single Composer package.",
     "type": "library",
-    "license": "proprietary",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "inline0",
+            "homepage": "https://github.com/inline0"
+        }
+    ],
+    "homepage": "https://github.com/inline0/greph",
+    "support": {
+        "issues": "https://github.com/inline0/greph/issues",
+        "source": "https://github.com/inline0/greph"
+    },
+    "keywords": [
+        "php",
+        "grep",
+        "ripgrep",
+        "ast-grep",
+        "code-search",
+        "structural-search",
+        "refactoring",
+        "rewrite",
+        "indexed-search",
+        "ast"
+    ],
     "require": {
         "php": "^8.2",
         "ext-json": "*",
@@ -12,6 +35,9 @@
         "phpstan/phpstan": "^2.0",
         "phpunit/phpunit": "^13.1",
         "squizlabs/php_codesniffer": "^3.10"
+    },
+    "suggest": {
+        "ext-pcntl": "Enables parallel worker pools for text and AST scans. Greph falls back to single-process execution when missing."
     },
     "autoload": {
         "psr-4": {
@@ -30,27 +56,16 @@
         "sort-packages": true
     },
     "bin": [
-        "bin/rg",
-        "bin/sg",
         "bin/greph",
         "bin/greph-index",
-        "bin/oracle",
-        "bin/actual",
-        "bin/compare",
-        "bin/test-scenario",
-        "bin/test-regression",
-        "bin/verify-compliance",
-        "bin/bench",
-        "bin/bench-aggregate",
-        "bin/bench-series",
-        "bin/bench-compare",
-        "bin/feature-matrix"
+        "bin/rg",
+        "bin/sg"
     ],
     "scripts": {
         "test": "phpunit",
         "test:unit": "phpunit --testsuite unit",
-        "test:coverage": "php -d pcov.enabled=1 vendor/bin/phpunit --coverage-text --colors=never",
         "test:oracle": "php bin/test-regression",
+        "test:coverage": "php -d pcov.enabled=1 vendor/bin/phpunit --coverage-text --colors=never",
         "analyse": "phpstan analyse --configuration=phpstan.neon.dist --memory-limit=512M",
         "cs": "phpcs --warning-severity=0",
         "cs:fix": "phpcbf",

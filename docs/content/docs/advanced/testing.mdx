@@ -1,0 +1,131 @@
+---
+title: Testing
+description: Unit tests, oracle regression corpus, and verification commands.
+---
+
+# Testing
+
+Greph is validated with three layers of tests:
+
+1. **Unit tests** for isolated components (parsers, walkers, codecs, options).
+2. **Oracle regression corpus** that diffs Greph output against the canonical `grep`, `ripgrep`, and `ast-grep` binaries on a fixed scenario set.
+3. **Probe-driven feature matrix** that asserts the verified surface of the `rg` and `sg` wrappers.
+
+All three layers run in CI on every push.
+
+## Running the tests
+
+```bash
+# PHPUnit unit tests
+composer test
+
+# Oracle regression corpus
+composer test:oracle
+
+# Static analysis
+composer analyse
+
+# Coding standards
+composer cs
+composer cs:fix
+
+# Full release-grade verification (analyse + cs + test + test:oracle)
+composer verify
+```
+
+`composer verify` is the bar for any release. If it does not pass, the change is not done.
+
+## The oracle model
+
+Greph follows an oracle-driven verification model. For every scenario, three commands run:
+
+1. **Oracle**: `grep`, `ripgrep`, or `ast-grep`, captured against the scenario corpus.
+2. **Actual**: Greph, captured against the same corpus.
+3. **Comparator**: a structured diff that checks line-by-line or semantic equivalence.
+
+If Greph disagrees with all three oracles, Greph is wrong. If the oracles disagree with each other, the disagreement is documented in the scenario metadata and Greph is held to the most useful behavior (usually `rg`'s).
+
+The implementation lives under `tests/Oracle/` and the scenarios live under `scenarios/text/`, `scenarios/ast/`, `scenarios/rewrite/`, and `scenarios/edge/`.
+
+## Scenario layout
+
+Each scenario is a self-contained directory:
+
+```
+scenarios/text/literal-simple/
+├── scenario.json     # name, category, oracles, flags
+├── setup/            # corpus to search through
+├── oracle/           # captured oracle output (grep.txt, rg.txt, rg.json, ...)
+├── actual/           # captured greph output
+└── reports/          # comparison results
+```
+
+`scenario.json` declares the pattern, the flags, the oracles to capture, and the expected comparison mode for each oracle (`exact`, `semantic`, etc.).
+
+## Running a single scenario
+
+The repository ships a small set of CLIs for working with individual scenarios. Note that these are dev-time tools, not runtime entrypoints, and they live alongside the runtime binaries in `bin/`.
+
+```bash
+# Capture oracle output for a scenario
+./bin/oracle scenarios/text/literal-simple
+
+# Run greph against a scenario, capture its output
+./bin/actual scenarios/text/literal-simple
+
+# Diff oracle vs actual
+./bin/compare scenarios/text/literal-simple
+
+# Full pipeline: oracle -> actual -> compare
+./bin/test-scenario scenarios/text/literal-simple
+```
+
+## Running the full regression suite
+
+```bash
+# All scenarios, sequential
+./bin/test-regression
+
+# Parallel execution
+./bin/test-regression --jobs 4
+
+# Filter by category
+./bin/test-regression --category text
+./bin/test-regression --category ast
+./bin/test-regression --category rewrite
+
+# Pass/fail only, no reports
+./bin/test-regression --fast
+```
+
+The regression suite is the gate for new behavior. A new flag, a new edge case, or a new bug fix requires a scenario that captures the expected behavior against an oracle.
+
+## Compliance reporting
+
+```bash
+./bin/verify-compliance
+```
+
+`verify-compliance` runs the full regression suite and prints a report of which scenarios passed, failed, or were skipped, plus the comparison details for any failures. It is the right command to run when you want to know "is the current branch ready for release".
+
+## Test-driven development workflow
+
+When adding a feature:
+
+1. Write a scenario directory with the corpus and flags that exercise the new behavior.
+2. Run `./bin/oracle <scenario>` to capture the canonical tool's output.
+3. Implement the feature in `src/`.
+4. Run `./bin/test-scenario <scenario>` to verify Greph matches the oracle.
+5. Run `./bin/test-regression --fast` to make sure nothing else regressed.
+6. Run `composer verify` before committing.
+
+When fixing a bug:
+
+1. Capture the failing input as a scenario.
+2. Confirm the oracle produces the expected output.
+3. Confirm Greph does not.
+4. Fix the bug.
+5. Confirm Greph now matches the oracle.
+6. Run `composer verify`.
+
+The scenario stays in the corpus permanently, so the bug cannot regress without a CI failure.

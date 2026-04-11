@@ -1,0 +1,430 @@
+---
+title: API
+description: The Greph\Greph facade and the supporting option, result, and walker classes form the public PHP API.
+---
+
+# PHP API
+
+## `Greph\Greph`
+
+The `Greph\Greph` class is the static entry point. It exposes every search, rewrite, and index operation. All methods accept either a single path or a list of paths.
+
+```php
+use Greph\Greph;
+```
+
+### `walk`
+
+```php
+public static function walk(string|array $paths, ?WalkOptions $options = null): FileList
+```
+
+Resolve `$paths` into a flat `FileList` of absolute file paths. Honors gitignore, `.grephignore`, file type filters, glob patterns, hidden file inclusion, symlink following, binary detection, and the maximum file size cap.
+
+```php
+use Greph\Walker\WalkOptions;
+use Greph\Walker\FileTypeFilter;
+
+$files = Greph::walk('src', new WalkOptions(
+    fileTypeFilter: new FileTypeFilter(['php']),
+));
+
+foreach ($files->paths() as $path) {
+    echo "$path\n";
+}
+```
+
+---
+
+### `searchText`
+
+```php
+public static function searchText(
+    string $pattern,
+    string|array $paths,
+    ?TextSearchOptions $options = null,
+): array
+```
+
+Run a text search and return a `list<TextFileResult>`. Each `TextFileResult` exposes the file path and a list of `TextMatch` objects (line, column, content, captures, optional context).
+
+```php
+use Greph\Greph;
+use Greph\Text\TextSearchOptions;
+
+$results = Greph::searchText(
+    'function',
+    'src',
+    new TextSearchOptions(
+        fixedString: true,
+        caseInsensitive: true,
+        beforeContext: 1,
+        afterContext: 1,
+        jobs: 4,
+    ),
+);
+
+foreach ($results as $file) {
+    foreach ($file->matches as $match) {
+        echo "{$file->file}:{$match->line}:{$match->content}\n";
+    }
+}
+```
+
+When `jobs > 1` and the file count crosses the worker threshold, `searchText` automatically dispatches the scan to a `WorkerPool`. Otherwise it runs in-process.
+
+---
+
+### `searchAst`
+
+```php
+public static function searchAst(
+    string $pattern,
+    string|array $paths,
+    ?AstSearchOptions $options = null,
+): array
+```
+
+Run a structural AST search and return a `list<AstMatch>`. Patterns are written as PHP source with `$VAR` and `$$$VARIADIC` metavariables. Each `AstMatch` includes the file, the captured `PhpParser\Node`, the captures, the start/end line and byte offsets, and the matched source slice.
+
+```php
+use Greph\Greph;
+use Greph\Ast\AstSearchOptions;
+
+$matches = Greph::searchAst(
+    'new $CLASS()',
+    'src',
+    new AstSearchOptions(),
+);
+
+foreach ($matches as $match) {
+    echo "{$match->file}:{$match->startLine}:{$match->code}\n";
+}
+```
+
+---
+
+### `rewriteAst`
+
+```php
+public static function rewriteAst(
+    string $searchPattern,
+    string $rewritePattern,
+    string|array $paths,
+    ?AstSearchOptions $options = null,
+): array
+```
+
+Run a structural rewrite and return a `list<RewriteResult>`. Each `RewriteResult` exposes the file path, the original contents, the rewritten contents, and the replacement count. Rewrites are format-preserving: only the matched node ranges are spliced; the rest of the file is left untouched.
+
+```php
+$rewrites = Greph::rewriteAst(
+    'array($$$ITEMS)',
+    '[$$$ITEMS]',
+    'src',
+);
+
+foreach ($rewrites as $result) {
+    if ($result->changed()) {
+        file_put_contents($result->file, $result->rewrittenContents);
+    }
+}
+```
+
+The facade does not write to disk; the caller decides whether to apply the changes. The CLI applies them unless `--dry-run` or `--interactive` is set.
+
+---
+
+### Indexed text search
+
+#### `buildTextIndex`
+
+```php
+public static function buildTextIndex(string $rootPath = '.', ?string $indexPath = null): IndexBuildResult
+```
+
+Build a fresh trigram + identifier postings index for `$rootPath`. The index is stored at `$indexPath` (defaults to `$rootPath/.greph-index`). Returns an `IndexBuildResult` with the file count, trigram count, and added/updated/deleted/unchanged counts.
+
+#### `refreshTextIndex`
+
+```php
+public static function refreshTextIndex(string $rootPath = '.', ?string $indexPath = null): IndexBuildResult
+```
+
+Incrementally refresh an existing text index. Files are re-hashed and only changed entries are rewritten.
+
+#### `searchTextIndexed`
+
+```php
+public static function searchTextIndexed(
+    string $pattern,
+    string|array $paths,
+    ?TextSearchOptions $options = null,
+    ?string $indexPath = null,
+): array
+```
+
+Run a text search against the warmed index. Falls back to a runtime error if the index does not exist (call `buildTextIndex` first). Returns a `list<TextFileResult>` shaped exactly like `searchText`.
+
+```php
+Greph::buildTextIndex('.');
+$results = Greph::searchTextIndexed('function', 'src');
+```
+
+---
+
+### Indexed AST search
+
+#### `buildAstIndex` / `refreshAstIndex`
+
+```php
+public static function buildAstIndex(string $rootPath = '.', ?string $indexPath = null): AstIndexBuildResult
+public static function refreshAstIndex(string $rootPath = '.', ?string $indexPath = null): AstIndexBuildResult
+```
+
+Build or incrementally refresh the AST fact index. Stores extracted facts at `$rootPath/.greph-ast-index` by default.
+
+#### `searchAstIndexed`
+
+```php
+public static function searchAstIndexed(
+    string $pattern,
+    string|array $paths,
+    ?AstSearchOptions $options = null,
+    ?string $indexPath = null,
+): array
+```
+
+Use the fact index to narrow candidates before re-verifying matches against the source. Returns the same `list<AstMatch>` shape as `searchAst`.
+
+#### `buildAstCache` / `refreshAstCache`
+
+```php
+public static function buildAstCache(string $rootPath = '.', ?string $indexPath = null): AstCacheBuildResult
+public static function refreshAstCache(string $rootPath = '.', ?string $indexPath = null): AstCacheBuildResult
+```
+
+Build or incrementally refresh the cached parsed-tree store. Stores serialized trees at `$rootPath/.greph-ast-cache` by default.
+
+#### `searchAstCached`
+
+```php
+public static function searchAstCached(
+    string $pattern,
+    string|array $paths,
+    ?AstSearchOptions $options = null,
+    ?string $indexPath = null,
+): array
+```
+
+Run AST search against the cached parsed trees, skipping the parser entirely. Returns the same `list<AstMatch>` shape as `searchAst`.
+
+---
+
+## `Greph\Text\TextSearchOptions`
+
+Readonly options object for text search.
+
+```php
+new TextSearchOptions(
+    bool $fixedString = false,
+    bool $caseInsensitive = false,
+    bool $wholeWord = false,
+    bool $invertMatch = false,
+    ?int $maxCount = null,
+    int $beforeContext = 0,
+    int $afterContext = 0,
+    bool $countOnly = false,
+    bool $filesWithMatches = false,
+    bool $filesWithoutMatches = false,
+    bool $jsonOutput = false,
+    int $jobs = 1,
+    bool $respectIgnore = true,
+    bool $includeHidden = false,
+    bool $followSymlinks = false,
+    bool $skipBinaryFiles = true,
+    bool $includeGitDirectory = false,
+    ?FileTypeFilter $fileTypeFilter = null,
+    int $maxFileSizeBytes = 10485760,
+    array $globPatterns = [],
+    bool $showLineNumbers = true,
+    bool $showFileNames = true,
+)
+```
+
+Validation:
+
+- `jobs >= 1`
+- `beforeContext, afterContext >= 0`
+- `maxCount === null || maxCount >= 1`
+
+Use `walkOptions()` to derive the matching `WalkOptions` if you want to walk the file tree separately.
+
+---
+
+## `Greph\Ast\AstSearchOptions`
+
+Readonly options object for AST search and rewrite.
+
+```php
+new AstSearchOptions(
+    string $language = 'php',
+    int $jobs = 1,
+    bool $respectIgnore = true,
+    bool $includeHidden = false,
+    bool $followSymlinks = false,
+    bool $skipBinaryFiles = true,
+    bool $includeGitDirectory = false,
+    ?FileTypeFilter $fileTypeFilter = null,
+    int $maxFileSizeBytes = 10485760,
+    array $globPatterns = [],
+    bool $skipParseErrors = true,
+    bool $dryRun = false,
+    bool $interactive = false,
+    bool $jsonOutput = false,
+)
+```
+
+The default file type filter for AST mode is `php`. When `skipParseErrors` is `true` (default), files that fail to parse are silently skipped; flip it to `false` to surface parse errors as exceptions.
+
+---
+
+## `Greph\Walker\WalkOptions`
+
+Readonly options object for the file walker.
+
+```php
+new WalkOptions(
+    bool $respectIgnore = true,
+    bool $includeHidden = false,
+    bool $followSymlinks = false,
+    bool $skipBinaryFiles = false,
+    bool $includeGitDirectory = false,
+    ?FileTypeFilter $fileTypeFilter = null,
+    int $maxFileSizeBytes = 10485760,
+    array $globPatterns = [],
+)
+```
+
+---
+
+## `Greph\Walker\FileTypeFilter`
+
+Resolve named file types to extension lists. Built-in aliases:
+
+| Alias | Extensions |
+|---|---|
+| `css` | `css`, `sass`, `scss` |
+| `html` | `htm`, `html`, `phtml` |
+| `js` | `cjs`, `js`, `mjs` |
+| `json` | `json` |
+| `md` | `markdown`, `md` |
+| `php` | `inc`, `php`, `php3`, `php4`, `php5`, `php7`, `php8`, `phpt`, `phtml` |
+| `txt` | `txt` |
+| `ts` | `ts`, `tsx` |
+| `xml` | `xml` |
+| `yaml` | `yaml`, `yml` |
+
+```php
+new FileTypeFilter(includeTypes: ['php'], excludeTypes: ['md']);
+```
+
+---
+
+## Result objects
+
+### `Greph\Text\TextFileResult`
+
+```php
+final readonly class TextFileResult
+{
+    public string $file;
+    /** @var list<TextMatch> */
+    public array $matches;
+
+    public function matchCount(): int;
+    public function hasMatches(): bool;
+}
+```
+
+### `Greph\Text\TextMatch`
+
+```php
+final readonly class TextMatch
+{
+    public string $file;
+    public int $line;
+    public int $column;
+    public string $content;
+    public string $matchedText;
+    /** @var array<int|string, string> */
+    public array $captures;
+    /** @var list<array{line: int, content: string}> */
+    public array $beforeContext;
+    /** @var list<array{line: int, content: string}> */
+    public array $afterContext;
+}
+```
+
+### `Greph\Ast\AstMatch`
+
+```php
+final readonly class AstMatch
+{
+    public string $file;
+    public PhpParser\Node $node;
+    /** @var array<string, mixed> */
+    public array $captures;
+    public int $startLine;
+    public int $endLine;
+    public int $startFilePos;
+    public int $endFilePos;
+    public string $code;
+}
+```
+
+### `Greph\Ast\RewriteResult`
+
+```php
+final readonly class RewriteResult
+{
+    public string $file;
+    public string $originalContents;
+    public string $rewrittenContents;
+    public int $replacementCount;
+
+    public function changed(): bool;
+}
+```
+
+### `Greph\Index\IndexBuildResult`
+
+```php
+final readonly class IndexBuildResult
+{
+    public string $rootPath;
+    public string $indexPath;
+    public int $fileCount;
+    public int $trigramCount;
+    public int $addedFiles;
+    public int $updatedFiles;
+    public int $deletedFiles;
+    public int $unchangedFiles;
+}
+```
+
+`AstIndexBuildResult` and `AstCacheBuildResult` follow the same shape with `factCount` and `cachedTreeCount` substituted respectively.
+
+---
+
+## Exceptions
+
+Greph throws three typed exceptions, all in `Greph\Exceptions`:
+
+| Exception | When it is raised |
+|---|---|
+| `WalkerException` | Filesystem errors during traversal (missing path, unreadable directory) |
+| `PatternException` | Invalid regex or AST pattern |
+| `ParseException` | PHP source could not be parsed (only when `skipParseErrors: false`) |
+
+Indexed search methods raise `\RuntimeException` when no index is present at the requested location. The `greph-index` CLI exposes a `--fallback scan` option that catches these and falls back to a non-indexed scan instead.

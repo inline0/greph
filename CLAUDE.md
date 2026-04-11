@@ -302,7 +302,7 @@ greph -p 'pattern' -r 'rewrite' --interactive src/     # Confirm each change
 
 ## Oracle Model
 
-Same oracle-driven verification model as pitmaster and php-browser (sibling projects in this repo).
+Greph is verified end-to-end against the canonical search and refactoring tools it imitates.
 
 **Three oracles, one tool:**
 
@@ -311,21 +311,6 @@ Same oracle-driven verification model as pitmaster and php-browser (sibling proj
 | Text search | `grep` | Output format compatibility, flag behavior, edge cases |
 | Text search | `ripgrep` (rg) | Gitignore handling, file type filtering, performance baseline |
 | AST search | `ast-grep` (sg) | Structural matching correctness, meta-variable semantics |
-
-### Relationship to pitmaster and php-browser
-
-The test infrastructure mirrors the same fixture/scenario system:
-
-| Concept | php-browser | pitmaster | greph |
-|---|---|---|---|
-| Oracle | Chromium | `git` | `grep` + `rg` + `ast-grep` |
-| Actual | PHP renderer | Pitmaster | greph |
-| Fixture/Scenario | `fixtures/<name>/` | `scenarios/<cat>/<name>/` | `scenarios/<cat>/<name>/` |
-| Pipeline | oracle → render → compare | oracle → actual → compare | oracle → actual → compare |
-| Combined | `./bin/test-fixture` | `./bin/test-scenario` | `./bin/test-scenario` |
-| Regression | `./bin/test-regression --jobs N` | `./bin/test-regression --jobs N` | `./bin/test-regression --jobs N` |
-
-Study `php-browser/src/Fixture/` and `pitmaster/tests/Oracle/` for the reference implementation of this pattern.
 
 ### Scenario Structure
 
