@@ -1,0 +1,48 @@
+name: Release
+
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Publish Release
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          tools: composer
+
+      - run: composer install --no-dev --no-interaction --prefer-dist --optimize-autoloader
+
+      - name: Verify autoloader
+        run: |
+          php -r "require 'vendor/autoload.php'; class_exists('Greph\\Greph', true) || exit(1); echo 'Autoloader OK';"
+
+      - name: Create release archive
+        run: |
+          mkdir -p dist
+          rsync -a --exclude='.git' --exclude='.github' --exclude='.claude' \
+            --exclude='tests' --exclude='scenarios' --exclude='fixtures' \
+            --exclude='benchmarks' --exclude='docs' \
+            --exclude='CLAUDE.md' --exclude='FEATURE_MATRIX.md' --exclude='FEATURE_MATRIX.json' \
+            --exclude='phpunit.xml*' --exclude='phpcs.xml' --exclude='phpstan.neon*' \
+            --exclude='.phpunit*' --exclude='.phpstan' \
+            --exclude='bin/oracle' --exclude='bin/actual' --exclude='bin/compare' \
+            --exclude='bin/test-scenario' --exclude='bin/test-regression' \
+            --exclude='bin/verify-compliance' --exclude='bin/feature-matrix' \
+            --exclude='bin/bench' --exclude='bin/bench-aggregate' --exclude='bin/bench-ci' \
+            --exclude='bin/bench-compare' --exclude='bin/bench-run' --exclude='bin/bench-series' \
+            . dist/greph/
+          cd dist && zip -r ../greph.zip greph/
+
+      - name: Upload release asset
+        run: gh release upload "${{ github.event.release.tag_name }}" greph.zip --clobber
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
