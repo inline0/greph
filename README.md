@@ -189,21 +189,7 @@ Current local verification baseline:
 
 ## Performance
 
-Benchmark tables below are sourced from GitHub Actions CI, never from local runs.
-
-Current text baseline on `main`:
-- run [`24239964252`](https://github.com/inline0/greph/actions/runs/24239964252)
-- WordPress corpus
-- `ubuntu-latest`
-- PHP `8.4`
-- `5` measured runs
-- `1` warmup run
-
-Current broader non-text baseline on `main`:
-- run [`24234526655`](https://github.com/inline0/greph/actions/runs/24234526655)
-
-Current indexed-text baseline on `main`:
-- run [`24243036470`](https://github.com/inline0/greph/actions/runs/24243036470)
+Benchmark tables below are sourced from GitHub Actions CI, never from local runs. Each baseline runs against the WordPress corpus on `ubuntu-latest` with PHP `8.4`, five measured runs, and one warmup run.
 
 Comparison tools:
 - `rg`: ripgrep
