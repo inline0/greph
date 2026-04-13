@@ -70,4 +70,18 @@ final class RegexSearcherTest extends TestCase
         $this->assertFalse($noPrefilter->supportsOccurrenceScan());
         $this->assertFalse($noPrefilter->findPrefilterInContents("save\n"));
     }
+
+    #[Test]
+    public function itCanSkipCaptureMaterializationForNonJsonPaths(): void
+    {
+        $searcher = new RegexSearcher('(save)', literalPrefilter: 'save');
+        $match = $searcher->matchWithCaptures('save value', false);
+
+        $this->assertNotNull($match);
+        $this->assertSame(1, $match->column);
+        $this->assertSame('save', $match->matchedText);
+        $this->assertSame([], $match->captures);
+        $this->assertTrue($searcher->matchesPrefilteredLine('save value'));
+        $this->assertFalse($searcher->matchesPrefilteredLine('other value'));
+    }
 }

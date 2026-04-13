@@ -338,6 +338,14 @@ final class TextSearcherTest extends TestCase
             new RegexSearcher('\$foo = new [A-Za-z_][A-Za-z0-9_]*\(\)', false, false, 'new '),
             new TextSearchOptions(),
         );
+        $regexPrefilterQuietResult = $this->invokeMethod(
+            $searcher,
+            'searchContentsByRegexPrefilter',
+            'memory.txt',
+            '$foo = new Bar()',
+            new RegexSearcher('\$foo = new [A-Za-z_][A-Za-z0-9_]*\(\)', false, false, 'new '),
+            new TextSearchOptions(quiet: true),
+        );
         $literalResult = $this->invokeMethod(
             $searcher,
             'searchContentsByLiteral',
@@ -363,6 +371,8 @@ final class TextSearcherTest extends TestCase
         $this->assertInstanceOf(LiteralSearcher::class, $literalRegexMatcher);
         $this->assertInstanceOf(AnchoredLiteralSearcher::class, $prefixRegexMatcher);
         $this->assertSame(1, $regexPrefilterResult->matchCount());
+        $this->assertSame(1, $regexPrefilterQuietResult->matchCount());
+        $this->assertCount(0, $regexPrefilterQuietResult->matches);
         $this->assertSame(1, $literalResult->matchCount());
         $this->assertSame(1, $anchoredLiteralResult->matchCount());
         $this->assertSame(2, $anchoredLiteralResult->matches[0]->line);

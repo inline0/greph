@@ -25,6 +25,7 @@ final readonly class TextSearchOptions
         public bool $filesWithoutMatches = false,
         public bool $quiet = false,
         public bool $jsonOutput = false,
+        public bool $collectCaptures = true,
         public int $jobs = 1,
         public bool $respectIgnore = true,
         public bool $includeHidden = false,

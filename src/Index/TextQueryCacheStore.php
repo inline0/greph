@@ -120,6 +120,7 @@ final class TextQueryCacheStore
             'files_with_matches' => $options->filesWithMatches,
             'files_without_matches' => $options->filesWithoutMatches,
             'quiet' => $options->quiet,
+            'collect_captures' => $options->collectCaptures,
         ], JSON_THROW_ON_ERROR));
 
         return $this->directoryPath($indexPath) . '/' . $key . self::EXTENSION;
