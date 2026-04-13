@@ -139,6 +139,7 @@ final class TextIndexStoreTest extends TestCase
             indexPath: $indexPath,
             version: $store->version(),
             builtAt: 10,
+            buildDurationMs: 12.5,
             nextFileId: 2,
             files: [
                 ['id' => 1, 'p' => 'src/App.php', 's' => 10, 'm' => 1, 'h' => false, 'g' => false, 'o' => 0],

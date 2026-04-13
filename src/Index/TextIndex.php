@@ -18,6 +18,7 @@ final readonly class TextIndex
         public string $indexPath,
         public int $version,
         public int $builtAt,
+        public float $buildDurationMs,
         public int $nextFileId,
         public array $files,
         public array $postings,

@@ -32,6 +32,7 @@ final class AstIndexBuilder
 
     public function build(string $rootPath, ?string $indexPath = null): AstIndexBuildResult
     {
+        $start = hrtime(true);
         $rootPath = $this->resolveRootPath($rootPath);
         $indexPath = $this->resolveIndexPath($rootPath, $indexPath);
         $scannedFiles = $this->scanFiles($rootPath, $indexPath);
@@ -58,6 +59,7 @@ final class AstIndexBuilder
             indexPath: $indexPath,
             version: $this->store->version(),
             builtAt: time(),
+            buildDurationMs: (hrtime(true) - $start) / 1_000_000,
             nextFileId: $nextFileId,
             files: $files,
             facts: $facts,
@@ -69,6 +71,7 @@ final class AstIndexBuilder
             indexPath: $indexPath,
             fileCount: count($files),
             factCount: count($facts),
+            buildDurationMs: $index->buildDurationMs,
             addedFiles: count($files),
             updatedFiles: 0,
             deletedFiles: 0,
@@ -78,6 +81,7 @@ final class AstIndexBuilder
 
     public function refresh(string $rootPath, ?string $indexPath = null): AstIndexBuildResult
     {
+        $start = hrtime(true);
         $rootPath = $this->resolveRootPath($rootPath);
         $indexPath = $this->resolveIndexPath($rootPath, $indexPath);
 
@@ -149,6 +153,7 @@ final class AstIndexBuilder
             indexPath: $indexPath,
             version: $this->store->version(),
             builtAt: time(),
+            buildDurationMs: (hrtime(true) - $start) / 1_000_000,
             nextFileId: $nextFileId,
             files: $files,
             facts: $facts,
@@ -160,6 +165,7 @@ final class AstIndexBuilder
             indexPath: $indexPath,
             fileCount: count($files),
             factCount: count($facts),
+            buildDurationMs: $index->buildDurationMs,
             addedFiles: $addedFiles,
             updatedFiles: $updatedFiles,
             deletedFiles: $deletedFiles,

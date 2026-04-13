@@ -11,6 +11,7 @@ final readonly class IndexBuildResult
         public string $indexPath,
         public int $fileCount,
         public int $trigramCount,
+        public float $buildDurationMs,
         public int $addedFiles,
         public int $updatedFiles,
         public int $deletedFiles,

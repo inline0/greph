@@ -6,6 +6,9 @@ namespace Greph\Cli;
 
 use Greph\Ast\AstMatch;
 use Greph\Ast\AstSearchOptions;
+use Greph\Index\AstCacheStore;
+use Greph\Index\AstIndexStore;
+use Greph\Index\TextIndexStore;
 use Greph\Output\GrepFormatter;
 use Greph\Greph;
 use Greph\Support\Filesystem;
@@ -60,6 +63,9 @@ final class IndexApplication
             'refresh' => in_array('--help', $arguments, true)
                 ? $this->runHelp()
                 : $this->runBuild($this->parseBuildArguments($arguments), true),
+            'stats' => in_array('--help', $arguments, true)
+                ? $this->runHelp()
+                : $this->runTextStats($this->parseBuildArguments($arguments)),
             'search' => in_array('--help', $arguments, true)
                 ? $this->runHelp()
                 : $this->runSearch($this->parseSearchArguments($arguments)),
@@ -84,6 +90,9 @@ final class IndexApplication
             'refresh' => in_array('--help', $arguments, true)
                 ? $this->runHelp()
                 : $this->runAstBuild($mode, $this->parseBuildArguments($arguments), true),
+            'stats' => in_array('--help', $arguments, true)
+                ? $this->runHelp()
+                : $this->runAstStats($mode, $this->parseBuildArguments($arguments)),
             'search' => in_array('--help', $arguments, true)
                 ? $this->runHelp()
                 : $this->runAstSearch($mode, $this->parseAstSearchArguments($arguments)),
@@ -102,11 +111,12 @@ final class IndexApplication
 
         $verb = $refresh ? 'Refreshed' : 'Built';
         $this->writeOutput(sprintf(
-            '%s index for %d files in %s (%d trigrams, +%d ~%d -%d =%d)' . PHP_EOL,
+            '%s index for %d files in %s (%d trigrams, %.2fms, +%d ~%d -%d =%d)' . PHP_EOL,
             $verb,
             $result->fileCount,
             $this->displayPath($result->indexPath),
             $result->trigramCount,
+            $result->buildDurationMs,
             $result->addedFiles,
             $result->updatedFiles,
             $result->deletedFiles,
@@ -127,11 +137,12 @@ final class IndexApplication
                 : Greph::buildAstIndex($arguments['root'], $arguments['indexDir']);
 
             $this->writeOutput(sprintf(
-                '%s AST index for %d files in %s (%d fact rows, +%d ~%d -%d =%d)' . PHP_EOL,
+                '%s AST index for %d files in %s (%d fact rows, %.2fms, +%d ~%d -%d =%d)' . PHP_EOL,
                 $refresh ? 'Refreshed' : 'Built',
                 $result->fileCount,
                 $this->displayPath($result->indexPath),
                 $result->factCount,
+                $result->buildDurationMs,
                 $result->addedFiles,
                 $result->updatedFiles,
                 $result->deletedFiles,
@@ -146,16 +157,85 @@ final class IndexApplication
             : Greph::buildAstCache($arguments['root'], $arguments['indexDir']);
 
         $this->writeOutput(sprintf(
-            '%s AST cache for %d files in %s (%d cached trees, +%d ~%d -%d =%d)' . PHP_EOL,
+            '%s AST cache for %d files in %s (%d cached trees, %.2fms, +%d ~%d -%d =%d)' . PHP_EOL,
             $refresh ? 'Refreshed' : 'Built',
             $result->fileCount,
             $this->displayPath($result->indexPath),
             $result->cachedTreeCount,
+            $result->buildDurationMs,
             $result->addedFiles,
             $result->updatedFiles,
             $result->deletedFiles,
             $result->unchangedFiles,
         ));
+
+        return 0;
+    }
+
+    /**
+     * @param array{root: string, indexDir: ?string} $arguments
+     */
+    private function runTextStats(array $arguments): int
+    {
+        $store = new TextIndexStore();
+        $indexPath = $this->resolveTextIndexPath($store, $arguments['root'], $arguments['indexDir']);
+        $index = $store->load($indexPath, includePostings: true);
+
+        $this->writeOutput($this->formatStatsBlock('Text index stats', [
+            'Root' => $this->displayPath($index->rootPath),
+            'Index' => $this->displayPath($index->indexPath),
+            'Files' => (string) count($index->files),
+            'Trigram postings' => (string) count($index->postings),
+            'Word postings' => (string) count($index->wordPostings),
+            'Disk size' => $this->formatBytes($this->directorySize($index->indexPath)),
+            'Last refresh' => $this->formatTimestamp($index->builtAt),
+            'Last build time' => sprintf('%.2fms', $index->buildDurationMs),
+        ]));
+
+        return 0;
+    }
+
+    /**
+     * @param array{root: string, indexDir: ?string} $arguments
+     */
+    private function runAstStats(string $mode, array $arguments): int
+    {
+        if ($mode === 'index') {
+            $store = new AstIndexStore();
+            $indexPath = $this->resolveAstIndexPath($store, $arguments['root'], $arguments['indexDir']);
+            $index = $store->load($indexPath);
+
+            $this->writeOutput($this->formatStatsBlock('AST index stats', [
+                'Root' => $this->displayPath($index->rootPath),
+                'Index' => $this->displayPath($index->indexPath),
+                'Files' => (string) count($index->files),
+                'Fact rows' => (string) count($index->facts),
+                'Disk size' => $this->formatBytes($this->directorySize($index->indexPath)),
+                'Last refresh' => $this->formatTimestamp($index->builtAt),
+                'Last build time' => sprintf('%.2fms', $index->buildDurationMs),
+            ]));
+
+            return 0;
+        }
+
+        $store = new AstCacheStore();
+        $indexPath = $this->resolveAstCachePath($store, $arguments['root'], $arguments['indexDir']);
+        $cache = $store->load($indexPath);
+        $cachedTreeCount = count(array_filter(
+            $cache->facts,
+            static fn (array $facts): bool => $facts['cached'],
+        ));
+
+        $this->writeOutput($this->formatStatsBlock('AST cache stats', [
+            'Root' => $this->displayPath($cache->rootPath),
+            'Index' => $this->displayPath($cache->indexPath),
+            'Files' => (string) count($cache->files),
+            'Fact rows' => (string) count($cache->facts),
+            'Cached trees' => (string) $cachedTreeCount,
+            'Disk size' => $this->formatBytes($this->directorySize($cache->indexPath)),
+            'Last refresh' => $this->formatTimestamp($cache->builtAt),
+            'Last build time' => sprintf('%.2fms', $cache->buildDurationMs),
+        ]));
 
         return 0;
     }
@@ -830,12 +910,15 @@ final class IndexApplication
 Usage:
   greph-index build [path] [--index-dir DIR]
   greph-index refresh [path] [--index-dir DIR]
+  greph-index stats [path] [--index-dir DIR]
   greph-index search [options] pattern [path...]
   greph-index ast-index build [path] [--index-dir DIR]
   greph-index ast-index refresh [path] [--index-dir DIR]
+  greph-index ast-index stats [path] [--index-dir DIR]
   greph-index ast-index search [options] pattern [path...]
   greph-index ast-cache build [path] [--index-dir DIR]
   greph-index ast-cache refresh [path] [--index-dir DIR]
+  greph-index ast-cache stats [path] [--index-dir DIR]
   greph-index ast-cache search [options] pattern [path...]
 
 Search Options:
@@ -879,6 +962,95 @@ AST Search Options:
   --help                  Show this help.
 
 TEXT;
+    }
+
+    private function resolveRootPath(string $path): string
+    {
+        return Filesystem::normalizePath(realpath($path) ?: $path);
+    }
+
+    private function resolveTextIndexPath(TextIndexStore $store, string $root, ?string $indexDir): string
+    {
+        if ($indexDir !== null && $indexDir !== '') {
+            if (str_starts_with($indexDir, '/')) {
+                return Filesystem::normalizePath($indexDir);
+            }
+
+            return Filesystem::normalizePath($this->resolveRootPath($root) . '/' . $indexDir);
+        }
+
+        return $store->locateFrom($root) ?? $store->defaultPath($this->resolveRootPath($root));
+    }
+
+    private function resolveAstIndexPath(AstIndexStore $store, string $root, ?string $indexDir): string
+    {
+        if ($indexDir !== null && $indexDir !== '') {
+            if (str_starts_with($indexDir, '/')) {
+                return Filesystem::normalizePath($indexDir);
+            }
+
+            return Filesystem::normalizePath($this->resolveRootPath($root) . '/' . $indexDir);
+        }
+
+        return $store->locateFrom($root) ?? $store->defaultPath($this->resolveRootPath($root));
+    }
+
+    private function resolveAstCachePath(AstCacheStore $store, string $root, ?string $indexDir): string
+    {
+        if ($indexDir !== null && $indexDir !== '') {
+            if (str_starts_with($indexDir, '/')) {
+                return Filesystem::normalizePath($indexDir);
+            }
+
+            return Filesystem::normalizePath($this->resolveRootPath($root) . '/' . $indexDir);
+        }
+
+        return $store->locateFrom($root) ?? $store->defaultPath($this->resolveRootPath($root));
+    }
+
+    /**
+     * @param array<string, string> $fields
+     */
+    private function formatStatsBlock(string $title, array $fields): string
+    {
+        $lines = [$title];
+
+        foreach ($fields as $label => $value) {
+            $lines[] = sprintf('%s: %s', $label, $value);
+        }
+
+        return implode(PHP_EOL, $lines) . PHP_EOL;
+    }
+
+    private function directorySize(string $path): int
+    {
+        if (is_file($path)) {
+            $size = filesize($path);
+
+            return is_int($size) ? $size : 0;
+        }
+
+        $size = 0;
+        $iterator = new \RecursiveIteratorIterator(
+            new \RecursiveDirectoryIterator($path, \FilesystemIterator::SKIP_DOTS),
+        );
+
+        foreach ($iterator as $entry) {
+            $entrySize = $entry->getSize();
+            $size += is_int($entrySize) ? $entrySize : 0;
+        }
+
+        return $size;
+    }
+
+    private function formatBytes(int $bytes): string
+    {
+        return sprintf('%d bytes', $bytes);
+    }
+
+    private function formatTimestamp(int $timestamp): string
+    {
+        return gmdate('Y-m-d H:i:s', $timestamp) . ' UTC';
     }
 
     private function writeOutput(string $contents): void

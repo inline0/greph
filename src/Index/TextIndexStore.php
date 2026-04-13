@@ -96,6 +96,7 @@ final class TextIndexStore
             || !is_string($metadata['rootPath'] ?? null)
             || !is_int($metadata['version'] ?? null)
             || !is_int($metadata['builtAt'] ?? null)
+            || !(is_int($metadata['buildDurationMs'] ?? null) || is_float($metadata['buildDurationMs'] ?? null) || !array_key_exists('buildDurationMs', $metadata))
             || !is_int($metadata['nextFileId'] ?? null)
             || !is_array($files)
             || !is_array($forward)
@@ -115,6 +116,7 @@ final class TextIndexStore
             indexPath: Filesystem::normalizePath($indexPath),
             version: $metadata['version'],
             builtAt: $metadata['builtAt'],
+            buildDurationMs: (float) ($metadata['buildDurationMs'] ?? 0.0),
             nextFileId: $metadata['nextFileId'],
             files: $files,
             postings: $postings,
@@ -132,6 +134,7 @@ final class TextIndexStore
             'version' => $index->version,
             'rootPath' => $index->rootPath,
             'builtAt' => $index->builtAt,
+            'buildDurationMs' => $index->buildDurationMs,
             'nextFileId' => $index->nextFileId,
         ];
 

@@ -31,6 +31,7 @@ final class TextIndexBuilder
 
     public function build(string $rootPath, ?string $indexPath = null): IndexBuildResult
     {
+        $start = hrtime(true);
         $rootPath = $this->resolveRootPath($rootPath);
         $indexPath = $this->resolveIndexPath($rootPath, $indexPath);
         $scannedFiles = $this->scanFiles($rootPath, $indexPath);
@@ -60,6 +61,7 @@ final class TextIndexBuilder
             indexPath: $indexPath,
             version: $this->store->version(),
             builtAt: time(),
+            buildDurationMs: (hrtime(true) - $start) / 1_000_000,
             nextFileId: $nextFileId,
             files: $files,
             postings: $this->buildPostings($forward),
@@ -74,6 +76,7 @@ final class TextIndexBuilder
             indexPath: $indexPath,
             fileCount: count($files),
             trigramCount: count($index->postings),
+            buildDurationMs: $index->buildDurationMs,
             addedFiles: count($files),
             updatedFiles: 0,
             deletedFiles: 0,
@@ -83,6 +86,7 @@ final class TextIndexBuilder
 
     public function refresh(string $rootPath, ?string $indexPath = null): IndexBuildResult
     {
+        $start = hrtime(true);
         $rootPath = $this->resolveRootPath($rootPath);
         $indexPath = $this->resolveIndexPath($rootPath, $indexPath);
 
@@ -170,6 +174,7 @@ final class TextIndexBuilder
             indexPath: $indexPath,
             version: $this->store->version(),
             builtAt: time(),
+            buildDurationMs: (hrtime(true) - $start) / 1_000_000,
             nextFileId: $nextFileId,
             files: $files,
             postings: $this->buildPostings($forward),
@@ -184,6 +189,7 @@ final class TextIndexBuilder
             indexPath: $indexPath,
             fileCount: count($files),
             trigramCount: count($index->postings),
+            buildDurationMs: $index->buildDurationMs,
             addedFiles: $addedFiles,
             updatedFiles: $updatedFiles,
             deletedFiles: $deletedFiles,
