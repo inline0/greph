@@ -183,13 +183,13 @@ The oracle harness diffs Greph output against the canonical `grep`, `ripgrep`, a
 
 Current local verification baseline:
 
-- `249` PHPUnit tests
-- `1328` assertions
+- `252` PHPUnit tests
+- `1366` assertions
 - oracle regression summary `39/39`
 
 ## Performance
 
-Benchmark tables below are sourced from GitHub Actions CI, never from local runs. Each baseline runs against the WordPress corpus on `ubuntu-latest` with PHP `8.4`, five measured runs, and one warmup run.
+Benchmark tables below are sourced from GitHub Actions CI, never from local runs. The current published baseline comes from GitHub Actions run `24339598566`, against the WordPress corpus on `ubuntu-latest` with PHP `8.4`, five measured runs, and one warmup run.
 
 Comparison tools:
 - `rg`: ripgrep
@@ -200,74 +200,75 @@ Comparison tools:
 
 | Operation | greph | rg | grep |
 | --- | ---: | ---: | ---: |
-| `Literal "function"` | `441.04ms` | `81.93ms` | `185.24ms` |
-| `Literal case insensitive` | `443.29ms` | `88.79ms` | `235.02ms` |
-| `Literal quiet "function"` | `241.22ms` | `3.26ms` | `1.08ms` |
-| `Literal short "wp"` | `439.52ms` | `101.55ms` | `160.44ms` |
-| `Literal whole word` | `921.99ms` | `82.66ms` | `179.76ms` |
-| `Regex new instance` | `448.83ms` | `41.27ms` | `167.49ms` |
-| `Regex array call` | `388.76ms` | `46.32ms` | `190.27ms` |
-| `Regex prefix literal` | `433.71ms` | `41.09ms` | `154.04ms` |
-| `Regex suffix literal` | `576.38ms` | `129.65ms` | `225.08ms` |
-| `Regex exact line literal` | `542.68ms` | `75.13ms` | `161.96ms` |
-| `Regex literal collapse` | `429.30ms` | `85.65ms` | `180.00ms` |
+| `Literal "function"` | `443.95ms` | `85.74ms` | `186.25ms` |
+| `Literal case insensitive` | `442.16ms` | `87.69ms` | `236.47ms` |
+| `Literal quiet "function"` | `240.30ms` | `3.38ms` | `1.08ms` |
+| `Literal short "wp"` | `433.93ms` | `100.08ms` | `158.95ms` |
+| `Literal whole word` | `952.92ms` | `85.57ms` | `181.67ms` |
+| `Regex new instance` | `448.77ms` | `41.04ms` | `169.17ms` |
+| `Regex array call` | `391.57ms` | `47.61ms` | `185.46ms` |
+| `Regex prefix literal` | `434.85ms` | `42.37ms` | `155.31ms` |
+| `Regex suffix literal` | `575.41ms` | `129.01ms` | `229.56ms` |
+| `Regex exact line literal` | `540.73ms` | `75.56ms` | `162.11ms` |
+| `Regex literal collapse` | `426.96ms` | `86.10ms` | `180.46ms` |
 
 ### Scan Mode: Traversal
 
 | Operation | greph | rg | grep |
 | --- | ---: | ---: | ---: |
-| `Full traversal` | `45.63ms` | `20.18ms` | `55.40ms` |
+| `Full traversal` | `43.57ms` | `12.86ms` | `47.19ms` |
 
 ### Scan Mode: Parallel Text
 
 | Operation | greph | rg | grep |
 | --- | ---: | ---: | ---: |
-| `1 worker` | `456.99ms` | `143.65ms` | `223.35ms` |
-| `2 workers` | `446.09ms` | `147.18ms` | `223.39ms` |
-| `4 workers` | `448.29ms` | `144.22ms` | `223.62ms` |
+| `1 worker` | `429.59ms` | `83.96ms` | `182.03ms` |
+| `2 workers` | `427.13ms` | `83.56ms` | `193.52ms` |
+| `4 workers` | `431.55ms` | `85.32ms` | `179.22ms` |
 
 ### Scan Mode: AST
 
 | Operation | greph | sg |
 | --- | ---: | ---: |
-| `new $CLASS()` | `3436.26ms` | `8564.72ms` |
-| `array($$$ITEMS)` | `6669.04ms` | `8652.00ms` |
+| `new $CLASS()` | `2833.44ms` | `4275.41ms` |
+| `array($$$ITEMS)` | `5607.00ms` | `4317.52ms` |
 
 ### Indexed Text Mode
 
 | Operation | greph | rg | grep |
 | --- | ---: | ---: | ---: |
-| `Indexed literal "function"` | `62.93ms` | `138.89ms` | `203.94ms` |
-| `Indexed literal case insensitive` | `71.35ms` | `145.51ms` | `267.65ms` |
-| `Indexed literal short "wp"` | `100.82ms` | `174.77ms` | `2145.97ms` |
-| `Indexed literal whole word` | `66.11ms` | `137.11ms` | `203.59ms` |
-| `Indexed regex new instance` | `6.67ms` | `67.46ms` | `169.57ms` |
-| `Indexed regex array call` | `18.82ms` | `78.25ms` | `192.38ms` |
+| `Indexed literal "function"` | `95.54ms` | `88.86ms` | `183.92ms` |
+| `Indexed literal case insensitive` | `100.22ms` | `95.94ms` | `247.49ms` |
+| `Indexed literal short "wp"` | `125.64ms` | `104.30ms` | `169.99ms` |
+| `Indexed literal whole word` | `92.44ms` | `86.12ms` | `182.61ms` |
+| `Indexed regex new instance` | `9.76ms` | `41.83ms` | `169.61ms` |
+| `Indexed regex array call` | `25.93ms` | `46.54ms` | `185.18ms` |
 
 ### Indexed Summary Queries
 
 | Operation | greph | rg | grep |
 | --- | ---: | ---: | ---: |
-| `Indexed count "function"` | `277.81ms` | `109.83ms` | `181.37ms` |
-| `Indexed files with "function"` | `81.44ms` | `100.21ms` | `121.04ms` |
-| `Indexed files without "function"` | `81.91ms` | `139.90ms` | `107.87ms` |
+| `Indexed count "function"` | `11.28ms` | `54.21ms` | `156.26ms` |
+| `Indexed files with "function"` | `9.88ms` | `47.67ms` | `104.18ms` |
+| `Indexed files without "function"` | `10.03ms` | `84.48ms` | `104.44ms` |
+| `Indexed quiet "function"` | `5.77ms` | `3.35ms` | `1.12ms` |
 
 ### Indexed / Cached AST
 
 | Operation | greph | sg |
 | --- | ---: | ---: |
-| `Indexed new $CLASS()` | `2724.44ms` | `8554.87ms` |
-| `Indexed array($$$ITEMS)` | `6178.27ms` | `8642.14ms` |
-| `Cached new $CLASS()` | `1688.84ms` | `8572.19ms` |
-| `Cached array($$$ITEMS)` | `3861.60ms` | `8668.03ms` |
+| `Indexed new $CLASS()` | `11.14ms` | `4284.66ms` |
+| `Indexed array($$$ITEMS)` | `308.76ms` | `4336.90ms` |
+| `Cached new $CLASS()` | `13.00ms` | `4284.16ms` |
+| `Cached array($$$ITEMS)` | `296.52ms` | `4330.10ms` |
 
 ### Build Costs
 
 | Operation | greph |
 | --- | ---: |
-| `Build trigram index` | `10403.94ms` |
-| `Build AST fact index` | `1418.25ms` |
-| `Build cached AST store` | `10381.02ms` |
+| `Build trigram index` | `12417.00ms` |
+| `Build AST fact index` | `1358.68ms` |
+| `Build cached AST store` | `10033.73ms` |
 
 ## Requirements
 

@@ -40,54 +40,57 @@ Do not leave vague "maybe later" items behind.
 ## Current Published Main Baseline
 
 Source of truth: the current `main` benchmark tables in `README.md`, refreshed only from
-accepted GitHub Actions WordPress runs.
+accepted GitHub Actions WordPress runs. Current baseline run: `24339598566`.
 
 ### Scan Mode
 
-- `text` `Literal "function"`: `446.80ms`
-- `text` `Literal case insensitive`: `446.38ms`
-- `text` `Literal whole word`: `928.37ms`
-- `text` `Regex new instance`: `457.64ms`
-- `text` `Regex array call`: `399.52ms`
-- `text` `Regex prefix literal`: `435.73ms`
-- `text` `Regex suffix literal`: `584.12ms`
-- `text` `Regex exact line literal`: `547.26ms`
-- `text` `Regex literal collapse`: `431.17ms`
-- `walker` `Full traversal`: `45.63ms`
-- `parallel` `1 worker`: `456.99ms`
-- `parallel` `2 workers`: `446.09ms`
-- `parallel` `4 workers`: `448.29ms`
-- `ast` `new $CLASS()`: `3436.26ms`
-- `ast` `array($$$ITEMS)`: `6669.04ms`
+- `text` `Literal "function"`: `443.95ms`
+- `text` `Literal case insensitive`: `442.16ms`
+- `text` `Literal quiet "function"`: `240.30ms`
+- `text` `Literal short "wp"`: `433.93ms`
+- `text` `Literal whole word`: `952.92ms`
+- `text` `Regex new instance`: `448.77ms`
+- `text` `Regex array call`: `391.57ms`
+- `text` `Regex prefix literal`: `434.85ms`
+- `text` `Regex suffix literal`: `575.41ms`
+- `text` `Regex exact line literal`: `540.73ms`
+- `text` `Regex literal collapse`: `426.96ms`
+- `walker` `Full traversal`: `43.57ms`
+- `parallel` `1 worker`: `429.59ms`
+- `parallel` `2 workers`: `427.13ms`
+- `parallel` `4 workers`: `431.55ms`
+- `ast` `new $CLASS()`: `2833.44ms`
+- `ast` `array($$$ITEMS)`: `5607.00ms`
 - `sg` comparison:
-  - `new $CLASS()`: `8564.72ms`
-  - `array($$$ITEMS)`: `8652.00ms`
+  - `new $CLASS()`: `4275.41ms`
+  - `array($$$ITEMS)`: `4317.52ms`
 
 ### Indexed Text
 
-- `indexed-build` `Build trigram index`: `10403.94ms`
-- `indexed-summary` `Indexed count "function"`: `277.81ms`
-- `indexed-summary` `Indexed files with "function"`: `81.44ms`
-- `indexed-summary` `Indexed files without "function"`: `81.91ms`
-- `indexed-text` `Indexed literal "function"`: `62.93ms`
-- `indexed-text` `Indexed literal case insensitive`: `71.35ms`
-- `indexed-text` `Indexed literal short "wp"`: `100.82ms`
-- `indexed-text` `Indexed literal whole word`: `66.11ms`
-- `indexed-text` `Indexed regex new instance`: `6.67ms`
-- `indexed-text` `Indexed regex array call`: `18.82ms`
+- `indexed-build` `Build trigram index`: `12417.00ms`
+- `indexed-summary` `Indexed count "function"`: `11.28ms`
+- `indexed-summary` `Indexed files with "function"`: `9.88ms`
+- `indexed-summary` `Indexed files without "function"`: `10.03ms`
+- `indexed-summary` `Indexed quiet "function"`: `5.77ms`
+- `indexed-text` `Indexed literal "function"`: `95.54ms`
+- `indexed-text` `Indexed literal case insensitive`: `100.22ms`
+- `indexed-text` `Indexed literal short "wp"`: `125.64ms`
+- `indexed-text` `Indexed literal whole word`: `92.44ms`
+- `indexed-text` `Indexed regex new instance`: `9.76ms`
+- `indexed-text` `Indexed regex array call`: `25.93ms`
 
 ### Indexed / Cached AST
 
-- `ast-indexed-build` `Build AST fact index`: `1418.25ms`
-- `ast-indexed` `Indexed new $CLASS()`: `2724.44ms`
-- `ast-indexed` `Indexed array($$$ITEMS)`: `6178.27ms`
-- `ast-cached-build` `Build cached AST store`: `10381.02ms`
-- `ast-cached` `Cached new $CLASS()`: `1688.84ms`
-- `ast-cached` `Cached array($$$ITEMS)`: `3861.60ms`
+- `ast-indexed-build` `Build AST fact index`: `1358.68ms`
+- `ast-indexed` `Indexed new $CLASS()`: `11.14ms`
+- `ast-indexed` `Indexed array($$$ITEMS)`: `308.76ms`
+- `ast-cached-build` `Build cached AST store`: `10033.73ms`
+- `ast-cached` `Cached new $CLASS()`: `13.00ms`
+- `ast-cached` `Cached array($$$ITEMS)`: `296.52ms`
 
 ### Baseline Notes
 
-- Indexed text already beats `rg` on the published warm-query rows; the remaining text upside is in direct-serving and cold/build tradeoffs.
+- Indexed text is now extremely strong on warm regex and summary queries, and near parity with `rg` on warm fixed-string queries; the remaining text upside is in direct-serving and cold/build tradeoffs.
 - Cached and indexed AST are already ahead of `sg`; the remaining AST work is planner/fact-table/decode overhead, not basic viability.
 - Scan-mode text remains the biggest one-shot gap versus `rg`.
 - Parallel is still effectively flat and should be treated as unsolved.
@@ -500,6 +503,53 @@ These are not queue items anymore; they are the current floor:
   - note:
     - quiet / exit-code-only text search now short-circuits after the first selected match and is merged to `main`
     - follow-up `main` text benchmark should refresh the published baseline with the new quiet row
+
+- `7718eb1` keep
+  - CI run: `24338573217`
+  - compare: `origin/main` -> `7718eb1`
+  - headline:
+    - full WordPress suite now keeps warm indexed and warm AST rows isolated from build/cold suite invalidation
+    - `Indexed literal "function"` `-61.12%`
+    - `Indexed files with "function"` `-86.67%`
+    - `Indexed quiet "function"` `-78.01%`
+    - `Indexed new $CLASS()` `-99.52%`
+    - `Cached new $CLASS()` `-99.04%`
+  - note:
+    - this is a benchmark methodology fix, not a runtime search-engine change
+    - runtime, cold, build, and warm stores are now isolated so full-suite numbers are trustworthy again
+    - merged to `main` in `ef4e6aa`
+
+- `4fbba00` reject
+  - CI runs: `24339300183`, `24339300188`
+  - compare: `origin/main` -> `4fbba00`
+  - headline:
+    - `Indexed files with "function"` `+0.77%`
+    - `Indexed quiet "function"` `+1.42%`
+    - `Build trigram index` `+20.04%`
+  - note:
+    - exact-case word postings plus verified summary serving did not clear CI noise on the summary rows
+    - build cost regressed materially, so the branch does not merge
+
+- `bd69e91` reject
+  - CI runs: `24340285989`, `24340286001`
+  - compare: `origin/main` -> `bd69e91`
+  - headline:
+    - `Indexed literal "function"` `+109.29%`
+    - `Indexed regex new instance` `+968.92%`
+    - `Build trigram index` `+12.50%`
+  - note:
+    - eager frequency-file loading made every warm indexed query materially worse
+    - the metadata idea is only viable if it is loaded lazily or derived from already-needed postings
+
+- `6111559` reject
+  - CI runs: `24340721837`, `24340721849`
+  - compare: `origin/main` -> `6111559`
+  - headline:
+    - warm indexed text: all rows stayed inside CI noise
+    - cold indexed text: all rows stayed inside CI noise
+  - note:
+    - reusing loaded postings for seed ranking is safe, but it did not clear the noise threshold on WordPress
+    - do not merge this planner shape as-is
 
 ## Remaining Execution Queue
 

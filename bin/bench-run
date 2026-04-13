@@ -43,12 +43,18 @@ Filesystem::ensureDirectory($outputDirectory);
 $locator = new BenchmarkArtifactLocator();
 $runner = new CommandRunner();
 $toolResolver = new ToolResolver();
-$artifactNames = [
-    $locator->headArtifactName($runId),
-    $locator->baseArtifactName($runId),
+$artifacts = [
+    [
+        'name' => $locator->headArtifactName($runId),
+        'path' => $outputDirectory . '/head',
+    ],
+    [
+        'name' => $locator->baseArtifactName($runId),
+        'path' => $outputDirectory . '/base',
+    ],
 ];
 
-foreach ($artifactNames as $artifactName) {
+foreach ($artifacts as $artifact) {
     $download = $runner->run([
         ...$toolResolver->githubCli(),
         'run',
@@ -57,16 +63,16 @@ foreach ($artifactNames as $artifactName) {
         '--repo',
         $repo,
         '-n',
-        $artifactName,
+        $artifact['name'],
         '-D',
-        $outputDirectory,
+        $artifact['path'],
     ], $grephRoot);
 
     if (!$download->successful()) {
         throw new RuntimeException(
             trim($download->output()) !== ''
                 ? trim($download->output())
-                : sprintf('Failed to download benchmark artifact: %s', $artifactName),
+                : sprintf('Failed to download benchmark artifact: %s', $artifact['name']),
         );
     }
 }
