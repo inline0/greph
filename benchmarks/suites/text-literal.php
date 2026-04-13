@@ -24,4 +24,11 @@ return [
         'fixed' => true,
         'whole_word' => true,
     ],
+    [
+        'suite' => 'text-literal',
+        'category' => 'text',
+        'name' => 'Literal short "wp"',
+        'pattern' => 'wp',
+        'fixed' => true,
+    ],
 ];

@@ -451,6 +451,36 @@ These are not queue items anymore; they are the current floor:
     - the first dedicated whole-word occurrence-scan pass did not hold up on CI
     - future whole-word work must use a different strategy
 
+- `7dea951` reject
+  - CI run: `24333264923`
+  - compare: `origin/main` -> `7dea951`
+  - headline:
+    - `Literal whole word` `+1588.66%`
+  - note:
+    - ASCII whole-word occurrence scanning was the wrong shape for common tokens
+    - exact whole-word prefiltering plus candidate-by-candidate contents scans exploded on WordPress
+    - do not revisit whole-word occurrence scanning in this form
+
+- `0828564` reject
+  - CI run: `24333681665`
+  - compare: `origin/main` -> `0828564`
+  - headline:
+    - `Regex new instance` `+285.50%`
+    - `Regex array call` `+198.23%`
+  - note:
+    - range-based regex matching avoided line slicing but forced each candidate regex to scan the rest of the file
+    - do not revisit this whole-contents `preg_match(..., offset)` shape for seeded regex lines
+
+- `89975d8` reject
+  - CI run: `24334175268`
+  - compare: `origin/main` -> `89975d8`
+  - headline:
+    - `Literal whole word` `-0.70%`
+    - every other scan-text row stayed noise
+  - note:
+    - ASCII whole-word per-line boundary scanning was safe but did not clear the CI win threshold
+    - do not revisit this exact line-matcher shape
+
 ## Remaining Execution Queue
 
 This is the actual remaining work from here onward. Execute it in this order unless a fresh
