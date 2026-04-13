@@ -119,6 +119,7 @@ final class TextQueryCacheStore
             'count_only' => $options->countOnly,
             'files_with_matches' => $options->filesWithMatches,
             'files_without_matches' => $options->filesWithoutMatches,
+            'quiet' => $options->quiet,
         ], JSON_THROW_ON_ERROR));
 
         return $this->directoryPath($indexPath) . '/' . $key . self::EXTENSION;

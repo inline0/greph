@@ -175,6 +175,17 @@ final class IndexedTextSearcher
         $resultsByPath = [];
         $canUseDirectLiteralSummary = $this->canUseDirectLiteralSummary($pattern, $options);
 
+        if ($options->quiet && $canUseDirectLiteralSummary) {
+            return $this->searchLiteralQuietPaths(
+                $selectedPaths,
+                $fallbackPaths,
+                $pattern,
+                $options,
+                $candidateIds,
+                $index,
+            );
+        }
+
         if ($candidateIds === null || $index === null) {
             $searchResults = $canUseDirectLiteralSummary
                 ? $this->searchLiteralSummaryFiles($selectedPaths, $pattern, $options)
@@ -248,7 +259,7 @@ final class IndexedTextSearcher
             return false;
         }
 
-        return $options->countOnly || $options->filesWithMatches || $options->filesWithoutMatches;
+        return $options->countOnly || $options->filesWithMatches || $options->filesWithoutMatches || $options->quiet;
     }
 
     /**
@@ -373,6 +384,51 @@ final class IndexedTextSearcher
         }
 
         return $results;
+    }
+
+    /**
+     * @param list<string> $selectedPaths
+     * @param list<string> $fallbackPaths
+     * @param array<int, true>|null $candidateIds
+     * @return list<TextFileResult>
+     */
+    private function searchLiteralQuietPaths(
+        array $selectedPaths,
+        array $fallbackPaths,
+        string $pattern,
+        TextSearchOptions $options,
+        ?array $candidateIds,
+        ?TextIndex $index,
+    ): array {
+        $paths = [];
+
+        if ($candidateIds === null || $index === null) {
+            $paths = $selectedPaths;
+        } else {
+            $selectedPathSet = array_fill_keys($selectedPaths, true);
+
+            foreach ($index->files as $file) {
+                $absolutePath = $index->rootPath . '/' . $file['p'];
+
+                if (isset($selectedPathSet[$absolutePath]) && isset($candidateIds[$file['id']])) {
+                    $paths[] = $absolutePath;
+                }
+            }
+        }
+
+        foreach ([...$paths, ...$fallbackPaths] as $path) {
+            $contents = @file_get_contents($path);
+
+            if ($contents === false) {
+                continue;
+            }
+
+            if ($this->contentsContainLiteral($contents, $pattern, $options->caseInsensitive)) {
+                return [new TextFileResult($path, [], 1)];
+            }
+        }
+
+        return [];
     }
 
     private function contentsContainLiteral(string $contents, string $pattern, bool $caseInsensitive): bool
