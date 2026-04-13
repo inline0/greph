@@ -2,12 +2,8 @@
 
 This is the single canonical performance backlog for `greph`.
 
-It supersedes the older split queue files:
-- `queue.md`
-- `QUEUE_PERFORMANCE.md`
-
-This file supersedes the older split queues. It is the final performance program for
-`greph`.
+It replaces the older split backlog files and is the only performance queue that
+should be maintained.
 
 The goal is not "maybe faster." The goal is:
 - exhaust every credible remaining performance idea
@@ -41,74 +37,79 @@ Do not leave vague "maybe later" items behind.
 10. Record accepted and rejected experiments with commit and CI run id.
 11. Merge accepted performance wins back to `main` promptly so the next experiment starts from the real baseline.
 
-## Current Baseline
+## Current Published Main Baseline
 
-### Scan Mode Baseline
+Source of truth: the current `main` benchmark tables in `README.md`, refreshed only from
+accepted GitHub Actions WordPress runs.
 
-Source of truth: GitHub Actions run `24203553976`
+### Scan Mode
 
-WordPress medians:
-- `text` `Literal "function"`: `451.39ms`
-- `text` `Literal case insensitive`: `450.35ms`
-- `text` `Regex new instance`: `452.13ms`
-- `text` `Regex array call`: `397.88ms`
-- `walker` `Full traversal`: `44.54ms`
-- `parallel` `1 worker`: `457.87ms`
-- `parallel` `2 workers`: `442.46ms`
-- `parallel` `4 workers`: `438.98ms`
-- `ast` `new $CLASS()`: `3700.54ms`
-- `ast` `array($$$ITEMS)`: `6332.39ms`
+- `text` `Literal "function"`: `446.80ms`
+- `text` `Literal case insensitive`: `446.38ms`
+- `text` `Literal whole word`: `928.37ms`
+- `text` `Regex new instance`: `457.64ms`
+- `text` `Regex array call`: `399.52ms`
+- `text` `Regex prefix literal`: `435.73ms`
+- `text` `Regex suffix literal`: `584.12ms`
+- `text` `Regex exact line literal`: `547.26ms`
+- `text` `Regex literal collapse`: `431.17ms`
+- `walker` `Full traversal`: `45.63ms`
+- `parallel` `1 worker`: `456.99ms`
+- `parallel` `2 workers`: `446.09ms`
+- `parallel` `4 workers`: `448.29ms`
+- `ast` `new $CLASS()`: `3436.26ms`
+- `ast` `array($$$ITEMS)`: `6669.04ms`
 - `sg` comparison:
-  - `new $CLASS()`: `8498.38ms`
-  - `array($$$ITEMS)`: `8639.29ms`
+  - `new $CLASS()`: `8564.72ms`
+  - `array($$$ITEMS)`: `8652.00ms`
 
-### Indexed Text Baseline
+### Indexed Text
 
-Source of truth: GitHub Actions run `24203553976`
+- `indexed-build` `Build trigram index`: `10403.94ms`
+- `indexed-summary` `Indexed count "function"`: `277.81ms`
+- `indexed-summary` `Indexed files with "function"`: `81.44ms`
+- `indexed-summary` `Indexed files without "function"`: `81.91ms`
+- `indexed-text` `Indexed literal "function"`: `62.93ms`
+- `indexed-text` `Indexed literal case insensitive`: `71.35ms`
+- `indexed-text` `Indexed literal short "wp"`: `100.82ms`
+- `indexed-text` `Indexed literal whole word`: `66.11ms`
+- `indexed-text` `Indexed regex new instance`: `6.67ms`
+- `indexed-text` `Indexed regex array call`: `18.82ms`
 
-WordPress medians:
-- `indexed-build` `Build trigram index`: `9931.40ms`
-- `indexed-summary` `Indexed count "function"`: `284.43ms`
-- `indexed-summary` `Indexed files with "function"`: `10.35ms`
-- `indexed-summary` `Indexed files without "function"`: `10.87ms`
-- `indexed-text` `Indexed literal "function"`: `11.22ms`
-- `indexed-text` `Indexed literal case insensitive`: `483.40ms`
-- `indexed-text` `Indexed regex new instance`: `179.09ms`
-- `indexed-text` `Indexed regex array call`: `193.01ms`
-- note: `Indexed literal "function"` in this run is skewed by a query-cache collision fixed locally after the run and should be refreshed on the next CI sweep.
+### Indexed / Cached AST
 
-### Current Directional Local Snapshot
-
-These numbers are useful for direction only and are not the acceptance gate.
-
-- `indexed-load` `Load runtime index`: `2.06ms`
-- `indexed-load` `Load postings for "function"`: `15.67ms`
-- `indexed-summary` `Count "function"`: `504.12ms`
-- `indexed-summary` `Files with "function"`: `77.25ms`
-- `indexed-summary` `Files without "function"`: `82.32ms`
-- `indexed-text` `Literal "function"`: `504.58ms`
-- `indexed-text` `Literal case insensitive`: `280.30ms`
-- `indexed-text` `Regex new instance`: `218.57ms`
-- `indexed-text` `Regex array call`: `244.24ms`
+- `ast-indexed-build` `Build AST fact index`: `1418.25ms`
+- `ast-indexed` `Indexed new $CLASS()`: `2724.44ms`
+- `ast-indexed` `Indexed array($$$ITEMS)`: `6178.27ms`
+- `ast-cached-build` `Build cached AST store`: `10381.02ms`
+- `ast-cached` `Cached new $CLASS()`: `1688.84ms`
+- `ast-cached` `Cached array($$$ITEMS)`: `3861.60ms`
 
 ### Baseline Notes
 
-- Scan-mode AST is already ahead of `sg` on the current WordPress cases.
-- Indexed text is useful, but broad literal queries still spend too much time reopening files.
-- Indexed `-l` and `-L` already look strong locally; normal output is the bigger remaining indexed-text gap.
-- Parallel is still not a meaningful win on WordPress and should not be treated as solved.
+- Indexed text already beats `rg` on the published warm-query rows; the remaining text upside is in direct-serving and cold/build tradeoffs.
+- Cached and indexed AST are already ahead of `sg`; the remaining AST work is planner/fact-table/decode overhead, not basic viability.
+- Scan-mode text remains the biggest one-shot gap versus `rg`.
+- Parallel is still effectively flat and should be treated as unsolved.
 
 ## Already Landed
 
 These are not queue items anymore; they are the current floor:
 - fixed-string scan acceleration
 - regex seed-literal candidate filtering
+- anchored regex literal fast paths
+- regex literal-collapse routing
 - AST constructor and array prefilters
 - AST candidate streaming and capture memoization
 - separate indexed text mode
 - sharded on-disk trigram postings
 - indexed multi-seed regex planning
+- word / identifier postings
+- whole-word indexed planning
+- cached short-query root-query handling
 - indexed direct summary paths for `-l`, `-L`, and `-c`
+- indexed and cached AST warm query caches
+- indexed and cached AST CLI workflows
 - benchmark artifact fetch helper and interleaved CI comparison
 - `ast-internal`, `ast-parse`, `indexed-build`, `indexed-load`, and `indexed-summary` benchmark categories
 
@@ -378,69 +379,161 @@ These are not queue items anymore; they are the current floor:
     - word-fragment bigram postings reduced the build hit, but still regressed indexed build too much
     - short-query indexed bigram planning is closed as rejected in this form
 
+- `bfed054` reject
+  - CI run: `24232948066`
+  - compare: `origin/main` -> `bfed054`
+  - headline:
+    - `parallel` `4 workers` `+5.58%`
+    - `parallel` `1 worker` and `2 workers` stayed noise
+  - note:
+    - tuple-encoded text worker payloads did not survive CI
+    - do not carry this worker-serialization path forward
+
+- `16b5ca3` reject
+  - CI run: `24233581942`
+  - compare: `origin/main` -> `16b5ca3`
+  - headline:
+    - `parallel` `1/2/4 workers` all stayed inside noise
+  - note:
+    - cheaper scan-line trimming did not produce a measurable benchmark win
+    - do not keep this micro-optimization on the queue as an untested idea
+
+- `016749b` reject
+  - CI run: `24233908974`
+  - compare: `origin/main` -> `016749b`
+  - headline:
+    - `parallel` `1/2/4 workers` all stayed inside noise
+  - note:
+    - multi-literal regex prefiltering in this form did not produce a keeper
+    - any future revisit must use a different planner shape, not this branch
+
+- `fb3a402` reject
+  - CI run: `24234414419`
+  - compare: `origin/main` -> `fb3a402`
+  - headline:
+    - `Indexed literal "function"` `+16.66%`
+    - `Indexed literal case insensitive` `+20.51%`
+    - `Indexed regex array call` `+20.45%`
+    - `Indexed regex new instance` `-6.18%`
+  - note:
+    - object-heavy indexed text query caches regressed the important warm rows
+    - keep compact scalar payloads
+
+- `a3c91b3` reject
+  - CI run: `24234951373`
+  - compare: `origin/main` -> `a3c91b3`
+  - headline:
+    - `ast-internal` `new $CLASS() count-only` `-3.36%`
+    - `ast-internal` `array($$$ITEMS) count-only` `-4.16%`
+    - `ast-cached` `Cached new $CLASS()` `+3.13%`
+  - note:
+    - process-local service reuse did not translate into a merge-worthy broad win
+    - keep the idea closed unless a narrower service-reuse target appears
+
+- `31e5eeb` keep
+  - historical shipped scan-text keep, merged before this queue drifted
+  - headline:
+    - anchored regex literal paths are now in the published scan-mode table:
+      - `Regex prefix literal`
+      - `Regex suffix literal`
+      - `Regex exact line literal`
+      - `Regex literal collapse`
+  - note:
+    - use the current `README.md` scan-mode table as the proof surface for this shipped area
+
+- `18b7dda` reject
+  - CI run: `24239622163`
+  - compare: `origin/perf/whole-word-benchmark-baseline` -> `18b7dda`
+  - headline:
+    - `Literal whole word` `+0.79%`
+    - every other scan-text row stayed noise
+  - note:
+    - the first dedicated whole-word occurrence-scan pass did not hold up on CI
+    - future whole-word work must use a different strategy
+
 ## Remaining Execution Queue
 
-This is the remaining work from here onward. Execute it in this order unless a fresh full
-WordPress CI run clearly changes the next hotspot.
+This is the actual remaining work from here onward. Execute it in this order unless a fresh
+full WordPress CI run clearly changes the next hotspot.
 
-1. Wait for full `main` run `24238187631` to complete and refresh `README.md` from that CI artifact.
-2. Re-freeze the benchmark baseline in this file from the newest merged `main` run.
-3. Finish the remaining scan-mode text planner work that still targets benchmarked paths:
-   - anchored-regex prefix fast path
-   - anchored-regex suffix fast path
-   - full-line regex-to-literal fast path
-   - regex-to-literal collapse detection
-   - whole-word literal planning
-4. Finish the remaining scan-mode text plumbing work:
-   - short-query strategy for 1-2 byte literals
-   - no-context regex string-splitting/copying reduction
-   - existence-only fast path
-   - formatting-cost re-measure after search-path wins
-5. If scan-mode text stops moving, switch to indexed-text planner work:
-   - best-seed selection by rarest postings
-   - whole-word indexed planning
-   - case-folded planner rules
-6. If planner-only indexed work flattens out, implement the first sharper index structure:
-   - word / identifier postings
-   - case-folded word postings
+1. Keep the published `main` baseline current:
+   - after every accepted merge, run a fresh full WordPress benchmark
+   - refresh `README.md`
+   - refresh this queue's baseline section if the accepted floor moved
+2. Finish the remaining scan-mode text work:
+   - alternative whole-word strategies beyond the rejected `18b7dda` branch
+   - 1-2 byte literal scan strategy
+   - no-context regex split/copy reduction
+   - pure-existence fast path
+   - buffered-read experiments for regex-heavy scans
+   - formatting-cost audit after the next real scan-text keep
+   - any new multi-literal regex prefilter only if it beats the rejected `016749b` shape
+3. Finish indexed-text planner work:
+   - rarest-seed selection
+   - broader case-folded planner rules
+   - selectivity heuristics beyond the rejected simple scan-fallback approach
    - cheap frequency metadata
-7. After that, test the first direct-serving indexed path:
+4. Move indexed text from candidate filtering toward direct serving:
    - line-offset tables
-   - fixed-string occurrence blocks
+   - occurrence blocks for longer fixed strings
    - direct fixed-string normal-output path
-8. Keep scan-mode AST focused only on CI-proven cold-path ideas:
-   - re-run `ast`, `ast-internal`, and `ast-parse` together after any accepted AST scan win
-   - stop AST cold-path work if it stays noise across two isolated experiments
-9. Move cached/indexed AST toward fuller fact-table pruning only after text work plateaus:
-   - broader file-level structural facts
-   - optional identifier postings
-   - candidate-node pruning from facts
-10. Revisit parallel only after any accepted scan/indexed change materially shifts single-process cost.
-11. Finish the remaining storage and refresh work only after search-path wins flatten:
+   - direct fixed-string JSON-output path
+   - indexed existence fast path
+   - explicit clean fallbacks for context, complex regexes, and unusual output modes
+5. Finish text-index storage and refresh hardening:
+   - memory/stats output
    - dirty-refresh benchmarks
-   - compaction rules
-   - stronger staleness policy
-   - locking / atomic swap hardening
-12. Finish benchmark/reporting cleanup last:
-   - ensure every new benchmark category has local smoke support plus CI coverage
+   - postings compaction
+   - optional content-hash freshness verification
+   - crash-safe swaps and stale-lock cleanup
+6. Keep cold scan AST narrow and disciplined:
+   - only pursue new AST scan ideas if they target parser/prefilter cost directly
+   - rerun `ast`, `ast-internal`, and `ast-parse` together after every accepted cold AST win
+   - stop after two consecutive no-win experiments in the same AST scan sub-area
+7. Finish cached/indexed AST planner and product work:
+   - richer fact tables
+   - optional identifier postings
+   - cached-AST planner and fallback policy
+   - candidate-node pruning from facts
+   - optional cached source/line-offset assistance so warm AST avoids rereading source when it pays off
+   - dirty-refresh, compaction, corruption, and locking work
+   - rewrite-mode reuse and dedicated rewrite benchmarks
+8. Revisit parallel after any meaningful single-process shift:
+   - category-specific thresholds
+   - dominant-file heuristic
+   - dynamic queue / work stealing
+   - hybrid chunking
+   - scalar-only payloads
+   - k-way merge / order-preserving worker collection
+9. Finish walker/I/O/storage audits:
+   - walker ordering/sorting cost
+   - whole-file vs streamed reads for regex and AST
+   - larger AST prefilter buffers
+   - ignore/type cache audit
+   - postings bucket sizing
+   - disk-size growth guardrails
+10. Finish benchmark/reporting cleanup:
+   - ensure every new category has local smoke support and CI coverage
+   - mark every open item shipped, rejected, or deferred
    - refresh final README tables from the last accepted full `main` run
-   - mark every still-open queue item as shipped, rejected, or explicitly deferred
 
 ## Phase 1: Scan-Mode Text Search
 
 The goal here is to finish the remaining one-shot grep-style optimizations before moving deeper into index-only work.
 
-- [ ] Add anchored-regex fast paths for regexes that reduce to prefix checks.
-- [ ] Add anchored-regex fast paths for regexes that reduce to suffix checks.
-- [ ] Add full-line literal fast paths for regexes that reduce to exact-line checks.
-- [ ] Detect regexes that collapse to exact literal matches and route them to literal search immediately.
-- [ ] Add better whole-word scan planning so whole-word literals do not pay generic substring costs.
+- [x] Add anchored-regex fast paths for regexes that reduce to prefix checks.
+- [x] Add anchored-regex fast paths for regexes that reduce to suffix checks.
+- [x] Add full-line literal fast paths for regexes that reduce to exact-line checks.
+- [x] Detect regexes that collapse to exact literal matches and route them to literal search immediately.
+- [ ] Add better whole-word scan planning so whole-word literals do not pay generic substring costs. First dedicated occurrence-scan attempt was rejected in `18b7dda`; a new strategy is still open.
 - [ ] Add a short-query strategy for 1-2 byte literals instead of pretending current fixed-string heuristics are enough.
 - [ ] Benchmark larger buffered reads for regex-heavy scans only.
 - [ ] Reduce string splitting and copying in the no-context regex path.
+- [x] Test multi-literal regex prefiltering beyond the current seed extraction. Rejected in `016749b`; any revisit must use a different planner shape.
 - [x] Add a count-only fast path for scan mode that avoids full match payload materialization when possible.
 - [x] Add a files-with-matches fast path for scan mode that exits per file after the first proof.
 - [x] Add a files-without-matches fast path for scan mode that exits per file after the first proof.
+- [x] Test cheaper scan-line trimming and exact-match text materialization. Rejected in `16b5ca3` and `4bb09c9`; no CI win.
 - [ ] Add a pure-existence fast path so exit-code-only calls do not pay formatting costs.
 - [ ] Re-measure formatting cost after search-path wins land so output generation is not hiding as the next bottleneck.
 
@@ -453,8 +546,9 @@ The current trigram mode still behaves mostly like "candidate filter plus verifi
 - [ ] Add best-seed selection for regex and substring queries based on rarest available postings, not just longest extracted literal.
 - [x] Add short-query indexed planning for 1-2 byte literals, with a deliberate fallback when trigrams are useless. Rejected on CI in two forms: full-content bigram postings (`75689a6`) and cheaper word-fragment bigram postings (`1706f76`) both improved the short query row but regressed indexed build.
 - [x] Add whole-word indexed planning that prefers a sharper exact-word path over trigram substring filtering.
-- [ ] Add selectivity heuristics so very broad candidate sets can fall back to scan mode instead of paying index overhead for no gain.
-- [ ] Add case-folded planner rules for case-insensitive literal queries.
+- [ ] Add selectivity heuristics so very broad candidate sets can fall back to scan mode instead of paying index overhead for no gain. The simple fallback heuristic in `73431bc` was rejected; only materially different planner strategies remain open.
+- [ ] Add case-folded planner rules for case-insensitive literal queries beyond the current exact-word path.
+- [x] Test object-heavy indexed query-cache payloads. Rejected in `fb3a402`; keep compact scalar payloads.
 
 ### Sharper Index Structures
 
@@ -522,7 +616,7 @@ This is the AST equivalent of indexed text mode. It should remain a separate pro
 
 ### Product Shape
 
-- [ ] Define the CLI contract for cached/indexed AST mode.
+- [x] Define the CLI contract for cached/indexed AST mode.
   - separate command or flag
   - explicit refresh behavior
   - explicit fallback behavior
@@ -547,6 +641,12 @@ This is the AST equivalent of indexed text mode. It should remain a separate pro
   - class names
   - interface names
   - trait names
+- [ ] Extend AST facts further only where benchmarks justify it:
+  - property fetch names
+  - property declaration names
+  - class constant fetch names
+  - declared function names
+  - namespace / import names
 - [ ] Add optional identifier postings so common AST name-based patterns can narrow candidate files without parse.
 
 ### Query Planning
@@ -555,9 +655,11 @@ This is the AST equivalent of indexed text mode. It should remain a separate pro
   - cold scan AST
   - cached parse reuse
   - fact-table candidate pruning plus parse
-- [ ] Add a cold-fallback rule when the cache is stale or missing.
+- [x] Add a missing-index CLI fallback for cached/indexed AST mode.
+- [ ] Add a cold-fallback rule when the cache is stale, partial, or not worth using.
 - [x] Add candidate-file pruning from AST facts before parse.
 - [ ] Add candidate-node pruning from AST facts before full structural match where possible.
+- [ ] Add optional cached source/line-offset assistance so warm AST search can avoid rereading file contents when match materialization dominates.
 
 ### Incremental Refresh
 
@@ -566,6 +668,7 @@ This is the AST equivalent of indexed text mode. It should remain a separate pro
 - [ ] Add cached-AST dirty-refresh benchmarks.
 - [x] Add add/change/delete/rename refresh handling for AST cache records.
 - [ ] Add compaction and corruption handling for AST cache state.
+- [ ] Benchmark alternate AST tree codecs / compression tradeoffs before changing the current `.phpbin.gz` tree format.
 - [ ] Add locking and atomic swap rules matching the text index guarantees.
 
 ### Rewrite Reuse
@@ -591,6 +694,8 @@ Parallel work should only survive if it produces real CI wins after scan and ind
   - files-with-matches
   - files-without-matches
   - existence-only
+- [x] Test tuple-encoded text worker payloads. Rejected in `bfed054`; do not revisit that exact codec shape.
+- [ ] Add k-way merge or order-preserving worker collection so text, AST, and rewrite workers do not always pay full resort costs after flattening.
 - [ ] Re-run `1/2/4` worker WordPress comparisons after every meaningful scan or indexed win.
 - [ ] Only consider persistent workers if all simpler scheduling experiments flatten out.
 
@@ -623,16 +728,13 @@ Work through these in order unless CI results make the next hotspot obvious:
 1. Freeze the fresh WordPress baseline from current `HEAD`.
 2. Finish remaining scan-mode text fast paths.
 3. Finish indexed-text query planner work.
-4. Add direct indexed normal-output support for fixed strings.
-5. Add the word / identifier index.
-6. Finish scan-mode AST parser-pruning work.
-7. Build the first useful cached/indexed AST slice:
-   - file facts
-   - candidate-file pruning
-   - warm-query benchmarks
+4. Add direct indexed normal-output and JSON-output support for fixed strings.
+5. Finish text-index refresh/stats/compaction hardening.
+6. Finish the remaining cold AST parser-pruning work only if a new idea directly targets parser cost.
+7. Finish cached/indexed AST fact growth, planner work, and rewrite reuse.
 8. Revisit parallel once scan/indexed costs have moved.
 9. Run a full WordPress sweep across every category.
-10. Update `README.md` only after the last accepted round.
+10. Update `README.md` and this queue only after the last accepted round.
 
 ## Done Means Done
 
