@@ -11,6 +11,7 @@ final readonly class AstCacheBuildResult
         public string $indexPath,
         public int $fileCount,
         public int $cachedTreeCount,
+        public float $buildDurationMs,
         public int $addedFiles,
         public int $updatedFiles,
         public int $deletedFiles,

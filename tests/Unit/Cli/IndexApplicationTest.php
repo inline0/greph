@@ -61,6 +61,7 @@ PHP,
 
         $helpExit = $application->run(['greph-index', '--help']);
         $buildExit = $application->run(['greph-index', 'build', '.']);
+        $statsExit = $application->run(['greph-index', 'stats', '.']);
         $searchExit = $application->run(['greph-index', 'search', '-F', 'function', '.']);
         $jsonExit = $application->run(['greph-index', 'search', '-F', '--json', 'function', '.']);
         $noMatchExit = $application->run(['greph-index', 'search', '-F', 'missing', '.']);
@@ -85,6 +86,7 @@ PHP,
 
         $this->assertSame(0, $helpExit);
         $this->assertSame(0, $buildExit);
+        $this->assertSame(0, $statsExit);
         $this->assertSame(0, $searchExit);
         $this->assertSame(0, $jsonExit);
         $this->assertSame(1, $noMatchExit);
@@ -102,6 +104,8 @@ PHP,
         $this->assertSame(0, $withFilenameExit);
         $this->assertSame(0, $refreshExit);
         $this->assertStringContainsString('Built index for', $stdout);
+        $this->assertStringContainsString('Text index stats', $stdout);
+        $this->assertStringContainsString('Last build time:', $stdout);
         $this->assertStringContainsString('src/App.php:2:function indexed(): void {}', $stdout);
         $this->assertStringContainsString('"matched_text": "function"', $stdout);
         $this->assertStringContainsString("2\n", $stdout);
@@ -137,6 +141,7 @@ PHP,
 
         $buildHelpExit = $application->run(['greph-index', 'build', '--help']);
         $refreshHelpExit = $application->run(['greph-index', 'refresh', '--help']);
+        $statsHelpExit = $application->run(['greph-index', 'stats', '--help']);
         $searchHelpExit = $application->run(['greph-index', 'search', '--help']);
         $buildExit = $application->run(['greph-index', 'build', '.', '--index-dir', '.custom-index']);
         $searchExit = $application->run(['greph-index', 'search', '--index-dir', '.custom-index', '-F', 'function', '.']);
@@ -145,11 +150,14 @@ PHP,
 
         $this->assertSame(0, $buildHelpExit);
         $this->assertSame(0, $refreshHelpExit);
+        $this->assertSame(0, $statsHelpExit);
         $this->assertSame(0, $searchHelpExit);
         $this->assertSame(0, $buildExit);
         $this->assertSame(0, $searchExit);
         $this->assertStringContainsString('greph-index build [path] [--index-dir DIR]', $stdout);
+        $this->assertStringContainsString('greph-index stats [path] [--index-dir DIR]', $stdout);
         $this->assertStringContainsString('greph-index ast-index build [path] [--index-dir DIR]', $stdout);
+        $this->assertStringContainsString('greph-index ast-index stats [path] [--index-dir DIR]', $stdout);
         $this->assertStringContainsString('greph-index ast-cache search [options] pattern [path...]', $stdout);
         $this->assertStringContainsString('.custom-index', $stdout);
     }
@@ -161,6 +169,7 @@ PHP,
         $application = $harness['application'];
 
         $indexBuildExit = $application->run(['greph-index', 'ast-index', 'build', '.']);
+        $indexStatsExit = $application->run(['greph-index', 'ast-index', 'stats', '.']);
         $indexSearchExit = $application->run(['greph-index', 'ast-index', 'search', 'new $CLASS()', '.']);
         $indexJsonExit = $application->run(['greph-index', 'ast-index', 'search', '--json', 'array($$$ITEMS)', '.']);
         $indexFilesExit = $application->run(['greph-index', 'ast-index', 'search', '-l', 'render_widget()', '.']);
@@ -168,6 +177,7 @@ PHP,
         $indexIgnoredExit = $application->run(['greph-index', 'ast-index', 'search', '--no-ignore', 'array($$$ITEMS)', '.']);
         $indexFallbackExit = $application->run(['greph-index', 'ast-index', 'search', '--index-dir', '.missing-ast-index', '--fallback', 'scan', 'new $CLASS()', 'src/Ast.php']);
         $cacheBuildExit = $application->run(['greph-index', 'ast-cache', 'build', '.']);
+        $cacheStatsExit = $application->run(['greph-index', 'ast-cache', 'stats', '.']);
         $cacheSearchExit = $application->run(['greph-index', 'ast-cache', 'search', 'new $CLASS()', '.']);
         $cacheJsonExit = $application->run(['greph-index', 'ast-cache', 'search', '--json', 'array($$$ITEMS)', '.']);
         $cacheFilesExit = $application->run(['greph-index', 'ast-cache', 'search', '--files-with-matches', 'render_widget()', '.']);
@@ -196,6 +206,7 @@ PHP,
         $stdout = $this->readStream($harness['stdout']);
 
         $this->assertSame(0, $indexBuildExit);
+        $this->assertSame(0, $indexStatsExit);
         $this->assertSame(0, $indexSearchExit);
         $this->assertSame(0, $indexJsonExit);
         $this->assertSame(0, $indexFilesExit);
@@ -203,6 +214,7 @@ PHP,
         $this->assertSame(0, $indexIgnoredExit);
         $this->assertSame(0, $indexFallbackExit);
         $this->assertSame(0, $cacheBuildExit);
+        $this->assertSame(0, $cacheStatsExit);
         $this->assertSame(0, $cacheSearchExit);
         $this->assertSame(0, $cacheJsonExit);
         $this->assertSame(0, $cacheFilesExit);
@@ -212,12 +224,14 @@ PHP,
         $this->assertSame(0, $cacheRefreshExit);
         $this->assertSame(0, $cacheRefreshedSearchExit);
         $this->assertStringContainsString('Built AST index for', $stdout);
+        $this->assertStringContainsString('AST index stats', $stdout);
         $this->assertStringContainsString('src/Ast.php:3:$service = new Service();', $stdout);
         $this->assertStringContainsString('"code": "array(1, 2, 3)"', $stdout);
         $this->assertStringContainsString("src/Ast.php\n", $stdout);
         $this->assertStringContainsString('.hidden/Hidden.php:2:$hidden = new HiddenThing();', $stdout);
         $this->assertStringContainsString('vendor/Ignored.php:2:$ignored = array(1);', $stdout);
         $this->assertStringContainsString('Built AST cache for', $stdout);
+        $this->assertStringContainsString('AST cache stats', $stdout);
         $this->assertStringContainsString('Refreshed AST index for', $stdout);
         $this->assertStringContainsString('src/Newer.php:2:$fresh = new FreshThing();', $stdout);
         $this->assertStringContainsString('Refreshed AST cache for', $stdout);

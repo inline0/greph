@@ -150,6 +150,7 @@ final class AstCacheStoreTest extends TestCase
             indexPath: $indexPath,
             version: $store->version(),
             builtAt: 10,
+            buildDurationMs: 8.5,
             nextFileId: 2,
             files: [
                 ['id' => 1, 'p' => 'src/App.php', 's' => 10, 'm' => 1, 'h' => false, 'g' => false, 'o' => 0],

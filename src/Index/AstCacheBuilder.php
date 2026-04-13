@@ -38,20 +38,22 @@ final class AstCacheBuilder
 
     public function build(string $rootPath, ?string $indexPath = null): AstCacheBuildResult
     {
+        $start = hrtime(true);
         $rootPath = $this->resolveRootPath($rootPath);
         $indexPath = $this->resolveIndexPath($rootPath, $indexPath);
         Filesystem::remove($indexPath);
 
-        return $this->rebuild($rootPath, $indexPath, null);
+        return $this->rebuild($rootPath, $indexPath, null, $start);
     }
 
     public function refresh(string $rootPath, ?string $indexPath = null): AstCacheBuildResult
     {
+        $start = hrtime(true);
         $rootPath = $this->resolveRootPath($rootPath);
         $indexPath = $this->resolveIndexPath($rootPath, $indexPath);
         $existing = $this->store->exists($indexPath) ? $this->store->load($indexPath) : null;
 
-        return $this->rebuild($rootPath, $indexPath, $existing);
+        return $this->rebuild($rootPath, $indexPath, $existing, $start);
     }
 
     private function resolveRootPath(string $rootPath): string
@@ -78,7 +80,7 @@ final class AstCacheBuilder
         return Filesystem::normalizePath($rootPath . '/' . $indexPath);
     }
 
-    private function rebuild(string $rootPath, string $indexPath, ?AstCache $existing): AstCacheBuildResult
+    private function rebuild(string $rootPath, string $indexPath, ?AstCache $existing, int $start): AstCacheBuildResult
     {
         $scannedFiles = $this->scanFiles($rootPath, $indexPath);
         $existingByPath = [];
@@ -160,6 +162,7 @@ final class AstCacheBuilder
             indexPath: $indexPath,
             version: $this->store->version(),
             builtAt: time(),
+            buildDurationMs: (hrtime(true) - $start) / 1_000_000,
             nextFileId: $nextFileId,
             files: $files,
             facts: $facts,
@@ -172,6 +175,7 @@ final class AstCacheBuilder
             indexPath: $indexPath,
             fileCount: count($files),
             cachedTreeCount: $cachedTreeCount,
+            buildDurationMs: $cache->buildDurationMs,
             addedFiles: $addedFiles,
             updatedFiles: $updatedFiles,
             deletedFiles: $deletedFiles,

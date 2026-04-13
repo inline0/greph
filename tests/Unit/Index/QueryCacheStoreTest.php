@@ -77,6 +77,7 @@ final class QueryCacheStoreTest extends TestCase
             indexPath: $index->indexPath,
             version: $index->version,
             builtAt: 999,
+            buildDurationMs: 0.0,
             nextFileId: $index->nextFileId,
             files: $index->files,
             postings: [],
@@ -313,6 +314,7 @@ final class QueryCacheStoreTest extends TestCase
             indexPath: $this->workspace . '/.greph-index',
             version: 1,
             builtAt: 123,
+            buildDurationMs: 0.0,
             nextFileId: 2,
             files: [
                 ['id' => 1, 'p' => 'src/App.php', 's' => 20, 'm' => 1, 'h' => false, 'g' => false, 'o' => 0],

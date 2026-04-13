@@ -79,6 +79,7 @@ final class AstCacheStore
             || !is_string($metadata['rootPath'] ?? null)
             || !is_int($metadata['version'] ?? null)
             || !is_int($metadata['builtAt'] ?? null)
+            || !(is_int($metadata['buildDurationMs'] ?? null) || is_float($metadata['buildDurationMs'] ?? null) || !array_key_exists('buildDurationMs', $metadata))
             || !is_int($metadata['nextFileId'] ?? null)
             || !is_array($files)
             || !is_array($facts)
@@ -109,6 +110,7 @@ final class AstCacheStore
             indexPath: Filesystem::normalizePath($indexPath),
             version: $metadata['version'],
             builtAt: $metadata['builtAt'],
+            buildDurationMs: (float) ($metadata['buildDurationMs'] ?? 0.0),
             nextFileId: $metadata['nextFileId'],
             files: $files,
             facts: $facts,
@@ -124,6 +126,7 @@ final class AstCacheStore
             'version' => $cache->version,
             'rootPath' => $cache->rootPath,
             'builtAt' => $cache->builtAt,
+            'buildDurationMs' => $cache->buildDurationMs,
             'nextFileId' => $cache->nextFileId,
         ];
 
