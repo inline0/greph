@@ -189,7 +189,7 @@ Current local verification baseline:
 
 ## Performance
 
-Benchmark tables below are sourced from GitHub Actions CI, never from local runs. The current published baseline comes from GitHub Actions run `24339598566`, against the WordPress corpus on `ubuntu-latest` with PHP `8.4`, five measured runs, and one warmup run.
+Benchmark tables below are sourced from GitHub Actions CI, never from local runs. The current published baseline comes from GitHub Actions run `24342599916`, against the WordPress corpus on `ubuntu-latest` with PHP `8.4`, five measured runs, and one warmup run.
 
 Comparison tools:
 - `rg`: ripgrep
@@ -198,77 +198,93 @@ Comparison tools:
 
 ### Scan Mode: Text
 
+Cold scan mode optimizes for one-shot searches without any prebuilt index. It is the baseline path for ad hoc text queries over a tree.
+
 | Operation | greph | rg | grep |
 | --- | ---: | ---: | ---: |
-| `Literal "function"` | `443.95ms` | `85.74ms` | `186.25ms` |
-| `Literal case insensitive` | `442.16ms` | `87.69ms` | `236.47ms` |
-| `Literal quiet "function"` | `240.30ms` | `3.38ms` | `1.08ms` |
-| `Literal short "wp"` | `433.93ms` | `100.08ms` | `158.95ms` |
-| `Literal whole word` | `952.92ms` | `85.57ms` | `181.67ms` |
-| `Regex new instance` | `448.77ms` | `41.04ms` | `169.17ms` |
-| `Regex array call` | `391.57ms` | `47.61ms` | `185.46ms` |
-| `Regex prefix literal` | `434.85ms` | `42.37ms` | `155.31ms` |
-| `Regex suffix literal` | `575.41ms` | `129.01ms` | `229.56ms` |
-| `Regex exact line literal` | `540.73ms` | `75.56ms` | `162.11ms` |
-| `Regex literal collapse` | `426.96ms` | `86.10ms` | `180.46ms` |
+| `Literal "function"` | `458.82ms` | `81.62ms` | `174.79ms` |
+| `Literal case insensitive` | `448.42ms` | `83.65ms` | `238.35ms` |
+| `Literal quiet "function"` | `255.60ms` | `3.24ms` | `1.19ms` |
+| `Literal short "wp"` | `438.63ms` | `98.22ms` | `153.09ms` |
+| `Literal whole word` | `703.06ms` | `81.54ms` | `177.84ms` |
+| `Regex new instance` | `459.58ms` | `36.76ms` | `155.48ms` |
+| `Regex array call` | `399.86ms` | `44.81ms` | `177.25ms` |
+| `Regex prefix literal` | `439.99ms` | `36.72ms` | `154.77ms` |
+| `Regex suffix literal` | `583.73ms` | `124.62ms` | `224.11ms` |
+| `Regex exact line literal` | `549.01ms` | `72.48ms` | `158.47ms` |
+| `Regex literal collapse` | `439.21ms` | `81.90ms` | `172.53ms` |
 
 ### Scan Mode: Traversal
 
+Traversal isolates walker and ignore-rule overhead without the text matcher dominating the result.
+
 | Operation | greph | rg | grep |
 | --- | ---: | ---: | ---: |
-| `Full traversal` | `43.57ms` | `12.86ms` | `47.19ms` |
+| `Full traversal` | `44.98ms` | `12.36ms` | `44.48ms` |
 
 ### Scan Mode: Parallel Text
 
+Parallel text shows whether worker fan-out helps on real one-shot scan workloads after traversal and matcher costs are included.
+
 | Operation | greph | rg | grep |
 | --- | ---: | ---: | ---: |
-| `1 worker` | `429.59ms` | `83.96ms` | `182.03ms` |
-| `2 workers` | `427.13ms` | `83.56ms` | `193.52ms` |
-| `4 workers` | `431.55ms` | `85.32ms` | `179.22ms` |
+| `1 worker` | `439.83ms` | `81.72ms` | `180.08ms` |
+| `2 workers` | `426.52ms` | `83.31ms` | `179.49ms` |
+| `4 workers` | `441.82ms` | `83.23ms` | `182.74ms` |
 
 ### Scan Mode: AST
 
+Cold AST mode optimizes for one-shot structural search without a prebuilt fact index or cached parse store.
+
 | Operation | greph | sg |
 | --- | ---: | ---: |
-| `new $CLASS()` | `2833.44ms` | `4275.41ms` |
-| `array($$$ITEMS)` | `5607.00ms` | `4317.52ms` |
+| `new $CLASS()` | `2859.27ms` | `4090.82ms` |
+| `array($$$ITEMS)` | `5537.70ms` | `4133.41ms` |
 
 ### Indexed Text Mode
 
+Indexed text mode optimizes for repeated text queries on the same tree, where warm postings and query caches can avoid most rescanning.
+
 | Operation | greph | rg | grep |
 | --- | ---: | ---: | ---: |
-| `Indexed literal "function"` | `95.54ms` | `88.86ms` | `183.92ms` |
-| `Indexed literal case insensitive` | `100.22ms` | `95.94ms` | `247.49ms` |
-| `Indexed literal short "wp"` | `125.64ms` | `104.30ms` | `169.99ms` |
-| `Indexed literal whole word` | `92.44ms` | `86.12ms` | `182.61ms` |
-| `Indexed regex new instance` | `9.76ms` | `41.83ms` | `169.61ms` |
-| `Indexed regex array call` | `25.93ms` | `46.54ms` | `185.18ms` |
+| `Indexed literal "function"` | `90.50ms` | `86.12ms` | `173.60ms` |
+| `Indexed literal case insensitive` | `98.94ms` | `92.68ms` | `250.24ms` |
+| `Indexed literal short "wp"` | `124.91ms` | `108.16ms` | `151.26ms` |
+| `Indexed literal whole word` | `92.73ms` | `86.45ms` | `176.18ms` |
+| `Indexed regex new instance` | `10.46ms` | `37.67ms` | `166.84ms` |
+| `Indexed regex array call` | `26.24ms` | `44.46ms` | `174.53ms` |
 
 ### Indexed Summary Queries
 
+Indexed summary queries optimize for count, filename, and quiet/existence answers that can often be served directly from warmed postings.
+
 | Operation | greph | rg | grep |
 | --- | ---: | ---: | ---: |
-| `Indexed count "function"` | `11.28ms` | `54.21ms` | `156.26ms` |
-| `Indexed files with "function"` | `9.88ms` | `47.67ms` | `104.18ms` |
-| `Indexed files without "function"` | `10.03ms` | `84.48ms` | `104.44ms` |
-| `Indexed quiet "function"` | `5.77ms` | `3.35ms` | `1.12ms` |
+| `Indexed count "function"` | `10.90ms` | `49.61ms` | `148.46ms` |
+| `Indexed files with "function"` | `10.00ms` | `45.57ms` | `95.96ms` |
+| `Indexed files without "function"` | `9.74ms` | `81.56ms` | `96.10ms` |
+| `Indexed quiet "function"` | `5.50ms` | `3.40ms` | `1.18ms` |
 
 ### Indexed / Cached AST
 
+Indexed and cached AST modes optimize for repeated structural PHP queries by reusing file-level facts or whole parsed trees instead of reparsing the repository.
+
 | Operation | greph | sg |
 | --- | ---: | ---: |
-| `Indexed new $CLASS()` | `11.14ms` | `4284.66ms` |
-| `Indexed array($$$ITEMS)` | `308.76ms` | `4336.90ms` |
-| `Cached new $CLASS()` | `13.00ms` | `4284.16ms` |
-| `Cached array($$$ITEMS)` | `296.52ms` | `4330.10ms` |
+| `Indexed new $CLASS()` | `10.89ms` | `4093.61ms` |
+| `Indexed array($$$ITEMS)` | `324.79ms` | `4149.52ms` |
+| `Cached new $CLASS()` | `13.03ms` | `4096.84ms` |
+| `Cached array($$$ITEMS)` | `314.29ms` | `4146.10ms` |
 
 ### Build Costs
 
+Build costs measure the upfront price of preparing warmed indexes and caches that later queries reuse.
+
 | Operation | greph |
 | --- | ---: |
-| `Build trigram index` | `12417.00ms` |
-| `Build AST fact index` | `1358.68ms` |
-| `Build cached AST store` | `10033.73ms` |
+| `Build trigram index` | `12306.51ms` |
+| `Build AST fact index` | `1354.98ms` |
+| `Build cached AST store` | `10148.88ms` |
 
 ## Requirements
 

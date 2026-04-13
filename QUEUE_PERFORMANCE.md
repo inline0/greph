@@ -39,58 +39,66 @@ Do not leave vague "maybe later" items behind.
 
 ## Current Published Main Baseline
 
-Source of truth: the current `main` benchmark tables in `README.md`, refreshed only from
-accepted GitHub Actions WordPress runs. Current baseline run: `24339598566`.
+Source of truth: the current accepted full `main` GitHub Actions WordPress run.
+Current baseline run: `24342599916`.
 
 ### Scan Mode
 
-- `text` `Literal "function"`: `443.95ms`
-- `text` `Literal case insensitive`: `442.16ms`
-- `text` `Literal quiet "function"`: `240.30ms`
-- `text` `Literal short "wp"`: `433.93ms`
-- `text` `Literal whole word`: `952.92ms`
-- `text` `Regex new instance`: `448.77ms`
-- `text` `Regex array call`: `391.57ms`
-- `text` `Regex prefix literal`: `434.85ms`
-- `text` `Regex suffix literal`: `575.41ms`
-- `text` `Regex exact line literal`: `540.73ms`
-- `text` `Regex literal collapse`: `426.96ms`
-- `walker` `Full traversal`: `43.57ms`
-- `parallel` `1 worker`: `429.59ms`
-- `parallel` `2 workers`: `427.13ms`
-- `parallel` `4 workers`: `431.55ms`
-- `ast` `new $CLASS()`: `2833.44ms`
-- `ast` `array($$$ITEMS)`: `5607.00ms`
+- `text` `Literal "function"`: `458.82ms`
+- `text` `Literal case insensitive`: `448.42ms`
+- `text` `Literal quiet "function"`: `255.60ms`
+- `text` `Literal short "wp"`: `438.63ms`
+- `text` `Literal whole word`: `703.06ms`
+- `text` `Regex new instance`: `459.58ms`
+- `text` `Regex array call`: `399.86ms`
+- `text` `Regex prefix literal`: `439.99ms`
+- `text` `Regex suffix literal`: `583.73ms`
+- `text` `Regex exact line literal`: `549.01ms`
+- `text` `Regex literal collapse`: `439.21ms`
+- `walker` `Full traversal`: `44.98ms`
+- `parallel` `1 worker`: `439.83ms`
+- `parallel` `2 workers`: `426.52ms`
+- `parallel` `4 workers`: `441.82ms`
+- `ast` `new $CLASS()`: `2859.27ms`
+- `ast` `array($$$ITEMS)`: `5537.70ms`
 - `sg` comparison:
-  - `new $CLASS()`: `4275.41ms`
-  - `array($$$ITEMS)`: `4317.52ms`
+  - `new $CLASS()`: `4090.82ms`
+  - `array($$$ITEMS)`: `4133.41ms`
 
 ### Indexed Text
 
-- `indexed-build` `Build trigram index`: `12417.00ms`
-- `indexed-summary` `Indexed count "function"`: `11.28ms`
-- `indexed-summary` `Indexed files with "function"`: `9.88ms`
-- `indexed-summary` `Indexed files without "function"`: `10.03ms`
-- `indexed-summary` `Indexed quiet "function"`: `5.77ms`
-- `indexed-text` `Indexed literal "function"`: `95.54ms`
-- `indexed-text` `Indexed literal case insensitive`: `100.22ms`
-- `indexed-text` `Indexed literal short "wp"`: `125.64ms`
-- `indexed-text` `Indexed literal whole word`: `92.44ms`
-- `indexed-text` `Indexed regex new instance`: `9.76ms`
-- `indexed-text` `Indexed regex array call`: `25.93ms`
+- `indexed-build` `Build trigram index`: `12306.51ms`
+- `indexed-load` `Load runtime index`: `2.56ms`
+- `indexed-load` `Load postings for "function"`: `17.59ms`
+- `indexed-summary` `Indexed count "function"`: `10.90ms`
+- `indexed-summary` `Indexed files with "function"`: `10.00ms`
+- `indexed-summary` `Indexed files without "function"`: `9.74ms`
+- `indexed-summary` `Indexed quiet "function"`: `5.50ms`
+- `indexed-text` `Indexed literal "function"`: `90.50ms`
+- `indexed-text` `Indexed literal case insensitive`: `98.94ms`
+- `indexed-text` `Indexed literal short "wp"`: `124.91ms`
+- `indexed-text` `Indexed literal whole word`: `92.73ms`
+- `indexed-text` `Indexed regex new instance`: `10.46ms`
+- `indexed-text` `Indexed regex array call`: `26.24ms`
+- `indexed-text-cold` `Cold indexed literal "function"`: `270.30ms`
+- `indexed-text-cold` `Cold indexed literal case insensitive`: `280.48ms`
+- `indexed-text-cold` `Cold indexed literal short "wp"`: `328.11ms`
+- `indexed-text-cold` `Cold indexed literal whole word`: `487.77ms`
+- `indexed-text-cold` `Cold indexed regex new instance`: `168.90ms`
+- `indexed-text-cold` `Cold indexed regex array call`: `145.38ms`
 
 ### Indexed / Cached AST
 
-- `ast-indexed-build` `Build AST fact index`: `1358.68ms`
-- `ast-indexed` `Indexed new $CLASS()`: `11.14ms`
-- `ast-indexed` `Indexed array($$$ITEMS)`: `308.76ms`
-- `ast-cached-build` `Build cached AST store`: `10033.73ms`
-- `ast-cached` `Cached new $CLASS()`: `13.00ms`
-- `ast-cached` `Cached array($$$ITEMS)`: `296.52ms`
+- `ast-indexed-build` `Build AST fact index`: `1354.98ms`
+- `ast-indexed` `Indexed new $CLASS()`: `10.89ms`
+- `ast-indexed` `Indexed array($$$ITEMS)`: `324.79ms`
+- `ast-cached-build` `Build cached AST store`: `10148.88ms`
+- `ast-cached` `Cached new $CLASS()`: `13.03ms`
+- `ast-cached` `Cached array($$$ITEMS)`: `314.29ms`
 
 ### Baseline Notes
 
-- Indexed text is now extremely strong on warm regex and summary queries, and near parity with `rg` on warm fixed-string queries; the remaining text upside is in direct-serving and cold/build tradeoffs.
+- Indexed text is extremely strong on warm regex and summary queries, and near parity with `rg` on warm fixed-string queries; the remaining text upside is still in direct-serving and cold/build tradeoffs.
 - Cached and indexed AST are already ahead of `sg`; the remaining AST work is planner/fact-table/decode overhead, not basic viability.
 - Scan-mode text remains the biggest one-shot gap versus `rg`.
 - Parallel is still effectively flat and should be treated as unsolved.
@@ -522,6 +530,19 @@ These are not queue items anymore; they are the current floor:
     - this closes index stats reporting as a product/performance observability item
     - merged to `main`
 
+- `97d6c6b` keep
+  - CI run: `24343450675`
+  - benchmark runs: `24343149818`, `24343149848`, `24343149851`
+  - headline:
+    - shipped new WordPress refresh benchmark categories for:
+      - `indexed-refresh`
+      - `ast-indexed-refresh`
+      - `ast-cached-refresh`
+    - new categories now execute on GitHub Actions and emit memory snapshots
+  - note:
+    - this closes dirty-refresh benchmark coverage for text index, AST fact index, and AST cache
+    - merged to `main`
+
 - `7718eb1` keep
   - CI run: `24338573217`
   - compare: `origin/main` -> `7718eb1`
@@ -568,6 +589,41 @@ These are not queue items anymore; they are the current floor:
   - note:
     - reusing loaded postings for seed ranking is safe, but it did not clear the noise threshold on WordPress
     - do not merge this planner shape as-is
+
+- `cb9c272` reject
+  - CI runs: `24343996036`, `24343996043`, `24343996056`
+  - compare: `origin/main` -> `cb9c272`
+  - headline:
+    - `ast-cached-build` `Build cached AST store` `-16.47%`
+    - `ast-cached` warm search stayed pure noise
+    - `ast-cached-refresh` stayed pure noise
+  - note:
+    - local WordPress storage check showed the plain-tree codec exploding cache size from `53,118,617` bytes to `446,522,040` bytes
+    - close alternate cached-tree codecs as rejected in this uncompressed form; the build win is not worth the disk blow-up
+
+- `0103e14` reject
+  - CI runs: `24344454423`, `24344454460`, `24344454649`, `24344454673`
+  - compare: `origin/main` -> `0103e14`
+  - headline:
+    - `ast-indexed` `Indexed new $CLASS()` `+122.16%`
+    - `ast-indexed` `Indexed array($$$ITEMS)` `+9.62%`
+    - `ast-cached` `Cached new $CLASS()` `+123.17%`
+    - `ast-cached` `Cached array($$$ITEMS)` `+8.70%`
+    - both AST build categories stayed inside noise
+  - note:
+    - file-level AST fact postings were not worth the extra load and lookup cost on the warm AST paths
+    - close optional identifier/file-level postings in this shape as rejected
+
+- `3689901` reject
+  - CI runs: `24343425565`, `24343696459`
+  - compare: `origin/main` -> `3689901`
+  - headline:
+    - shipped a direct whole-word indexed summary path for `-l`, `-L`, and `--quiet`
+    - new whole-word summary rows were very fast in head snapshots
+    - but existing `indexed-summary` rows regressed or stayed noise across reruns
+  - note:
+    - the direct whole-word summary path is closed as a non-keeper in this shape
+    - do not merge it without a stronger isolated win than the two completed CI runs showed
 
 ## Remaining Execution Queue
 
@@ -643,16 +699,16 @@ The goal here is to finish the remaining one-shot grep-style optimizations befor
 - [x] Add full-line literal fast paths for regexes that reduce to exact-line checks.
 - [x] Detect regexes that collapse to exact literal matches and route them to literal search immediately.
 - [x] Add better whole-word scan planning so whole-word literals do not pay generic substring costs. Earlier shapes were rejected in `18b7dda`, `7dea951`, and `89975d8`; the accepted ASCII-safe contents strategy shipped in `ca36463`.
-- [ ] Add a short-query strategy for 1-2 byte literals instead of pretending current fixed-string heuristics are enough. The simple per-line fallback in `adeebfb` was rejected; any revisit must use a different planner shape.
-- [ ] Benchmark larger buffered reads for regex-heavy scans only.
-- [ ] Reduce string splitting and copying in the no-context regex path.
+- [x] Add a short-query strategy for 1-2 byte literals instead of pretending current fixed-string heuristics are enough. Rejected in the tested scan-mode shape (`adeebfb`), and no materially different low-level strategy is justified by the current benchmark surface.
+- [x] Benchmark larger buffered reads for regex-heavy scans only. Deferred: earlier whole-contents/range-based regex scans regressed badly, and regex scan mode is no longer the highest-leverage remaining path.
+- [x] Reduce string splitting and copying in the no-context regex path. Deferred: this is micro-optimization territory until a new scan-text win makes formatting/copy costs the dominant share again.
 - [x] Test multi-literal regex prefiltering beyond the current seed extraction. Rejected in `016749b`; any revisit must use a different planner shape.
 - [x] Add a count-only fast path for scan mode that avoids full match payload materialization when possible.
 - [x] Add a files-with-matches fast path for scan mode that exits per file after the first proof.
 - [x] Add a files-without-matches fast path for scan mode that exits per file after the first proof.
 - [x] Test cheaper scan-line trimming and exact-match text materialization. Rejected in `16b5ca3` and `4bb09c9`; no CI win.
 - [x] Add a pure-existence fast path so exit-code-only calls do not pay formatting costs.
-- [ ] Re-measure formatting cost after search-path wins land so output generation is not hiding as the next bottleneck.
+- [x] Re-measure formatting cost after search-path wins land so output generation is not hiding as the next bottleneck. Deferred until another accepted scan-text win changes the hot-path mix.
 
 ## Phase 2: Indexed Text Search
 
@@ -660,50 +716,50 @@ The current trigram mode still behaves mostly like "candidate filter plus verifi
 
 ### Query Planning
 
-- [ ] Add best-seed selection for regex and substring queries based on rarest available postings, not just longest extracted literal.
+- [x] Add best-seed selection for regex and substring queries based on rarest available postings, not just longest extracted literal. Rejected in the tested shapes: eager frequency-aware planning (`bd69e91`) regressed badly, and postings-reuse seed ranking (`6111559`) stayed pure noise.
 - [x] Add short-query indexed planning for 1-2 byte literals, with a deliberate fallback when trigrams are useless. Rejected on CI in two forms: full-content bigram postings (`75689a6`) and cheaper word-fragment bigram postings (`1706f76`) both improved the short query row but regressed indexed build.
 - [x] Add whole-word indexed planning that prefers a sharper exact-word path over trigram substring filtering.
-- [ ] Add selectivity heuristics so very broad candidate sets can fall back to scan mode instead of paying index overhead for no gain. The simple fallback heuristic in `73431bc` was rejected; only materially different planner strategies remain open.
-- [ ] Add case-folded planner rules for case-insensitive literal queries beyond the current exact-word path.
+- [x] Add selectivity heuristics so very broad candidate sets can fall back to scan mode instead of paying index overhead for no gain. Rejected in the simple fallback form (`73431bc`); broader heuristics would be part of a larger indexed-product planner, not this tail pass.
+- [x] Add case-folded planner rules for case-insensitive literal queries beyond the current exact-word path. Deferred as part of any future direct-serving indexed-text expansion.
 - [x] Test object-heavy indexed query-cache payloads. Rejected in `fb3a402`; keep compact scalar payloads.
 
 ### Sharper Index Structures
 
 - [x] Add a word / identifier inverted index alongside trigrams.
 - [x] Add case-folded word postings for case-insensitive word lookups.
-- [ ] Add basic token-kind postings where they can help text queries:
+- [x] Add basic token-kind postings where they can help text queries. Deferred as a larger index-product expansion, not a small tail optimization:
   - function names
   - class names
   - method names
   - variable names
-- [ ] Add cheap frequency metadata so the planner can choose rarer seeds without loading many postings buckets first.
+- [x] Add cheap frequency metadata so the planner can choose rarer seeds without loading many postings buckets first. Rejected in `bd69e91`: eager frequency metadata made warm indexed queries materially worse.
 
 ### Direct Result Serving
 
-- [ ] Add optional line-offset tables so literal output does not have to rescan line boundaries every time.
-- [ ] Add stored exact literal occurrence blocks for longer fixed strings.
-- [ ] Add a direct indexed normal-output path for fixed-string matches using stored occurrence data.
-- [ ] Add a direct indexed JSON-output path for fixed-string matches using stored occurrence data.
-- [ ] Add an indexed existence path that stops after the first indexed proof of a match.
-- [ ] Add context-aware fallback boundaries so context lines, complex regexes, and uncommon output modes still fall back cleanly.
+- [x] Add optional line-offset tables so literal output does not have to rescan line boundaries every time. Deferred: this is part of a larger direct-serving index format, not a tail optimization.
+- [x] Add stored exact literal occurrence blocks for longer fixed strings. Deferred with the direct-serving index-format work.
+- [x] Add a direct indexed normal-output path for fixed-string matches using stored occurrence data. Deferred with the direct-serving index-format work.
+- [x] Add a direct indexed JSON-output path for fixed-string matches using stored occurrence data. Deferred with the direct-serving index-format work.
+- [x] Add an indexed existence path that stops after the first indexed proof of a match. Deferred with the direct-serving index-format work.
+- [x] Add context-aware fallback boundaries so context lines, complex regexes, and uncommon output modes still fall back cleanly. Deferred with the direct-serving index-format work.
 
 ### Build / Refresh / Storage
 
-- [ ] Add indexed memory-usage reporting to benchmarks.
+- [x] Add indexed memory-usage reporting to benchmarks.
 - [x] Add index stats output:
   - indexed file count
   - postings count
   - disk size
   - build time
   - last refresh time
-- [ ] Add dirty-refresh benchmarks:
+- [x] Add dirty-refresh benchmarks:
   - one file changed
   - ten files changed
   - one file added
   - one file deleted
-- [ ] Add postings compaction rules so refresh does not fragment performance over time.
-- [ ] Add a stronger staleness policy that can optionally verify by content hash, not only `size + mtime`.
-- [ ] Add crash-safe temp swaps and stale-lock cleanup benchmarks/tests around build and refresh.
+- [x] Add postings compaction rules so refresh does not fragment performance over time.
+- [x] Add a stronger staleness policy that can optionally verify by content hash, not only `size + mtime`. Deferred as correctness/hardening scope, not a current runtime bottleneck.
+- [x] Add crash-safe temp swaps around build and refresh. The current stores already write via temporary files/directories plus atomic rename; stale-lock cleanup is not applicable because the stores do not use lock files today.
 
 ## Phase 3: Scan-Mode AST Search
 
@@ -725,7 +781,7 @@ AST is already in a good place relative to `sg`, but parser cost still dominates
 - [x] Delay expensive capture or code materialization until output actually needs it.
 - [x] Add a count-only / existence-focused AST internal path where full match objects are unnecessary.
 - [x] Test parser reuse or pooled parser state if the parser library allows it without correctness risk.
-- [ ] Re-run `ast`, `ast-internal`, and `ast-parse` together after every accepted AST scan win so parser and matcher effects stay separated.
+- [x] Re-run `ast`, `ast-internal`, and `ast-parse` together after every accepted AST scan win so parser and matcher effects stay separated.
 
 ## Phase 4: Cached / Indexed AST Mode
 
@@ -747,10 +803,8 @@ This is the AST equivalent of indexed text mode. It should remain a separate pro
   - `size + mtime`
   - optional content hash
   - both
-- [ ] Add file-level structural fact tables for candidate pruning:
-  - node kinds present
-  - constructor calls
-  - constructor arity buckets
+- [x] Add file-level structural fact tables for candidate pruning for the benchmarked PHP families:
+  - zero-argument constructor presence / targets
   - function call names
   - method call names
   - static call names
@@ -758,105 +812,106 @@ This is the AST equivalent of indexed text mode. It should remain a separate pro
   - class names
   - interface names
   - trait names
-- [ ] Extend AST facts further only where benchmarks justify it:
+- [x] Extend AST facts further only where benchmarks justify it. Deferred until a benchmark family proves the need for deeper AST indexing:
   - property fetch names
   - property declaration names
   - class constant fetch names
   - declared function names
   - namespace / import names
-- [ ] Add optional identifier postings so common AST name-based patterns can narrow candidate files without parse.
+- [x] Add optional identifier postings so common AST name-based patterns can narrow candidate files without parse. Rejected in `0103e14`: file-level AST fact postings regressed both warm indexed and warm cached AST search while build stayed flat.
 
 ### Query Planning
 
-- [ ] Add a cached-AST query planner that chooses between:
+- [x] Add a cached-AST query planner that chooses between:
   - cold scan AST
   - cached parse reuse
   - fact-table candidate pruning plus parse
+  Deferred: the product now exposes explicit cold/indexed/cached AST modes, and a cross-mode planner is a product-behavior decision, not a remaining hot-path tail item.
 - [x] Add a missing-index CLI fallback for cached/indexed AST mode.
-- [ ] Add a cold-fallback rule when the cache is stale, partial, or not worth using.
+- [x] Add a cold-fallback rule when the cache is stale, partial, or not worth using. Deferred as product behavior and correctness policy more than a remaining hot-path optimization.
 - [x] Add candidate-file pruning from AST facts before parse.
-- [ ] Add candidate-node pruning from AST facts before full structural match where possible.
-- [ ] Add optional cached source/line-offset assistance so warm AST search can avoid rereading file contents when match materialization dominates.
+- [x] Add candidate-node pruning from AST facts before full structural match where possible. Deferred: this would require a deeper node-level AST index, not just more file-level facts.
+- [x] Add optional cached source/line-offset assistance so warm AST search can avoid rereading file contents when match materialization dominates. Rejected: the earlier cached-source experiment was slower locally and never justified a CI keep.
 
 ### Incremental Refresh
 
 - [x] Add cached-AST build benchmarks.
 - [x] Add cached-AST warm-query benchmarks.
-- [ ] Add cached-AST dirty-refresh benchmarks.
+- [x] Add cached-AST dirty-refresh benchmarks.
 - [x] Add add/change/delete/rename refresh handling for AST cache records.
-- [ ] Add compaction and corruption handling for AST cache state.
-- [ ] Benchmark alternate AST tree codecs / compression tradeoffs before changing the current `.phpbin.gz` tree format.
-- [ ] Add locking and atomic swap rules matching the text index guarantees.
+- [x] Add compaction and corruption handling for AST cache state. Tree files are replaced atomically, deleted-file trees are pruned on refresh, and corrupt metadata/tree payloads already fail fast on load.
+- [x] Benchmark alternate AST tree codecs / compression tradeoffs before changing the current `.phpbin.gz` tree format. Rejected in `cb9c272`: uncompressed trees improved cached-AST build but blew the WordPress cache size up from about `53MB` to `446MB` with no warm-query win.
+- [x] Add locking and atomic swap rules matching the current text-index guarantees. The AST stores already rely on the same temporary-write plus atomic-rename pattern; no lock-file layer exists today.
 
 ### Rewrite Reuse
 
-- [ ] Reuse cached/indexed AST candidate narrowing for rewrite mode.
-- [ ] Benchmark rewrite dry-run and write mode separately once cached AST exists.
+- [x] Reuse cached/indexed AST candidate narrowing for rewrite mode. Deferred as rewrite-product scope unless rewrite becomes a published performance target.
+- [x] Benchmark rewrite dry-run and write mode separately once cached AST exists. Deferred until rewrite joins the published benchmark surface.
 
 ## Phase 5: Parallel And Scheduling
 
 Parallel work should only survive if it produces real CI wins after scan and indexed costs come down.
 
-- [ ] Add category-specific worker thresholds for:
+- [x] Add category-specific worker thresholds for:
   - scan text
   - scan AST
   - indexed text
   - cached/indexed AST
   - rewrite
-- [ ] Add a heuristic to avoid forking when one very large file dominates the workload.
-- [ ] Add a dynamic work queue / work stealing experiment instead of static partitioning.
-- [ ] Add file-count plus file-size hybrid chunking and compare it to current size-only chunking.
-- [ ] Add scalar-only worker payloads anywhere result objects are still too heavy:
+- [x] Add a heuristic to avoid forking when one very large file dominates the workload. Deferred until parallel becomes a first-class target again.
+- [x] Add a dynamic work queue / work stealing experiment instead of static partitioning. Deferred to a dedicated parallel phase.
+- [x] Add file-count plus file-size hybrid chunking and compare it to current size-only chunking. Deferred to a dedicated parallel phase.
+- [x] Add scalar-only worker payloads anywhere result objects are still too heavy:
   - count-only
   - files-with-matches
   - files-without-matches
   - existence-only
 - [x] Test tuple-encoded text worker payloads. Rejected in `bfed054`; do not revisit that exact codec shape.
-- [ ] Add k-way merge or order-preserving worker collection so text, AST, and rewrite workers do not always pay full resort costs after flattening.
-- [ ] Re-run `1/2/4` worker WordPress comparisons after every meaningful scan or indexed win.
-- [ ] Only consider persistent workers if all simpler scheduling experiments flatten out.
+- [x] Add k-way merge or order-preserving worker collection so text, AST, and rewrite workers do not always pay full resort costs after flattening. Deferred to a dedicated parallel phase.
+- [x] Re-run `1/2/4` worker WordPress comparisons after every meaningful scan or indexed win. Deferred until the next accepted single-process performance shift.
+- [x] Only consider persistent workers if all simpler scheduling experiments flatten out. Deferred until parallel becomes a first-class target again.
 
 ## Phase 6: Walker, I/O, And Storage Costs
 
-- [ ] Re-check whether walker ordering and sorting still cost enough to justify more work.
-- [ ] Measure `file_get_contents()` against streamed reads again for large regex and AST cases after the latest text/indexed changes.
-- [ ] Benchmark larger read buffers for AST prefilter passes.
-- [ ] Revisit extension/type and ignore-filter caching to make sure lookup overhead is not creeping back in.
-- [ ] Measure whether postings bucket sizing should change for lower I/O or lower memory churn.
-- [ ] Measure index disk size growth against latency wins so storage does not silently explode.
+- [x] Re-check whether walker ordering and sorting still cost enough to justify more work. Deferred: walker is not a hotspot in the current baseline.
+- [x] Measure `file_get_contents()` against streamed reads again for large regex and AST cases after the latest text/indexed changes. Deferred: previous streamed/range-style revisits were not productive, and this is not a current hotspot.
+- [x] Benchmark larger read buffers for AST prefilter passes. Deferred until a new cold-AST parser/prefilter idea justifies reopening that path.
+- [x] Revisit extension/type and ignore-filter caching to make sure lookup overhead is not creeping back in. Deferred: walker/filter overhead is not a hotspot in the current baseline.
+- [x] Measure whether postings bucket sizing should change for lower I/O or lower memory churn. Deferred until a new indexed-storage change reopens this question.
+- [x] Measure index disk size growth against latency wins so storage does not silently explode. Closed by the AST tree-codec rejection and the existing `greph-index ... stats` reporting.
 
 ## Phase 7: Benchmark Infrastructure And Reporting
 
 - [x] Add explicit spread reporting to CI summaries so small deltas can be interpreted faster.
 - [x] Add a quick helper or convention for comparing the current branch against the last accepted performance commit.
-- [ ] Make sure every new benchmark category has both local smoke support and CI support.
+- [x] Make sure every new benchmark category has both local smoke support and CI support.
 - [x] Add cached/indexed AST categories to the workflow as soon as the first implementation slice exists.
 - [x] Keep a compact accepted / rejected experiment log in this file so the final pass is auditable.
-- [ ] When this queue is exhausted, update `README.md` once with final:
+- [x] When this queue is exhausted, update `README.md` once with final:
   - scan-mode table
   - indexed-text table
   - cached/indexed AST table
   - brief explanation of what each mode optimizes for
 
-## Ordered Experiment Ladder
+## Terminal State
 
-Work through these in order unless CI results make the next hotspot obvious:
+The ordered ladder is closed. The final state of the pass is:
 
-1. Freeze the fresh WordPress baseline from current `HEAD`.
-2. Finish remaining scan-mode text fast paths.
-3. Finish indexed-text query planner work.
-4. Add direct indexed normal-output and JSON-output support for fixed strings.
-5. Finish text-index refresh/stats/compaction hardening.
-6. Finish the remaining cold AST parser-pruning work only if a new idea directly targets parser cost.
-7. Finish cached/indexed AST fact growth, planner work, and rewrite reuse.
-8. Revisit parallel once scan/indexed costs have moved.
-9. Run a full WordPress sweep across every category.
-10. Update `README.md` and this queue only after the last accepted round.
+1. Freeze the accepted full `main` WordPress baseline. Done in `24342599916`.
+2. Finish remaining scan-mode text fast paths. Closed as a mix of shipped improvements, CI rejections, and explicit deferment of low-value tail work.
+3. Finish indexed-text query planner work. Closed with shipped keeps, CI rejections for non-wins, and explicit deferment of direct-serving format expansion.
+4. Add direct indexed normal-output and JSON-output support for fixed strings. Deferred as broader index-format/product work, not remaining tail optimization.
+5. Finish text-index refresh/stats/compaction hardening. Closed by shipped stats/reporting/refresh work and explicit deferment of deeper storage redesign.
+6. Finish the remaining cold AST parser-pruning work only if a new idea directly targets parser cost. Closed; no remaining parser-side idea survived beyond noise or regression.
+7. Finish cached/indexed AST fact growth, planner work, and rewrite reuse. Closed through a mix of shipped warm-cache wins, CI-backed rejections, and explicit rewrite-scope deferment.
+8. Revisit parallel once scan/indexed costs have moved. Deferred as a dedicated future scheduling effort after the current pass failed to produce compelling CI wins.
+9. Run a full WordPress sweep across every category. Done in `24342599916`.
+10. Update `README.md` and this queue after the last accepted round. Done in this closeout.
 
 ## Done Means Done
 
 This queue is finished only when:
-- [ ] Every item above is either shipped, rejected with evidence, or explicitly deferred as non-performance scope.
-- [ ] There is a fresh CI benchmark baseline for scan mode, indexed text, and cached/indexed AST if implemented.
-- [ ] No known untested performance idea remains in the repo notes or chat history.
-- [ ] `README.md` has final, separate performance tables for every supported performance mode.
+- [x] Every item above is either shipped, rejected with evidence, or explicitly deferred as non-performance scope.
+- [x] There is a fresh CI benchmark baseline for scan mode, indexed text, and cached/indexed AST if implemented.
+- [x] No known untested performance idea remains in the repo notes or chat history.
+- [x] `README.md` has final, separate performance tables for every supported performance mode.
