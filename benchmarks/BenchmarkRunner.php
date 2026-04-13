@@ -77,9 +77,9 @@ final class BenchmarkRunner
     private function runGrephBenchmark(array $suite, string $corpusName, string $corpusPath): BenchmarkResult
     {
         $fileCount = iterator_count(Greph::walk($corpusPath));
-        $indexPath = $this->rootPath . '/build/benchmarks/indexes/' . $corpusName;
-        $astIndexPath = $this->rootPath . '/build/benchmarks/ast-indexes/' . $corpusName;
-        $astCachePath = $this->rootPath . '/build/benchmarks/ast-caches/' . $corpusName;
+        $indexPath = $this->textIndexPath($suite, $corpusName);
+        $astIndexPath = $this->astIndexPath($suite, $corpusName);
+        $astCachePath = $this->astCachePath($suite, $corpusName);
 
         if (in_array($suite['category'], ['indexed-text', 'indexed-text-cold', 'indexed-load', 'indexed-summary'], true)) {
             if (!(new TextIndexStore())->exists($indexPath)) {
@@ -349,7 +349,81 @@ final class BenchmarkRunner
             }
         }
 
+        usort(
+            $suites,
+            fn (array $left, array $right): int => $this->compareSuites($left, $right),
+        );
+
         return $suites;
+    }
+
+    /**
+     * @param array<string, mixed> $left
+     * @param array<string, mixed> $right
+     */
+    private function compareSuites(array $left, array $right): int
+    {
+        $priority = [
+            'text' => 10,
+            'walker' => 20,
+            'parallel' => 30,
+            'ast' => 40,
+            'ast-internal' => 50,
+            'ast-parse' => 60,
+            'indexed-load' => 70,
+            'indexed-summary' => 80,
+            'indexed-text' => 90,
+            'indexed-text-cold' => 100,
+            'ast-indexed' => 110,
+            'ast-cached' => 120,
+            'indexed-build' => 130,
+            'ast-indexed-build' => 140,
+            'ast-cached-build' => 150,
+        ];
+
+        $leftPriority = $priority[(string) ($left['category'] ?? '')] ?? 999;
+        $rightPriority = $priority[(string) ($right['category'] ?? '')] ?? 999;
+
+        if ($leftPriority !== $rightPriority) {
+            return $leftPriority <=> $rightPriority;
+        }
+
+        return [(string) ($left['name'] ?? ''), (string) ($left['pattern'] ?? '')]
+            <=> [(string) ($right['name'] ?? ''), (string) ($right['pattern'] ?? '')];
+    }
+
+    /**
+     * @param array<string, mixed> $suite
+     */
+    private function textIndexPath(array $suite, string $corpusName): string
+    {
+        $mode = match ((string) ($suite['category'] ?? '')) {
+            'indexed-build' => 'build',
+            'indexed-text-cold' => 'cold',
+            default => 'runtime',
+        };
+
+        return $this->rootPath . '/build/benchmarks/indexes/' . $mode . '/' . $corpusName;
+    }
+
+    /**
+     * @param array<string, mixed> $suite
+     */
+    private function astIndexPath(array $suite, string $corpusName): string
+    {
+        $mode = ((string) ($suite['category'] ?? '')) === 'ast-indexed-build' ? 'build' : 'runtime';
+
+        return $this->rootPath . '/build/benchmarks/ast-indexes/' . $mode . '/' . $corpusName;
+    }
+
+    /**
+     * @param array<string, mixed> $suite
+     */
+    private function astCachePath(array $suite, string $corpusName): string
+    {
+        $mode = ((string) ($suite['category'] ?? '')) === 'ast-cached-build' ? 'build' : 'runtime';
+
+        return $this->rootPath . '/build/benchmarks/ast-caches/' . $mode . '/' . $corpusName;
     }
 
     /**
