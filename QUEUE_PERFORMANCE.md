@@ -504,6 +504,24 @@ These are not queue items anymore; they are the current floor:
     - quiet / exit-code-only text search now short-circuits after the first selected match and is merged to `main`
     - follow-up `main` text benchmark should refresh the published baseline with the new quiet row
 
+- `ca36463` keep
+  - CI run: `24342457729`
+  - compare: `origin/main` -> `6fdd67c`
+  - headline:
+    - `Literal whole word` `-28.42%`
+  - note:
+    - the accepted ASCII-safe contents strategy replaced the earlier rejected whole-word scan attempts
+    - merged to `main`
+
+- `0f41764` keep
+  - infra / storage hardening
+  - headline:
+    - shipped `greph-index stats`, `greph-index ast-index stats`, and `greph-index ast-cache stats`
+    - persisted build-duration metadata across text index, AST fact index, and AST cache stores
+  - note:
+    - this closes index stats reporting as a product/performance observability item
+    - merged to `main`
+
 - `7718eb1` keep
   - CI run: `24338573217`
   - compare: `origin/main` -> `7718eb1`
@@ -561,10 +579,9 @@ full WordPress CI run clearly changes the next hotspot.
    - refresh `README.md`
    - refresh this queue's baseline section if the accepted floor moved
 2. Finish the remaining scan-mode text work:
-   - alternative whole-word strategies beyond the rejected `18b7dda` branch
-   - 1-2 byte literal scan strategy
-   - no-context regex split/copy reduction
-   - pure-existence fast path
+  - 1-2 byte literal scan strategy
+  - no-context regex split/copy reduction
+  - pure-existence fast path
    - buffered-read experiments for regex-heavy scans
    - formatting-cost audit after the next real scan-text keep
    - any new multi-literal regex prefilter only if it beats the rejected `016749b` shape
@@ -625,7 +642,7 @@ The goal here is to finish the remaining one-shot grep-style optimizations befor
 - [x] Add anchored-regex fast paths for regexes that reduce to suffix checks.
 - [x] Add full-line literal fast paths for regexes that reduce to exact-line checks.
 - [x] Detect regexes that collapse to exact literal matches and route them to literal search immediately.
-- [ ] Add better whole-word scan planning so whole-word literals do not pay generic substring costs. First dedicated occurrence-scan attempt was rejected in `18b7dda`; a new strategy is still open.
+- [x] Add better whole-word scan planning so whole-word literals do not pay generic substring costs. Earlier shapes were rejected in `18b7dda`, `7dea951`, and `89975d8`; the accepted ASCII-safe contents strategy shipped in `ca36463`.
 - [ ] Add a short-query strategy for 1-2 byte literals instead of pretending current fixed-string heuristics are enough. The simple per-line fallback in `adeebfb` was rejected; any revisit must use a different planner shape.
 - [ ] Benchmark larger buffered reads for regex-heavy scans only.
 - [ ] Reduce string splitting and copying in the no-context regex path.
@@ -673,7 +690,7 @@ The current trigram mode still behaves mostly like "candidate filter plus verifi
 ### Build / Refresh / Storage
 
 - [ ] Add indexed memory-usage reporting to benchmarks.
-- [ ] Add index stats output:
+- [x] Add index stats output:
   - indexed file count
   - postings count
   - disk size

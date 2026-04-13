@@ -44,8 +44,11 @@ final class BenchmarkRunnerTest extends TestCase
                 'ast-indexed',
                 'ast-cached',
                 'indexed-build',
+                'indexed-refresh',
                 'ast-indexed-build',
+                'ast-indexed-refresh',
                 'ast-cached-build',
+                'ast-cached-refresh',
             ],
             $categories,
         );
@@ -57,24 +60,33 @@ final class BenchmarkRunnerTest extends TestCase
         $runtimeTextPath = $this->invokePrivate('textIndexPath', [['category' => 'indexed-text'], 'wordpress']);
         $coldTextPath = $this->invokePrivate('textIndexPath', [['category' => 'indexed-text-cold'], 'wordpress']);
         $buildTextPath = $this->invokePrivate('textIndexPath', [['category' => 'indexed-build'], 'wordpress']);
+        $refreshTextPath = $this->invokePrivate('textIndexPath', [['category' => 'indexed-refresh'], 'wordpress']);
 
         $this->assertStringContainsString('/build/benchmarks/indexes/runtime/wordpress', $runtimeTextPath);
         $this->assertStringContainsString('/build/benchmarks/indexes/cold/wordpress', $coldTextPath);
         $this->assertStringContainsString('/build/benchmarks/indexes/build/wordpress', $buildTextPath);
+        $this->assertStringContainsString('/build/benchmarks/indexes/refresh/wordpress', $refreshTextPath);
         $this->assertNotSame($runtimeTextPath, $coldTextPath);
         $this->assertNotSame($runtimeTextPath, $buildTextPath);
+        $this->assertNotSame($runtimeTextPath, $refreshTextPath);
 
         $runtimeAstIndexPath = $this->invokePrivate('astIndexPath', [['category' => 'ast-indexed'], 'wordpress']);
         $buildAstIndexPath = $this->invokePrivate('astIndexPath', [['category' => 'ast-indexed-build'], 'wordpress']);
+        $refreshAstIndexPath = $this->invokePrivate('astIndexPath', [['category' => 'ast-indexed-refresh'], 'wordpress']);
         $runtimeAstCachePath = $this->invokePrivate('astCachePath', [['category' => 'ast-cached'], 'wordpress']);
         $buildAstCachePath = $this->invokePrivate('astCachePath', [['category' => 'ast-cached-build'], 'wordpress']);
+        $refreshAstCachePath = $this->invokePrivate('astCachePath', [['category' => 'ast-cached-refresh'], 'wordpress']);
 
         $this->assertStringContainsString('/build/benchmarks/ast-indexes/runtime/wordpress', $runtimeAstIndexPath);
         $this->assertStringContainsString('/build/benchmarks/ast-indexes/build/wordpress', $buildAstIndexPath);
+        $this->assertStringContainsString('/build/benchmarks/ast-indexes/refresh/wordpress', $refreshAstIndexPath);
         $this->assertStringContainsString('/build/benchmarks/ast-caches/runtime/wordpress', $runtimeAstCachePath);
         $this->assertStringContainsString('/build/benchmarks/ast-caches/build/wordpress', $buildAstCachePath);
+        $this->assertStringContainsString('/build/benchmarks/ast-caches/refresh/wordpress', $refreshAstCachePath);
         $this->assertNotSame($runtimeAstIndexPath, $buildAstIndexPath);
+        $this->assertNotSame($runtimeAstIndexPath, $refreshAstIndexPath);
         $this->assertNotSame($runtimeAstCachePath, $buildAstCachePath);
+        $this->assertNotSame($runtimeAstCachePath, $refreshAstCachePath);
     }
 
     /**
