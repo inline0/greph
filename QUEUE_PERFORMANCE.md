@@ -481,6 +481,26 @@ These are not queue items anymore; they are the current floor:
     - ASCII whole-word per-line boundary scanning was safe but did not clear the CI win threshold
     - do not revisit this exact line-matcher shape
 
+- `adeebfb` reject
+  - CI run: `24334467064`
+  - compare: `origin/main` -> `adeebfb`
+  - headline:
+    - `Literal short "wp"` `+47.40%`
+    - every other scan-text row stayed noise
+  - note:
+    - forcing 1-2 byte literals onto the generic per-line scan path was materially worse than the existing contents scan
+    - do not revisit this short-literal fallback shape
+
+- `80d4219` keep
+  - CI run: `24334970827`
+  - compare: `origin/main` -> `80d4219`
+  - headline:
+    - shipped new `Literal quiet "function"` benchmark row at `239.72ms`
+    - existing scan-text rows all stayed within CI noise
+  - note:
+    - quiet / exit-code-only text search now short-circuits after the first selected match and is merged to `main`
+    - follow-up `main` text benchmark should refresh the published baseline with the new quiet row
+
 ## Remaining Execution Queue
 
 This is the actual remaining work from here onward. Execute it in this order unless a fresh
@@ -556,7 +576,7 @@ The goal here is to finish the remaining one-shot grep-style optimizations befor
 - [x] Add full-line literal fast paths for regexes that reduce to exact-line checks.
 - [x] Detect regexes that collapse to exact literal matches and route them to literal search immediately.
 - [ ] Add better whole-word scan planning so whole-word literals do not pay generic substring costs. First dedicated occurrence-scan attempt was rejected in `18b7dda`; a new strategy is still open.
-- [ ] Add a short-query strategy for 1-2 byte literals instead of pretending current fixed-string heuristics are enough.
+- [ ] Add a short-query strategy for 1-2 byte literals instead of pretending current fixed-string heuristics are enough. The simple per-line fallback in `adeebfb` was rejected; any revisit must use a different planner shape.
 - [ ] Benchmark larger buffered reads for regex-heavy scans only.
 - [ ] Reduce string splitting and copying in the no-context regex path.
 - [x] Test multi-literal regex prefiltering beyond the current seed extraction. Rejected in `016749b`; any revisit must use a different planner shape.
@@ -564,7 +584,7 @@ The goal here is to finish the remaining one-shot grep-style optimizations befor
 - [x] Add a files-with-matches fast path for scan mode that exits per file after the first proof.
 - [x] Add a files-without-matches fast path for scan mode that exits per file after the first proof.
 - [x] Test cheaper scan-line trimming and exact-match text materialization. Rejected in `16b5ca3` and `4bb09c9`; no CI win.
-- [ ] Add a pure-existence fast path so exit-code-only calls do not pay formatting costs.
+- [x] Add a pure-existence fast path so exit-code-only calls do not pay formatting costs.
 - [ ] Re-measure formatting cost after search-path wins land so output generation is not hiding as the next bottleneck.
 
 ## Phase 2: Indexed Text Search

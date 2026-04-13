@@ -200,15 +200,17 @@ Comparison tools:
 
 | Operation | greph | rg | grep |
 | --- | ---: | ---: | ---: |
-| `Literal "function"` | `446.80ms` | `145.47ms` | `202.24ms` |
-| `Literal case insensitive` | `446.38ms` | `150.32ms` | `267.84ms` |
-| `Literal whole word` | `928.37ms` | `148.87ms` | `203.22ms` |
-| `Regex new instance` | `457.64ms` | `80.69ms` | `171.18ms` |
-| `Regex array call` | `399.52ms` | `85.71ms` | `196.17ms` |
-| `Regex prefix literal` | `435.73ms` | `78.35ms` | `159.11ms` |
-| `Regex suffix literal` | `584.12ms` | `217.36ms` | `284.74ms` |
-| `Regex exact line literal` | `547.26ms` | `142.76ms` | `175.57ms` |
-| `Regex literal collapse` | `431.17ms` | `143.23ms` | `203.36ms` |
+| `Literal "function"` | `441.04ms` | `81.93ms` | `185.24ms` |
+| `Literal case insensitive` | `443.29ms` | `88.79ms` | `235.02ms` |
+| `Literal quiet "function"` | `241.22ms` | `3.26ms` | `1.08ms` |
+| `Literal short "wp"` | `439.52ms` | `101.55ms` | `160.44ms` |
+| `Literal whole word` | `921.99ms` | `82.66ms` | `179.76ms` |
+| `Regex new instance` | `448.83ms` | `41.27ms` | `167.49ms` |
+| `Regex array call` | `388.76ms` | `46.32ms` | `190.27ms` |
+| `Regex prefix literal` | `433.71ms` | `41.09ms` | `154.04ms` |
+| `Regex suffix literal` | `576.38ms` | `129.65ms` | `225.08ms` |
+| `Regex exact line literal` | `542.68ms` | `75.13ms` | `161.96ms` |
+| `Regex literal collapse` | `429.30ms` | `85.65ms` | `180.00ms` |
 
 ### Scan Mode: Traversal
 
