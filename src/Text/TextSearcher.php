@@ -27,7 +27,17 @@ final class TextSearcher
         $results = [];
 
         foreach ($files as $file) {
-            $results[] = $this->searchFile($file, $matcher, $options);
+            $result = $this->searchFile($file, $matcher, $options);
+
+            if ($options->quiet) {
+                if ($result->hasMatches()) {
+                    return [$result];
+                }
+
+                continue;
+            }
+
+            $results[] = $result;
         }
 
         return $results;
@@ -118,6 +128,10 @@ final class TextSearcher
             $isSelected = $collectMatches && ($options->invertMatch ? $lineMatch === null : $lineMatch !== null);
 
             if ($isSelected) {
+                if ($options->quiet) {
+                    return new TextFileResult($file, [], 1);
+                }
+
                 $column = $lineMatch !== null ? $lineMatch->column : 1;
                 $matchedText = $lineMatch !== null ? $lineMatch->matchedText : '';
                 $captures = $lineMatch !== null ? $lineMatch->captures : [];
@@ -251,6 +265,10 @@ final class TextSearcher
 
             $foundCount++;
 
+            if ($options->quiet) {
+                break;
+            }
+
             if ($options->countOnly || $options->filesWithMatches || $options->filesWithoutMatches) {
                 if ($options->filesWithMatches || $options->filesWithoutMatches) {
                     break;
@@ -315,6 +333,10 @@ final class TextSearcher
             }
 
             $foundCount++;
+
+            if ($options->quiet) {
+                break;
+            }
 
             if ($options->countOnly || $options->filesWithMatches || $options->filesWithoutMatches) {
                 if ($options->filesWithMatches || $options->filesWithoutMatches) {
@@ -383,6 +405,10 @@ final class TextSearcher
             $lineContent = rtrim(substr($contents, $lineStart, $lineStop - $lineStart), "\r");
             $foundCount++;
 
+            if ($options->quiet) {
+                break;
+            }
+
             if (!$options->countOnly && !$options->filesWithMatches && !$options->filesWithoutMatches) {
                 $matches[] = new TextMatch(
                     file: $file,
@@ -442,6 +468,10 @@ final class TextSearcher
             $lineContent = rtrim(substr($contents, $lineStart, $lineStop - $lineStart), "\r");
             $foundCount++;
 
+            if ($options->quiet) {
+                break;
+            }
+
             if (!$options->countOnly && !$options->filesWithMatches && !$options->filesWithoutMatches) {
                 $matches[] = new TextMatch(
                     file: $file,
@@ -498,6 +528,10 @@ final class TextSearcher
 
             if ($lineMatch !== null) {
                 $foundCount++;
+
+                if ($options->quiet) {
+                    break;
+                }
 
                 if (!$options->countOnly && !$options->filesWithMatches && !$options->filesWithoutMatches) {
                     $matches[] = new TextMatch(

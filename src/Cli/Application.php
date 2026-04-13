@@ -79,6 +79,7 @@ final class Application
      *   countOnly: bool,
      *   filesWithMatches: bool,
      *   filesWithoutMatches: bool,
+     *   quiet: bool,
      *   json: bool,
      *   noIgnore: bool,
      *   hidden: bool,
@@ -123,6 +124,7 @@ final class Application
             countOnly: $arguments['countOnly'],
             filesWithMatches: $arguments['filesWithMatches'],
             filesWithoutMatches: $arguments['filesWithoutMatches'],
+            quiet: $arguments['quiet'],
             jsonOutput: $arguments['json'],
             jobs: $arguments['jobs'],
             respectIgnore: !$arguments['noIgnore'],
@@ -136,7 +138,9 @@ final class Application
         $results = Greph::searchText($arguments['pattern'], $arguments['paths'], $options);
         $displayResults = $this->displayTextResults($results);
 
-        if ($arguments['json']) {
+        if ($arguments['quiet']) {
+            // Quiet mode is exit-code-only by definition.
+        } elseif ($arguments['json']) {
             $payload = array_map(
                 static fn ($result): array => [
                     'file' => $result->file,
@@ -186,6 +190,7 @@ final class Application
      *   countOnly: bool,
      *   filesWithMatches: bool,
      *   filesWithoutMatches: bool,
+     *   quiet: bool,
      *   json: bool,
      *   noIgnore: bool,
      *   hidden: bool,
@@ -305,6 +310,7 @@ final class Application
      *   countOnly: bool,
      *   filesWithMatches: bool,
      *   filesWithoutMatches: bool,
+     *   quiet: bool,
      *   json: bool,
      *   noIgnore: bool,
      *   hidden: bool,
@@ -339,6 +345,7 @@ final class Application
             'countOnly' => false,
             'filesWithMatches' => false,
             'filesWithoutMatches' => false,
+            'quiet' => false,
             'json' => false,
             'noIgnore' => false,
             'hidden' => false,
@@ -415,6 +422,10 @@ final class Application
                     break;
                 case '-L':
                     $parsed['filesWithoutMatches'] = true;
+                    break;
+                case '-q':
+                case '--quiet':
+                    $parsed['quiet'] = true;
                     break;
                 case '--json':
                     $parsed['json'] = true;
@@ -522,6 +533,7 @@ Options:
   -c              Count matches per file.
   -l              List matching files.
   -L              List non-matching files.
+  -q, --quiet     Exit immediately after the first selected match.
   -h              Suppress filename prefixes in text mode.
   -H              Always print filename prefixes in text mode.
   -n              Show line numbers in text mode. Default: on.
