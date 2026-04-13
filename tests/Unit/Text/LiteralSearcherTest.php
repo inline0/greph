@@ -64,4 +64,28 @@ final class LiteralSearcherTest extends TestCase
         $this->assertSame('NEEDLE', $caseInsensitive->matchedTextAt("prefix NEEDLE suffix", 7));
         $this->assertFalse($wholeWord->supportsOccurrenceScan());
     }
+
+    #[Test]
+    public function itCanScanAsciiWholeWordContentsWithoutRegex(): void
+    {
+        $wholeWord = new LiteralSearcher('needle', wholeWord: true);
+        $caseInsensitive = new LiteralSearcher('needle', caseInsensitive: true, wholeWord: true);
+
+        $contents = "prefix needle suffix\nneedle_two\nNEEDLE end";
+
+        $this->assertTrue($wholeWord->supportsWholeWordOccurrenceScanForContents($contents));
+        $this->assertSame(7, $wholeWord->findWholeWordInContents($contents));
+        $this->assertSame(32, $caseInsensitive->findWholeWordInContents($contents, 8));
+        $this->assertSame('NEEDLE', $caseInsensitive->matchedTextAt($contents, 32));
+    }
+
+    #[Test]
+    public function itFallsBackToUnicodeRegexForNonAsciiWholeWordMatching(): void
+    {
+        $wholeWord = new LiteralSearcher('word', wholeWord: true);
+
+        $this->assertFalse($wholeWord->supportsWholeWordOccurrenceScanForContents("ä word"));
+        $this->assertNull($wholeWord->match("äword"));
+        $this->assertNotNull($wholeWord->match("ä word"));
+    }
 }

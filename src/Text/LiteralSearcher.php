@@ -10,12 +10,15 @@ final class LiteralSearcher implements TextMatcher
 
     private int $needleLength;
 
+    private bool $asciiWholeWordCandidate = false;
+
     public function __construct(
         private readonly string $needle,
         private readonly bool $caseInsensitive = false,
         private readonly bool $wholeWord = false,
     ) {
         $this->needleLength = strlen($this->needle);
+        $this->asciiWholeWordCandidate = $this->wholeWord && $this->needle !== '' && preg_match('/^[\x00-\x7F]+$/', $this->needle) === 1;
 
         if ($this->wholeWord) {
             $pattern = preg_quote($this->needle, '#');
@@ -29,6 +32,10 @@ final class LiteralSearcher implements TextMatcher
     {
         if ($this->needle === '') {
             return true;
+        }
+
+        if ($this->supportsWholeWordOccurrenceScanForContents($contents)) {
+            return $this->findWholeWordInContents($contents) !== false;
         }
 
         return $this->findInContents($contents) !== false;
@@ -51,6 +58,16 @@ final class LiteralSearcher implements TextMatcher
         }
 
         if ($this->wholeWordRegex !== null) {
+            if ($this->supportsWholeWordOccurrenceScanForContents($line)) {
+                $position = $this->findWholeWordInAsciiContents($line);
+
+                if ($position === false) {
+                    return null;
+                }
+
+                return new LineMatch($position + 1, substr($line, $position, $this->needleLength));
+            }
+
             $matches = [];
             $matched = @preg_match($this->wholeWordRegex, $line, $matches, PREG_OFFSET_CAPTURE);
 
@@ -78,6 +95,11 @@ final class LiteralSearcher implements TextMatcher
         return !$this->wholeWord && $this->needle !== '';
     }
 
+    public function supportsWholeWordOccurrenceScanForContents(string $contents): bool
+    {
+        return $this->asciiWholeWordCandidate && preg_match('/[\x80-\xFF]/', $contents) !== 1;
+    }
+
     public function findInContents(string $contents, int $offset = 0): int|false
     {
         return $this->caseInsensitive
@@ -85,8 +107,57 @@ final class LiteralSearcher implements TextMatcher
             : strpos($contents, $this->needle, $offset);
     }
 
+    public function findWholeWordInContents(string $contents, int $offset = 0): int|false
+    {
+        if (!$this->supportsWholeWordOccurrenceScanForContents($contents)) {
+            return false;
+        }
+
+        return $this->findWholeWordInAsciiContents($contents, $offset);
+    }
+
+    public function findWholeWordInAsciiContents(string $contents, int $offset = 0): int|false
+    {
+        if (!$this->asciiWholeWordCandidate) {
+            return false;
+        }
+
+        $position = $offset;
+
+        while (($position = $this->findInContents($contents, $position)) !== false) {
+            if ($this->isWholeWordBoundaryAt($contents, $position)) {
+                return $position;
+            }
+
+            $position++;
+        }
+
+        return false;
+    }
+
     public function matchedTextAt(string $contents, int $offset): string
     {
         return substr($contents, $offset, $this->needleLength);
+    }
+
+    private function isWholeWordBoundaryAt(string $contents, int $position): bool
+    {
+        $before = $position > 0 ? ord($contents[$position - 1]) : null;
+        $afterOffset = $position + $this->needleLength;
+        $after = $afterOffset < strlen($contents) ? ord($contents[$afterOffset]) : null;
+
+        return !$this->isAsciiWordByte($before) && !$this->isAsciiWordByte($after);
+    }
+
+    private function isAsciiWordByte(?int $byte): bool
+    {
+        if ($byte === null) {
+            return false;
+        }
+
+        return ($byte >= 48 && $byte <= 57)
+            || ($byte >= 65 && $byte <= 90)
+            || ($byte >= 97 && $byte <= 122)
+            || $byte === 95;
     }
 }
