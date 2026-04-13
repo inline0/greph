@@ -22,6 +22,8 @@ use Greph\Text\TextSearchOptions;
 
 final class BenchmarkRunner
 {
+    private const REFRESH_DIRTY_FILE_COUNT = 4;
+
     private CommandRunner $commandRunner;
 
     private ToolResolver $toolResolver;
@@ -80,6 +82,7 @@ final class BenchmarkRunner
         $indexPath = $this->textIndexPath($suite, $corpusName);
         $astIndexPath = $this->astIndexPath($suite, $corpusName);
         $astCachePath = $this->astCachePath($suite, $corpusName);
+        $runtimeFileCount = $fileCount;
 
         if (in_array($suite['category'], ['indexed-text', 'indexed-text-cold', 'indexed-load', 'indexed-summary'], true)) {
             if (!(new TextIndexStore())->exists($indexPath)) {
@@ -168,6 +171,21 @@ final class BenchmarkRunner
                 $matchCount = $result->fileCount;
                 break;
 
+            case 'ast-indexed-refresh':
+                [$refreshCorpusPath, $refreshIndexPath] = $this->prepareAstIndexRefreshWorkspace($corpusPath, $corpusName);
+
+                try {
+                    $this->applyRefreshMutations($refreshCorpusPath);
+                    $runtimeFileCount = iterator_count(Greph::walk($refreshCorpusPath));
+                    $memoryBefore = memory_get_usage(true);
+                    $start = hrtime(true);
+                    $result = (new AstIndexBuilder())->refresh($refreshCorpusPath, $refreshIndexPath);
+                    $matchCount = $result->addedFiles + $result->updatedFiles + $result->deletedFiles;
+                } finally {
+                    Filesystem::remove($refreshCorpusPath);
+                }
+                break;
+
             case 'ast-cached':
                 $results = Greph::searchAstCached(
                     (string) $suite['pattern'],
@@ -185,6 +203,21 @@ final class BenchmarkRunner
                 Filesystem::remove($astCachePath);
                 $result = (new AstCacheBuilder())->build($corpusPath, $astCachePath);
                 $matchCount = $result->cachedTreeCount;
+                break;
+
+            case 'ast-cached-refresh':
+                [$refreshCorpusPath, $refreshIndexPath] = $this->prepareAstCacheRefreshWorkspace($corpusPath, $corpusName);
+
+                try {
+                    $this->applyRefreshMutations($refreshCorpusPath);
+                    $runtimeFileCount = iterator_count(Greph::walk($refreshCorpusPath));
+                    $memoryBefore = memory_get_usage(true);
+                    $start = hrtime(true);
+                    $result = (new AstCacheBuilder())->refresh($refreshCorpusPath, $refreshIndexPath);
+                    $matchCount = $result->addedFiles + $result->updatedFiles + $result->deletedFiles;
+                } finally {
+                    Filesystem::remove($refreshCorpusPath);
+                }
                 break;
 
             case 'walker':
@@ -209,6 +242,21 @@ final class BenchmarkRunner
                 Filesystem::remove($indexPath);
                 $result = (new TextIndexBuilder())->build($corpusPath, $indexPath);
                 $matchCount = $result->fileCount;
+                break;
+
+            case 'indexed-refresh':
+                [$refreshCorpusPath, $refreshIndexPath] = $this->prepareTextRefreshWorkspace($corpusPath, $corpusName);
+
+                try {
+                    $this->applyRefreshMutations($refreshCorpusPath);
+                    $runtimeFileCount = iterator_count(Greph::walk($refreshCorpusPath));
+                    $memoryBefore = memory_get_usage(true);
+                    $start = hrtime(true);
+                    $result = (new TextIndexBuilder())->refresh($refreshCorpusPath, $refreshIndexPath);
+                    $matchCount = $result->addedFiles + $result->updatedFiles + $result->deletedFiles;
+                } finally {
+                    Filesystem::remove($refreshCorpusPath);
+                }
                 break;
 
             case 'indexed-text':
@@ -265,7 +313,7 @@ final class BenchmarkRunner
             tool: 'greph',
             durationMs: (hrtime(true) - $start) / 1_000_000,
             memoryBytes: max(0, memory_get_usage(true) - $memoryBefore),
-            fileCount: $fileCount,
+            fileCount: $runtimeFileCount,
             matchCount: $matchCount,
         );
     }
@@ -377,8 +425,11 @@ final class BenchmarkRunner
             'ast-indexed' => 110,
             'ast-cached' => 120,
             'indexed-build' => 130,
-            'ast-indexed-build' => 140,
-            'ast-cached-build' => 150,
+            'indexed-refresh' => 140,
+            'ast-indexed-build' => 150,
+            'ast-indexed-refresh' => 160,
+            'ast-cached-build' => 170,
+            'ast-cached-refresh' => 180,
         ];
 
         $leftPriority = $priority[(string) ($left['category'] ?? '')] ?? 999;
@@ -400,6 +451,7 @@ final class BenchmarkRunner
         $mode = match ((string) ($suite['category'] ?? '')) {
             'indexed-build' => 'build',
             'indexed-text-cold' => 'cold',
+            'indexed-refresh' => 'refresh',
             default => 'runtime',
         };
 
@@ -411,7 +463,11 @@ final class BenchmarkRunner
      */
     private function astIndexPath(array $suite, string $corpusName): string
     {
-        $mode = ((string) ($suite['category'] ?? '')) === 'ast-indexed-build' ? 'build' : 'runtime';
+        $mode = match ((string) ($suite['category'] ?? '')) {
+            'ast-indexed-build' => 'build',
+            'ast-indexed-refresh' => 'refresh',
+            default => 'runtime',
+        };
 
         return $this->rootPath . '/build/benchmarks/ast-indexes/' . $mode . '/' . $corpusName;
     }
@@ -421,9 +477,147 @@ final class BenchmarkRunner
      */
     private function astCachePath(array $suite, string $corpusName): string
     {
-        $mode = ((string) ($suite['category'] ?? '')) === 'ast-cached-build' ? 'build' : 'runtime';
+        $mode = match ((string) ($suite['category'] ?? '')) {
+            'ast-cached-build' => 'build',
+            'ast-cached-refresh' => 'refresh',
+            default => 'runtime',
+        };
 
         return $this->rootPath . '/build/benchmarks/ast-caches/' . $mode . '/' . $corpusName;
+    }
+
+    /**
+     * @return array{0: string, 1: string}
+     */
+    private function prepareTextRefreshWorkspace(string $corpusPath, string $corpusName): array
+    {
+        $workspace = $this->prepareRefreshWorkspace($corpusPath, 'indexed-refresh', $corpusName);
+        $indexPath = $this->textIndexPath(['category' => 'indexed-refresh'], $corpusName);
+        Filesystem::remove($indexPath);
+        (new TextIndexBuilder())->build($workspace, $indexPath);
+
+        return [$workspace, $indexPath];
+    }
+
+    /**
+     * @return array{0: string, 1: string}
+     */
+    private function prepareAstIndexRefreshWorkspace(string $corpusPath, string $corpusName): array
+    {
+        $workspace = $this->prepareRefreshWorkspace($corpusPath, 'ast-indexed-refresh', $corpusName);
+        $indexPath = $this->astIndexPath(['category' => 'ast-indexed-refresh'], $corpusName);
+        Filesystem::remove($indexPath);
+        (new AstIndexBuilder())->build($workspace, $indexPath);
+
+        return [$workspace, $indexPath];
+    }
+
+    /**
+     * @return array{0: string, 1: string}
+     */
+    private function prepareAstCacheRefreshWorkspace(string $corpusPath, string $corpusName): array
+    {
+        $workspace = $this->prepareRefreshWorkspace($corpusPath, 'ast-cached-refresh', $corpusName);
+        $indexPath = $this->astCachePath(['category' => 'ast-cached-refresh'], $corpusName);
+        Filesystem::remove($indexPath);
+        (new AstCacheBuilder())->build($workspace, $indexPath);
+
+        return [$workspace, $indexPath];
+    }
+
+    private function prepareRefreshWorkspace(string $corpusPath, string $category, string $corpusName): string
+    {
+        $workspace = $this->rootPath
+            . '/build/benchmarks/refresh-workspaces/'
+            . $category
+            . '/'
+            . $corpusName
+            . '/'
+            . str_replace('.', '-', uniqid('', true));
+
+        Filesystem::copyDirectory($corpusPath, $workspace);
+
+        return $workspace;
+    }
+
+    private function applyRefreshMutations(string $corpusPath): void
+    {
+        $phpFiles = $this->refreshCandidatePhpFiles($corpusPath);
+
+        if (count($phpFiles) < self::REFRESH_DIRTY_FILE_COUNT) {
+            throw new \RuntimeException(sprintf(
+                'Refresh benchmark corpus needs at least %d PHP files: %s',
+                self::REFRESH_DIRTY_FILE_COUNT,
+                $corpusPath,
+            ));
+        }
+
+        $this->mutateRefreshFile($phpFiles[0]);
+        if (!@unlink($phpFiles[1])) {
+            throw new \RuntimeException(sprintf('Failed to delete refresh benchmark file: %s', $phpFiles[1]));
+        }
+        $renamedPath = dirname($phpFiles[2]) . '/' . pathinfo($phpFiles[2], PATHINFO_FILENAME) . '-refresh-renamed.php';
+        if (!@rename($phpFiles[2], $renamedPath)) {
+            throw new \RuntimeException(sprintf('Failed to rename refresh benchmark file: %s', $phpFiles[2]));
+        }
+
+        if (@file_put_contents(
+            $corpusPath . '/greph_refresh_benchmark.php',
+            "<?php\n\nfunction greph_refresh_benchmark_fixture(): string\n{\n    return 'refresh';\n}\n",
+        ) === false) {
+            throw new \RuntimeException(sprintf('Failed to add refresh benchmark file under: %s', $corpusPath));
+        }
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function refreshCandidatePhpFiles(string $corpusPath): array
+    {
+        $iterator = new \RecursiveIteratorIterator(
+            new \RecursiveDirectoryIterator($corpusPath, \FilesystemIterator::SKIP_DOTS),
+        );
+        $paths = [];
+
+        foreach ($iterator as $entry) {
+            if (!$entry instanceof \SplFileInfo || !$entry->isFile()) {
+                continue;
+            }
+
+            $path = Filesystem::normalizePath($entry->getPathname());
+
+            if (!str_ends_with($path, '.php') || str_contains($path, '/.greph-')) {
+                continue;
+            }
+
+            $paths[] = $path;
+        }
+
+        sort($paths);
+
+        return $paths;
+    }
+
+    private function mutateRefreshFile(string $path): void
+    {
+        $contents = @file_get_contents($path);
+
+        if ($contents === false) {
+            throw new \RuntimeException(sprintf('Failed to read refresh benchmark file: %s', $path));
+        }
+
+        if (str_contains($contents, '<?php')) {
+            $updated = preg_replace('/<\\?php/', "<?php\n/* greph refresh benchmark */", $contents, 1);
+            if (@file_put_contents($path, $updated === null ? $contents : $updated) === false) {
+                throw new \RuntimeException(sprintf('Failed to update refresh benchmark file: %s', $path));
+            }
+
+            return;
+        }
+
+        if (@file_put_contents($path, $contents . "\n<?php\n/* greph refresh benchmark */\n") === false) {
+            throw new \RuntimeException(sprintf('Failed to update refresh benchmark file: %s', $path));
+        }
     }
 
     /**
