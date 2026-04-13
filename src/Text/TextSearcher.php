@@ -224,7 +224,11 @@ final class TextSearcher
             return new TextFileResult($file, [], 0);
         }
 
-        if ($matcher instanceof LiteralSearcher && !$options->invertMatch && $matcher->supportsOccurrenceScan()) {
+        if (
+            $matcher instanceof LiteralSearcher
+            && !$options->invertMatch
+            && ($matcher->supportsOccurrenceScan() || $matcher->supportsWholeWordOccurrenceScanForContents($contents))
+        ) {
             return $this->searchContentsByLiteral($file, $contents, $matcher, $options);
         }
 
@@ -397,8 +401,9 @@ final class TextSearcher
         $lineNumber = 1;
         $lineEnd = strpos($contents, "\n");
         $offset = 0;
+        $useWholeWordOccurrenceScan = $matcher->supportsWholeWordOccurrenceScanForContents($contents);
 
-        while (($position = $matcher->findInContents($contents, $offset)) !== false) {
+        while (($position = $this->findLiteralPositionInContents($matcher, $contents, $offset, $useWholeWordOccurrenceScan)) !== false) {
             while ($lineEnd !== false && $position > $lineEnd) {
                 $lineStart = $lineEnd + 1;
                 $lineNumber++;
@@ -439,6 +444,19 @@ final class TextSearcher
         }
 
         return new TextFileResult($file, $matches, $foundCount);
+    }
+
+    private function findLiteralPositionInContents(
+        LiteralSearcher $matcher,
+        string $contents,
+        int $offset,
+        bool $useWholeWordOccurrenceScan = false,
+    ): int|false {
+        if ($useWholeWordOccurrenceScan) {
+            return $matcher->findWholeWordInAsciiContents($contents, $offset);
+        }
+
+        return $matcher->findInContents($contents, $offset);
     }
 
     private function searchContentsByAnchoredLiteral(

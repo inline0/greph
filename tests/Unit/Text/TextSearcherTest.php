@@ -28,6 +28,7 @@ final class TextSearcherTest extends TestCase
         Workspace::writeFile($this->workspace, 'count.txt', "match\nmatch\n");
         Workspace::writeFile($this->workspace, 'final-line.txt', "alpha\r\nmatch");
         Workspace::writeFile($this->workspace, 'literal-scan.txt', "noise\nprefix match suffix match\nskip\nMATCH again\n");
+        Workspace::writeFile($this->workspace, 'whole-word-scan.txt', "match\nmatching\nprefix match suffix\nMAtch\n");
         Workspace::writeFile($this->workspace, 'regex-scan.txt', "noise\n\$foo = new Bar()\n\$foo = new Bar(); \$bar = new Baz()\nvalue = old Bar()\n");
         Workspace::writeFile($this->workspace, 'anchored-scan.txt', "function alpha()\ncall(); more();\n}\n");
     }
@@ -127,6 +128,26 @@ final class TextSearcherTest extends TestCase
         $this->assertSame('match', $results[0]->matches[0]->matchedText);
         $this->assertSame(4, $results[0]->matches[1]->line);
         $this->assertSame('MATCH', $results[0]->matches[1]->matchedText);
+    }
+
+    #[Test]
+    public function itUsesOccurrenceScanningForAsciiWholeWordLiteralSearches(): void
+    {
+        $searcher = new TextSearcher();
+        $results = $searcher->searchFiles(
+            new FileList([$this->workspace . '/whole-word-scan.txt']),
+            'match',
+            new TextSearchOptions(fixedString: true, caseInsensitive: true, wholeWord: true),
+        );
+
+        $this->assertSame(3, $results[0]->matchCount());
+        $this->assertSame([1, 3, 4], array_map(
+            static fn (LineMatch|\Greph\Text\TextMatch $match): int => $match->line,
+            $results[0]->matches,
+        ));
+        $this->assertSame('match', $results[0]->matches[0]->matchedText);
+        $this->assertSame('match', $results[0]->matches[1]->matchedText);
+        $this->assertSame('MAtch', $results[0]->matches[2]->matchedText);
     }
 
     #[Test]
