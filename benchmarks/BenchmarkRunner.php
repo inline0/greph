@@ -109,6 +109,7 @@ final class BenchmarkRunner
                     fixedString: (bool) ($suite['fixed'] ?? false),
                     caseInsensitive: (bool) ($suite['case_insensitive'] ?? false),
                     wholeWord: (bool) ($suite['whole_word'] ?? false),
+                    quiet: (bool) ($suite['quiet'] ?? false),
                     jobs: (int) ($suite['jobs'] ?? 1),
                 ));
 
@@ -193,6 +194,7 @@ final class BenchmarkRunner
                 $results = Greph::searchText((string) $suite['pattern'], $corpusPath, new TextSearchOptions(
                     fixedString: (bool) ($suite['fixed'] ?? false),
                     wholeWord: (bool) ($suite['whole_word'] ?? false),
+                    quiet: (bool) ($suite['quiet'] ?? false),
                     jobs: (int) ($suite['jobs'] ?? 1),
                 ));
 
@@ -224,6 +226,7 @@ final class BenchmarkRunner
                         countOnly: (bool) ($suite['count_only'] ?? false),
                         filesWithMatches: (bool) ($suite['files_with_matches'] ?? false),
                         filesWithoutMatches: (bool) ($suite['files_without_matches'] ?? false),
+                        quiet: (bool) ($suite['quiet'] ?? false),
                     ),
                     $indexPath,
                 );
@@ -388,6 +391,10 @@ final class BenchmarkRunner
             $command[] = '-L';
         }
 
+        if (($suite['quiet'] ?? false) === true) {
+            $command[] = '-q';
+        }
+
         return array_merge($command, [(string) $suite['pattern'], $corpusPath]);
     }
 
@@ -429,6 +436,10 @@ final class BenchmarkRunner
 
         if (($suite['files_without_matches'] ?? false) === true) {
             $command[] = '-L';
+        }
+
+        if (($suite['quiet'] ?? false) === true) {
+            $command[] = '-q';
         }
 
         return array_merge($command, [(string) $suite['pattern'], $corpusPath]);

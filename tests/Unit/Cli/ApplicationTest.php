@@ -56,6 +56,7 @@ PHP);
                 '-c',
                 '-l',
                 '-L',
+                '-q',
                 '--json',
                 '--no-ignore',
                 '--hidden',
@@ -98,6 +99,7 @@ PHP);
         $this->assertTrue($parsed['countOnly']);
         $this->assertTrue($parsed['filesWithMatches']);
         $this->assertTrue($parsed['filesWithoutMatches']);
+        $this->assertTrue($parsed['quiet']);
         $this->assertTrue($parsed['json']);
         $this->assertTrue($parsed['noIgnore']);
         $this->assertTrue($parsed['hidden']);
@@ -183,6 +185,8 @@ PHP);
         $jsonExit = $application->run(['greph', '-F', '--json', 'needle', 'single.txt']);
         $noMatchExit = $application->run(['greph', '-F', 'missing', 'single.txt']);
         $filesWithoutMatchesExit = $application->run(['greph', '-F', '-L', 'needle', '.']);
+        $quietExit = $application->run(['greph', '-F', '-q', 'needle', 'single.txt']);
+        $quietNoMatchExit = $application->run(['greph', '-F', '-q', 'missing', 'single.txt']);
 
         $stdout = $this->readStream($harness['stdout']);
         $stderr = $this->readStream($harness['stderr']);
@@ -193,6 +197,8 @@ PHP);
         $this->assertSame(0, $jsonExit);
         $this->assertSame(1, $noMatchExit);
         $this->assertSame(0, $filesWithoutMatchesExit);
+        $this->assertSame(0, $quietExit);
+        $this->assertSame(1, $quietNoMatchExit);
         $this->assertStringContainsString('Usage:', $stdout);
         $this->assertStringContainsString("2:needle\n", $stdout);
         $this->assertStringContainsString('"matched_text": "needle"', $stdout);
@@ -263,6 +269,7 @@ PHP);
             'countOnly' => false,
             'filesWithMatches' => false,
             'filesWithoutMatches' => false,
+            'quiet' => false,
             'json' => false,
             'noIgnore' => false,
             'hidden' => false,

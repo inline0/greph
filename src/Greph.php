@@ -228,7 +228,7 @@ final class Greph
 
     private static function shouldUseTextWorkers(string $pattern, TextSearchOptions $options, int $fileCount): bool
     {
-        if ($options->jobs <= 1) {
+        if ($options->jobs <= 1 || $options->quiet) {
             return false;
         }
 

@@ -23,6 +23,7 @@ final readonly class TextSearchOptions
         public bool $countOnly = false,
         public bool $filesWithMatches = false,
         public bool $filesWithoutMatches = false,
+        public bool $quiet = false,
         public bool $jsonOutput = false,
         public int $jobs = 1,
         public bool $respectIgnore = true,

@@ -243,12 +243,31 @@ final class TextSearcherTest extends TestCase
             $matcher,
             new TextSearchOptions(filesWithoutMatches: true, invertMatch: true),
         );
+        $quietStreamResult = $this->invokeMethod(
+            $searcher,
+            'searchFileWithoutContext',
+            $this->workspace . '/count.txt',
+            $matcher,
+            new TextSearchOptions(quiet: true),
+        );
+        $quietContentsResult = $this->invokeMethod(
+            $searcher,
+            'searchContentsWithoutContext',
+            'memory.txt',
+            "miss\r\nmatch\r\nfinal match",
+            $matcher,
+            new TextSearchOptions(quiet: true),
+        );
 
         $this->assertSame(1, $streamResult->matchCount());
         $this->assertSame(1, $streamListResult->matchCount());
         $this->assertSame(0, $streamMissingResult->matchCount());
         $this->assertSame(1, $contentsResult->matchCount());
         $this->assertSame(1, $contentsWithoutMatches->matchCount());
+        $this->assertSame(1, $quietStreamResult->matchCount());
+        $this->assertSame([], $quietStreamResult->matches);
+        $this->assertSame(1, $quietContentsResult->matchCount());
+        $this->assertSame([], $quietContentsResult->matches);
     }
 
     #[Test]

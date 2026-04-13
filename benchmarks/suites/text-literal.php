@@ -31,4 +31,12 @@ return [
         'pattern' => 'wp',
         'fixed' => true,
     ],
+    [
+        'suite' => 'text-literal',
+        'category' => 'text',
+        'name' => 'Literal quiet "function"',
+        'pattern' => 'function',
+        'fixed' => true,
+        'quiet' => true,
+    ],
 ];

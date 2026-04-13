@@ -131,6 +131,8 @@ final class RipgrepApplicationTest extends TestCase
         $maxCountExit = $application->run(['rg', '-m', '1', '-F', 'needle', 'counts.txt']);
         $threadExit = $application->run(['rg', '-j', '2', '-F', 'needle', 'single.txt']);
         $delimiterExit = $application->run(['rg', '-F', '--', 'needle', 'single.txt']);
+        $quietExit = $application->run(['rg', '-q', '-F', 'needle', 'single.txt']);
+        $quietNoMatchExit = $application->run(['rg', '-q', '-F', 'missing', 'single.txt']);
 
         $stdout = $this->readStream($harness['stdout']);
 
@@ -149,6 +151,8 @@ final class RipgrepApplicationTest extends TestCase
         $this->assertSame(0, $maxCountExit);
         $this->assertSame(0, $threadExit);
         $this->assertSame(0, $delimiterExit);
+        $this->assertSame(0, $quietExit);
+        $this->assertSame(1, $quietNoMatchExit);
         $this->assertStringContainsString("2\n", $stdout);
         $this->assertStringContainsString('"type":"match"', $stdout);
         $this->assertStringContainsString("before\n", $stdout);

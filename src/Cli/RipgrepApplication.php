@@ -82,6 +82,7 @@ final class RipgrepApplication
             countOnly: $parsed['countOnly'],
             filesWithMatches: $parsed['filesWithMatches'],
             filesWithoutMatches: $parsed['filesWithoutMatches'],
+            quiet: $parsed['quiet'],
             jsonOutput: $parsed['json'],
             jobs: $parsed['jobs'],
             respectIgnore: !$parsed['noIgnore'],
@@ -96,7 +97,9 @@ final class RipgrepApplication
         $results = Greph::searchText($parsed['pattern'], $parsed['paths'], $options);
         $displayResults = $this->displayTextResults($results, $this->shouldPrefixCurrentDirectory($parsed['paths']));
 
-        if ($parsed['json']) {
+        if ($parsed['quiet']) {
+            // Quiet mode is exit-code-only by definition.
+        } elseif ($parsed['json']) {
             $this->writeOutput($this->formatJsonEvents($results, $this->shouldPrefixCurrentDirectory($parsed['paths'])) . PHP_EOL);
         } elseif ($parsed['countOnly']) {
             $this->writeOutput($this->formatCounts($displayResults, $options));
@@ -172,6 +175,7 @@ final class RipgrepApplication
      *   countOnly: bool,
      *   filesWithMatches: bool,
      *   filesWithoutMatches: bool,
+     *   quiet: bool,
      *   json: bool,
      *   noIgnore: bool,
      *   hidden: bool,
@@ -200,6 +204,7 @@ final class RipgrepApplication
             'countOnly' => false,
             'filesWithMatches' => false,
             'filesWithoutMatches' => false,
+            'quiet' => false,
             'json' => false,
             'noIgnore' => false,
             'hidden' => false,
@@ -266,6 +271,11 @@ final class RipgrepApplication
 
             if ($argument === '--files-without-match' || $argument === '--files-without-matches') {
                 $parsed['filesWithoutMatches'] = true;
+                continue;
+            }
+
+            if ($argument === '-q' || $argument === '--quiet') {
+                $parsed['quiet'] = true;
                 continue;
             }
 
@@ -756,6 +766,7 @@ Supported Options:
   -c, --count                  Count matching lines.
   -l, --files-with-matches     List matching files.
   --files-without-match        List non-matching files.
+  -q, --quiet                  Exit immediately after the first selected match.
   -I, --no-filename            Suppress filename prefixes.
   -H, --with-filename          Always print filename prefixes.
   -n, --line-number            Show line numbers.
