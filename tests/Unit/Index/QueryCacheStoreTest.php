@@ -39,6 +39,7 @@ final class QueryCacheStoreTest extends TestCase
         $index = $this->textIndex();
         $normalOptions = new TextSearchOptions(fixedString: true);
         $summaryOptions = new TextSearchOptions(fixedString: true, filesWithMatches: true);
+        $quietOptions = new TextSearchOptions(fixedString: true, quiet: true);
         $results = [
             new TextFileResult('src/App.php', [
                 new TextMatch('src/App.php', 2, 1, 'function demo()', 'function'),
@@ -47,18 +48,23 @@ final class QueryCacheStoreTest extends TestCase
 
         $store->save($index, 'function', $normalOptions, $results);
         $store->save($index, 'function', $summaryOptions, $results);
+        $store->save($index, 'function', $quietOptions, $results);
 
         $loaded = $store->load($index, 'function', $normalOptions);
         $summaryLoaded = $store->load($index, 'function', $summaryOptions);
+        $quietLoaded = $store->load($index, 'function', $quietOptions);
         $cacheFiles = glob($this->workspace . '/.greph-index/queries/*.phpbin*') ?: [];
 
-        $this->assertCount(2, $cacheFiles);
+        $this->assertCount(3, $cacheFiles);
         $this->assertNotNull($loaded);
         $this->assertNotNull($summaryLoaded);
+        $this->assertNotNull($quietLoaded);
         $this->assertCount(1, $loaded);
         $this->assertCount(1, $summaryLoaded);
+        $this->assertCount(1, $quietLoaded);
         $this->assertSame(1, $loaded[0]->matchCount());
         $this->assertSame(1, $summaryLoaded[0]->matchCount());
+        $this->assertSame(1, $quietLoaded[0]->matchCount());
 
         $staleIndex = new TextIndex(
             rootPath: $index->rootPath,

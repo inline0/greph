@@ -69,6 +69,11 @@ final class IndexedTextSearcherTest extends TestCase
             $this->workspace,
             new TextSearchOptions(fixedString: true),
         );
+        $quietResults = $this->searcher->search(
+            'function',
+            $this->workspace,
+            new TextSearchOptions(fixedString: true, quiet: true),
+        );
 
         Workspace::remove($this->workspace . '/src/App.php');
         $summaryResults = $this->searcher->search(
@@ -91,6 +96,8 @@ final class IndexedTextSearcherTest extends TestCase
         $this->assertSame(1, $hiddenResults[0]->matchCount());
         $this->assertCount(1, $fallbackResults);
         $this->assertSame(1, $fallbackResults[0]->matchCount());
+        $this->assertCount(1, $quietResults);
+        $this->assertSame(1, $quietResults[0]->matchCount());
         $this->assertContains('notes.txt', $invertMatches);
         $this->assertSame(2, array_sum(array_map(
             static fn (TextFileResult $result): int => $result->matchCount(),
@@ -194,6 +201,12 @@ final class IndexedTextSearcherTest extends TestCase
             'needle',
             new TextSearchOptions(fixedString: true, filesWithMatches: true),
         );
+        $directQuietAllowed = $this->invokeMethod(
+            $this->searcher,
+            'canUseDirectLiteralSummary',
+            'needle',
+            new TextSearchOptions(fixedString: true, quiet: true),
+        );
         $directSummaryRejected = $this->invokeMethod(
             $this->searcher,
             'canUseDirectLiteralSummary',
@@ -288,6 +301,7 @@ final class IndexedTextSearcherTest extends TestCase
         $this->assertSame('function', $wholeWordToken);
         $this->assertNull($invalidWholeWordToken);
         $this->assertTrue($directSummaryAllowed);
+        $this->assertTrue($directQuietAllowed);
         $this->assertFalse($directSummaryRejected);
         $this->assertTrue($cacheSupported);
         $this->assertFalse($cacheRejected);

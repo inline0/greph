@@ -25,4 +25,12 @@ return [
         'fixed' => true,
         'files_without_matches' => true,
     ],
+    [
+        'suite' => 'indexed-summary',
+        'category' => 'indexed-summary',
+        'name' => 'Indexed quiet "function"',
+        'pattern' => 'function',
+        'fixed' => true,
+        'quiet' => true,
+    ],
 ];
