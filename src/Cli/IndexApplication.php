@@ -209,6 +209,7 @@ final class IndexApplication
             filesWithMatches: $arguments['filesWithMatches'],
             filesWithoutMatches: $arguments['filesWithoutMatches'],
             jsonOutput: $arguments['json'],
+            collectCaptures: $arguments['json'],
             respectIgnore: !$arguments['noIgnore'],
             includeHidden: $arguments['hidden'],
             fileTypeFilter: $fileTypeFilter,

@@ -126,6 +126,7 @@ final class Application
             filesWithoutMatches: $arguments['filesWithoutMatches'],
             quiet: $arguments['quiet'],
             jsonOutput: $arguments['json'],
+            collectCaptures: $arguments['json'],
             jobs: $arguments['jobs'],
             respectIgnore: !$arguments['noIgnore'],
             includeHidden: $arguments['hidden'],

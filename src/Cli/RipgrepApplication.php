@@ -84,6 +84,7 @@ final class RipgrepApplication
             filesWithoutMatches: $parsed['filesWithoutMatches'],
             quiet: $parsed['quiet'],
             jsonOutput: $parsed['json'],
+            collectCaptures: $parsed['json'],
             jobs: $parsed['jobs'],
             respectIgnore: !$parsed['noIgnore'],
             includeHidden: $parsed['hidden'],

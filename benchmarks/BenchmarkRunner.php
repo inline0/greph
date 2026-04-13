@@ -110,6 +110,7 @@ final class BenchmarkRunner
                     caseInsensitive: (bool) ($suite['case_insensitive'] ?? false),
                     wholeWord: (bool) ($suite['whole_word'] ?? false),
                     quiet: (bool) ($suite['quiet'] ?? false),
+                    collectCaptures: false,
                     jobs: (int) ($suite['jobs'] ?? 1),
                 ));
 
@@ -195,6 +196,7 @@ final class BenchmarkRunner
                     fixedString: (bool) ($suite['fixed'] ?? false),
                     wholeWord: (bool) ($suite['whole_word'] ?? false),
                     quiet: (bool) ($suite['quiet'] ?? false),
+                    collectCaptures: false,
                     jobs: (int) ($suite['jobs'] ?? 1),
                 ));
 
@@ -227,6 +229,7 @@ final class BenchmarkRunner
                         filesWithMatches: (bool) ($suite['files_with_matches'] ?? false),
                         filesWithoutMatches: (bool) ($suite['files_without_matches'] ?? false),
                         quiet: (bool) ($suite['quiet'] ?? false),
+                        collectCaptures: false,
                     ),
                     $indexPath,
                 );

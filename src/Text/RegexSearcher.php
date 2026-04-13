@@ -39,6 +39,11 @@ final class RegexSearcher implements TextMatcher
 
     public function match(string $line): ?LineMatch
     {
+        return $this->matchWithCaptures($line);
+    }
+
+    public function matchWithCaptures(string $line, bool $collectCaptures = true): ?LineMatch
+    {
         if (
             $this->literalPrefilter !== null
             && $this->findPrefilterInContents($line) === false
@@ -46,7 +51,7 @@ final class RegexSearcher implements TextMatcher
             return null;
         }
 
-        return $this->matchPrefilteredLine($line);
+        return $this->matchPrefilteredLine($line, $collectCaptures);
     }
 
     public function supportsOccurrenceScan(): bool
@@ -65,7 +70,18 @@ final class RegexSearcher implements TextMatcher
             : strpos($contents, $this->literalPrefilter, $offset);
     }
 
-    public function matchPrefilteredLine(string $line): ?LineMatch
+    public function matchesPrefilteredLine(string $line): bool
+    {
+        $matched = @preg_match($this->regex, $line);
+
+        if ($matched === false && $this->fallbackRegex !== null) {
+            $matched = @preg_match($this->fallbackRegex, $line);
+        }
+
+        return $matched === 1;
+    }
+
+    public function matchPrefilteredLine(string $line, bool $collectCaptures = true): ?LineMatch
     {
         $matches = [];
         $matched = @preg_match($this->regex, $line, $matches, PREG_OFFSET_CAPTURE);
@@ -80,6 +96,11 @@ final class RegexSearcher implements TextMatcher
 
         /** @var array{0: string, 1: int<0, max>} $firstMatch */
         $firstMatch = $matches[0];
+
+        if (!$collectCaptures) {
+            return new LineMatch($firstMatch[1] + 1, $firstMatch[0]);
+        }
+
         $captures = [];
 
         foreach ($matches as $key => $value) {

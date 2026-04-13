@@ -256,7 +256,9 @@ final class TextSearcher
         while (($rawLine = fgets($handle)) !== false) {
             $lineNumber++;
             $lineContent = rtrim($rawLine, "\r\n");
-            $lineMatch = $matcher->match($lineContent);
+            $lineMatch = $matcher instanceof RegexSearcher
+                ? $matcher->matchWithCaptures($lineContent, $options->collectCaptures)
+                : $matcher->match($lineContent);
             $isSelected = $options->invertMatch ? $lineMatch === null : $lineMatch !== null;
 
             if (!$isSelected) {
@@ -325,7 +327,9 @@ final class TextSearcher
 
             $lineNumber++;
             $lineContent = rtrim($rawLine, "\r");
-            $lineMatch = $matcher->match($lineContent);
+            $lineMatch = $matcher instanceof RegexSearcher
+                ? $matcher->matchWithCaptures($lineContent, $options->collectCaptures)
+                : $matcher->match($lineContent);
             $isSelected = $options->invertMatch ? $lineMatch === null : $lineMatch !== null;
 
             if (!$isSelected) {
@@ -524,7 +528,14 @@ final class TextSearcher
             $lineStop = $lineEnd === false ? $contentsLength : $lineEnd;
             $rawLine = substr($contents, $lineStart, $lineStop - $lineStart);
             $lineContent = str_ends_with($rawLine, "\r") ? substr($rawLine, 0, -1) : $rawLine;
-            $lineMatch = $matcher->matchPrefilteredLine($lineContent);
+
+            if ($options->quiet || $options->countOnly || $options->filesWithMatches || $options->filesWithoutMatches) {
+                $lineMatch = $matcher->matchesPrefilteredLine($lineContent)
+                    ? new LineMatch(1, '')
+                    : null;
+            } else {
+                $lineMatch = $matcher->matchPrefilteredLine($lineContent, $options->collectCaptures);
+            }
 
             if ($lineMatch !== null) {
                 $foundCount++;
