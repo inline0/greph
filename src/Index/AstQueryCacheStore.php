@@ -112,6 +112,29 @@ final class AstQueryCacheStore
         Filesystem::remove($this->directoryPath($indexPath));
     }
 
+    /**
+     * @return array{count: int, size: int}
+     */
+    public function stats(string $indexPath): array
+    {
+        $directory = $this->directoryPath($indexPath);
+
+        if (!is_dir($directory)) {
+            return ['count' => 0, 'size' => 0];
+        }
+
+        $count = 0;
+        $size = 0;
+
+        foreach (glob($directory . '/*.phpbin*') ?: [] as $path) {
+            $count++;
+            $entrySize = filesize($path);
+            $size += is_int($entrySize) ? $entrySize : 0;
+        }
+
+        return ['count' => $count, 'size' => $size];
+    }
+
     private function directoryPath(string $indexPath): string
     {
         return Filesystem::normalizePath($indexPath) . '/' . self::DIRECTORY;

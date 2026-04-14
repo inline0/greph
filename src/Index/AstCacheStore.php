@@ -215,6 +215,29 @@ final class AstCacheStore
         }
     }
 
+    /**
+     * @return array{count: int, size: int}
+     */
+    public function treeStats(string $indexPath): array
+    {
+        $directory = $this->treesDirectoryPath($indexPath);
+
+        if (!is_dir($directory)) {
+            return ['count' => 0, 'size' => 0];
+        }
+
+        $count = 0;
+        $size = 0;
+
+        foreach (glob($directory . '/*.phpbin.gz') ?: [] as $path) {
+            $count++;
+            $entrySize = filesize($path);
+            $size += is_int($entrySize) ? $entrySize : 0;
+        }
+
+        return ['count' => $count, 'size' => $size];
+    }
+
     public function version(): int
     {
         return self::VERSION;

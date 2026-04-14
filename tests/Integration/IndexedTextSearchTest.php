@@ -258,6 +258,46 @@ final class IndexedTextSearchTest extends TestCase
     }
 
     #[Test]
+    public function itSearchesThroughNamedIndexSets(): void
+    {
+        $setWorkspace = Workspace::createDirectory('indexed-text-set');
+        try {
+            Workspace::writeFile($setWorkspace, 'core/Core.php', "<?php\nfunction coreThing(): void {}\n");
+            Workspace::writeFile($setWorkspace, 'plugins/Demo/Plugin.php', "<?php\nfunction pluginThing(): void {}\n");
+            Workspace::writeFile(
+                $setWorkspace,
+                '.greph-index-set.json',
+                (string) json_encode([
+                    'name' => 'wordpress-local',
+                    'indexes' => [
+                        ['name' => 'core-text', 'root' => 'core', 'mode' => 'text', 'lifecycle' => 'static', 'priority' => 20],
+                        ['name' => 'plugin-text', 'root' => 'plugins/Demo', 'mode' => 'text', 'lifecycle' => 'opportunistic-refresh', 'priority' => 10],
+                    ],
+                ], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES),
+            );
+            Greph::buildTextIndex($setWorkspace . '/core');
+            Greph::buildTextIndex($setWorkspace . '/plugins/Demo');
+
+            $matches = Greph::searchTextIndexedSet(
+                'function',
+                $setWorkspace,
+                new TextSearchOptions(fixedString: true),
+                $setWorkspace . '/.greph-index-set.json',
+            );
+
+            $matchedFiles = array_values(array_map(
+                static fn ($result): string => basename($result->file),
+                array_filter($matches, static fn ($result): bool => $result->hasMatches()),
+            ));
+
+            $this->assertContains('Core.php', $matchedFiles);
+            $this->assertContains('Plugin.php', $matchedFiles);
+        } finally {
+            Workspace::remove($setWorkspace);
+        }
+    }
+
+    #[Test]
     public function itSupportsOpportunisticRefreshStrictStaleChecksAndMultiIndexSearch(): void
     {
         $refreshWorkspace = Workspace::createDirectory('indexed-text-lifecycle');

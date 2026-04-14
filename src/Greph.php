@@ -18,6 +18,9 @@ use Greph\Index\IndexLifecycleProfile;
 use Greph\Index\IndexBuildResult;
 use Greph\Index\IndexedAstSearcher;
 use Greph\Index\IndexedTextSearcher;
+use Greph\Index\IndexMode;
+use Greph\Index\IndexSet;
+use Greph\Index\IndexSetLoader;
 use Greph\Index\TextIndexBuilder;
 use Greph\Ast\RewriteResult;
 use Greph\Parallel\WorkSplitter;
@@ -154,6 +157,34 @@ final class Greph
         return (new IndexedTextSearcher())->searchMany($pattern, $paths, $options, $indexPaths);
     }
 
+    public static function loadIndexSet(?string $manifestPath = null): IndexSet
+    {
+        return (new IndexSetLoader())->load($manifestPath);
+    }
+
+    /**
+     * @param string|list<string> $paths
+     * @param list<string> $entryNames
+     * @return list<TextFileResult>
+     */
+    public static function searchTextIndexedSet(
+        string $pattern,
+        string|array $paths,
+        ?TextSearchOptions $options = null,
+        ?string $manifestPath = null,
+        array $entryNames = [],
+    ): array {
+        $options ??= new TextSearchOptions();
+        $entries = self::loadIndexSet($manifestPath)->entries(IndexMode::Text, $entryNames);
+
+        return self::searchTextIndexedMany(
+            $pattern,
+            $paths,
+            array_map(static fn ($entry): string => $entry->indexPath, $entries),
+            $options,
+        );
+    }
+
     /**
      * @param string|list<string> $paths
      * @return list<AstMatch>
@@ -224,6 +255,29 @@ final class Greph
 
     /**
      * @param string|list<string> $paths
+     * @param list<string> $entryNames
+     * @return list<AstMatch>
+     */
+    public static function searchAstIndexedSet(
+        string $pattern,
+        string|array $paths,
+        ?AstSearchOptions $options = null,
+        ?string $manifestPath = null,
+        array $entryNames = [],
+    ): array {
+        $options ??= new AstSearchOptions();
+        $entries = self::loadIndexSet($manifestPath)->entries(IndexMode::AstIndex, $entryNames);
+
+        return self::searchAstIndexedMany(
+            $pattern,
+            $paths,
+            array_map(static fn ($entry): string => $entry->indexPath, $entries),
+            $options,
+        );
+    }
+
+    /**
+     * @param string|list<string> $paths
      * @return list<AstMatch>
      */
     public static function searchAstCached(
@@ -251,6 +305,29 @@ final class Greph
         $options ??= new AstSearchOptions();
 
         return (new CachedAstSearcher())->searchMany($pattern, $paths, $options, $indexPaths);
+    }
+
+    /**
+     * @param string|list<string> $paths
+     * @param list<string> $entryNames
+     * @return list<AstMatch>
+     */
+    public static function searchAstCachedSet(
+        string $pattern,
+        string|array $paths,
+        ?AstSearchOptions $options = null,
+        ?string $manifestPath = null,
+        array $entryNames = [],
+    ): array {
+        $options ??= new AstSearchOptions();
+        $entries = self::loadIndexSet($manifestPath)->entries(IndexMode::AstCache, $entryNames);
+
+        return self::searchAstCachedMany(
+            $pattern,
+            $paths,
+            array_map(static fn ($entry): string => $entry->indexPath, $entries),
+            $options,
+        );
     }
 
     /**

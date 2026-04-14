@@ -6,12 +6,18 @@ namespace Greph\Cli;
 
 use Greph\Ast\AstMatch;
 use Greph\Ast\AstSearchOptions;
+use Greph\Index\AstQueryCacheStore;
 use Greph\Index\AstCacheStore;
 use Greph\Index\AstIndexStore;
 use Greph\Index\IndexFreshnessInspector;
 use Greph\Index\IndexLifecycle;
 use Greph\Index\IndexLifecycleProfile;
+use Greph\Index\IndexMode;
+use Greph\Index\IndexSet;
+use Greph\Index\IndexSetEntry;
+use Greph\Index\IndexSetLoader;
 use Greph\Index\TextIndexStore;
+use Greph\Index\TextQueryCacheStore;
 use Greph\Output\GrepFormatter;
 use Greph\Greph;
 use Greph\Support\Filesystem;
@@ -68,13 +74,39 @@ final class IndexApplication
                 : $this->runBuild($this->parseBuildArguments($arguments), true),
             'stats' => in_array('--help', $arguments, true)
                 ? $this->runHelp()
-                : $this->runTextStats($this->parseBuildArguments($arguments)),
+                : $this->runTextStats($this->parseStatsArguments($arguments)),
             'search' => in_array('--help', $arguments, true)
                 ? $this->runHelp()
                 : $this->runSearch($this->parseSearchArguments($arguments)),
+            'set' => $this->runSetCommand($arguments),
             'ast-index' => $this->runAstCommand('index', $arguments),
             'ast-cache' => $this->runAstCommand('cache', $arguments),
             default => throw new \InvalidArgumentException(sprintf('Unknown subcommand: %s', $command)),
+        };
+    }
+
+    /**
+     * @param list<string> $arguments
+     */
+    private function runSetCommand(array $arguments): int
+    {
+        $command = array_shift($arguments);
+
+        return match ($command) {
+            null, 'help', '--help' => $this->runHelp(),
+            'build' => in_array('--help', $arguments, true)
+                ? $this->runHelp()
+                : $this->runSetBuild($this->parseSetCommandArguments($arguments), false),
+            'refresh' => in_array('--help', $arguments, true)
+                ? $this->runHelp()
+                : $this->runSetBuild($this->parseSetCommandArguments($arguments), true),
+            'stats' => in_array('--help', $arguments, true)
+                ? $this->runHelp()
+                : $this->runSetStats($this->parseSetCommandArguments($arguments)),
+            'search' => in_array('--help', $arguments, true)
+                ? $this->runHelp()
+                : $this->runSetSearch($this->parseSetSearchArguments($arguments)),
+            default => throw new \InvalidArgumentException(sprintf('Unknown set subcommand: %s', $command)),
         };
     }
 
@@ -95,7 +127,7 @@ final class IndexApplication
                 : $this->runAstBuild($mode, $this->parseBuildArguments($arguments), true),
             'stats' => in_array('--help', $arguments, true)
                 ? $this->runHelp()
-                : $this->runAstStats($mode, $this->parseBuildArguments($arguments)),
+                : $this->runAstStats($mode, $this->parseStatsArguments($arguments)),
             'search' => in_array('--help', $arguments, true)
                 ? $this->runHelp()
                 : $this->runAstSearch($mode, $this->parseAstSearchArguments($arguments)),
@@ -210,35 +242,409 @@ final class IndexApplication
 
     /**
      * @param array{
+     *   manifest: ?string,
+     *   mode: ?string,
+     *   indexes: list<string>,
+     *   dryRefresh: bool
+     * } $arguments
+     */
+    private function runSetBuild(array $arguments, bool $refresh): int
+    {
+        $set = $this->loadIndexSet($arguments['manifest']);
+        $entries = $this->selectedSetEntries($set, $arguments['mode'], $arguments['indexes']);
+
+        if ($entries === []) {
+            throw new \RuntimeException('No enabled index-set entries matched the requested filters.');
+        }
+
+        $lines = [];
+
+        foreach ($entries as $entry) {
+            $action = $refresh ? 'Refreshed' : 'Built';
+
+            if ($entry->mode === IndexMode::Text) {
+                $result = $refresh
+                    ? Greph::refreshTextIndex($entry->rootPath, $entry->indexPath, $entry->lifecycle)
+                    : Greph::buildTextIndex($entry->rootPath, $entry->indexPath, $entry->lifecycle);
+                $lines[] = sprintf(
+                    '%s set entry %s [%s] for %d files in %s (%d trigrams, %.2fms, +%d ~%d -%d =%d)',
+                    $action,
+                    $entry->name,
+                    $entry->mode->label(),
+                    $result->fileCount,
+                    $this->displayPath($result->indexPath),
+                    $result->trigramCount,
+                    $result->buildDurationMs,
+                    $result->addedFiles,
+                    $result->updatedFiles,
+                    $result->deletedFiles,
+                    $result->unchangedFiles,
+                );
+                continue;
+            }
+
+            if ($entry->mode === IndexMode::AstIndex) {
+                $result = $refresh
+                    ? Greph::refreshAstIndex($entry->rootPath, $entry->indexPath, $entry->lifecycle)
+                    : Greph::buildAstIndex($entry->rootPath, $entry->indexPath, $entry->lifecycle);
+                $lines[] = sprintf(
+                    '%s set entry %s [%s] for %d files in %s (%d fact rows, %.2fms, +%d ~%d -%d =%d)',
+                    $action,
+                    $entry->name,
+                    $entry->mode->label(),
+                    $result->fileCount,
+                    $this->displayPath($result->indexPath),
+                    $result->factCount,
+                    $result->buildDurationMs,
+                    $result->addedFiles,
+                    $result->updatedFiles,
+                    $result->deletedFiles,
+                    $result->unchangedFiles,
+                );
+                continue;
+            }
+
+            $result = $refresh
+                ? Greph::refreshAstCache($entry->rootPath, $entry->indexPath, $entry->lifecycle)
+                : Greph::buildAstCache($entry->rootPath, $entry->indexPath, $entry->lifecycle);
+            $lines[] = sprintf(
+                '%s set entry %s [%s] for %d files in %s (%d cached trees, %.2fms, +%d ~%d -%d =%d)',
+                $action,
+                $entry->name,
+                $entry->mode->label(),
+                $result->fileCount,
+                $this->displayPath($result->indexPath),
+                $result->cachedTreeCount,
+                $result->buildDurationMs,
+                $result->addedFiles,
+                $result->updatedFiles,
+                $result->deletedFiles,
+                $result->unchangedFiles,
+            );
+        }
+
+        $this->writeOutput(implode(PHP_EOL, $lines) . PHP_EOL);
+
+        return 0;
+    }
+
+    /**
+     * @param array{
+     *   manifest: ?string,
+     *   mode: ?string,
+     *   indexes: list<string>,
+     *   dryRefresh: bool
+     * } $arguments
+     */
+    private function runSetStats(array $arguments): int
+    {
+        $set = $this->loadIndexSet($arguments['manifest']);
+        $entries = $this->selectedSetEntries($set, $arguments['mode'], $arguments['indexes']);
+
+        if ($entries === []) {
+            throw new \RuntimeException('No enabled index-set entries matched the requested filters.');
+        }
+
+        $blocks = [];
+        $aggregateDisk = 0;
+        $aggregateQueryCacheCount = 0;
+        $aggregateQueryCacheSize = 0;
+        $aggregateTreeCount = 0;
+        $aggregateTreeSize = 0;
+        $staleEntries = 0;
+        $missingEntries = 0;
+
+        foreach ($entries as $entry) {
+            $stats = $this->setEntryStats($entry, $arguments['dryRefresh']);
+
+            if ($stats['missing']) {
+                $missingEntries++;
+            }
+
+            if ($stats['stale']) {
+                $staleEntries++;
+            }
+
+            $aggregateDisk += $stats['diskSize'];
+            $aggregateQueryCacheCount += $stats['queryCacheCount'];
+            $aggregateQueryCacheSize += $stats['queryCacheSize'];
+            $aggregateTreeCount += $stats['treeCount'];
+            $aggregateTreeSize += $stats['treeSize'];
+            $blocks[] = $stats['block'];
+        }
+
+        array_unshift($blocks, $this->formatStatsBlock('Index set stats', [
+            'Set' => $set->name,
+            'Manifest' => $this->displayPath($set->path),
+            'Entries' => (string) count($entries),
+            'Modes' => implode(', ', array_values(array_unique(array_map(
+                static fn (IndexSetEntry $entry): string => $entry->mode->label(),
+                $entries,
+            )))),
+            'Aggregate disk size' => $this->formatBytes($aggregateDisk),
+            'Aggregate query caches' => sprintf('%d (%s)', $aggregateQueryCacheCount, $this->formatBytes($aggregateQueryCacheSize)),
+            'Aggregate cached trees' => sprintf('%d (%s)', $aggregateTreeCount, $this->formatBytes($aggregateTreeSize)),
+            'Stale entries' => (string) $staleEntries,
+            'Missing entries' => (string) $missingEntries,
+        ]));
+
+        $this->writeOutput(implode(PHP_EOL, $blocks));
+
+        return 0;
+    }
+
+    /**
+     * @param array{
+     *   manifest: ?string,
+     *   mode: string,
+     *   indexes: list<string>,
+     *   showIndexOrigin: bool,
+     *   search: array<string, mixed>
+     * } $arguments
+     */
+    private function runSetSearch(array $arguments): int
+    {
+        $set = $this->loadIndexSet($arguments['manifest']);
+        $entries = $this->selectedSetEntries($set, $arguments['mode'], $arguments['indexes']);
+
+        if ($entries === []) {
+            throw new \RuntimeException('No enabled index-set entries matched the requested filters.');
+        }
+
+        /** @var list<string> $indexPaths */
+        $indexPaths = array_map(
+            static fn (IndexSetEntry $entry): string => $entry->indexPath,
+            $entries,
+        );
+
+        if ($arguments['mode'] === IndexMode::Text->value) {
+            /** @var array{
+             *   fixedString: bool,
+             *   caseInsensitive: bool,
+             *   wholeWord: bool,
+             *   invertMatch: bool,
+             *   countOnly: bool,
+             *   filesWithMatches: bool,
+             *   filesWithoutMatches: bool,
+             *   json: bool,
+             *   noIgnore: bool,
+             *   hidden: bool,
+             *   glob: list<string>,
+             *   showFileNames: ?bool,
+             *   showLineNumbers: bool,
+             *   maxCount: ?int,
+             *   beforeContext: int,
+             *   afterContext: int,
+             *   context: ?int,
+             *   type: list<string>,
+             *   typeNot: list<string>,
+             *   indexDirs: list<string>,
+             *   pattern: ?string,
+             *   paths: list<string>
+             * } $search */
+            $search = $arguments['search'];
+
+            if ($search['pattern'] === null) {
+                $this->writeError("Missing search pattern.\n");
+
+                return 2;
+            }
+
+            $fileTypeFilter = $this->createFileTypeFilter($search['type'], $search['typeNot']);
+            $beforeContext = $search['context'] ?? $search['beforeContext'];
+            $afterContext = $search['context'] ?? $search['afterContext'];
+            $options = new TextSearchOptions(
+                fixedString: $search['fixedString'],
+                caseInsensitive: $search['caseInsensitive'],
+                wholeWord: $search['wholeWord'],
+                invertMatch: $search['invertMatch'],
+                maxCount: $search['maxCount'],
+                beforeContext: $beforeContext,
+                afterContext: $afterContext,
+                countOnly: $search['countOnly'],
+                filesWithMatches: $search['filesWithMatches'],
+                filesWithoutMatches: $search['filesWithoutMatches'],
+                jsonOutput: $search['json'],
+                collectCaptures: $search['json'],
+                respectIgnore: !$search['noIgnore'],
+                includeHidden: $search['hidden'],
+                fileTypeFilter: $fileTypeFilter,
+                globPatterns: $search['glob'],
+                showLineNumbers: $search['showLineNumbers'],
+                showFileNames: $this->shouldDisplayFileNames($search),
+            );
+
+            $results = Greph::searchTextIndexedMany($search['pattern'], $search['paths'], $indexPaths, $options);
+            $displayResults = $this->displayTextResults(
+                $results,
+                $arguments['showIndexOrigin'] ? $entries : null,
+            );
+
+            if ($search['json']) {
+                $payload = array_map(
+                    static fn ($result): array => [
+                        'file' => $result->file,
+                        'matches' => array_map(
+                            static fn ($match): array => [
+                                'line' => $match->line,
+                                'column' => $match->column,
+                                'content' => $match->content,
+                                'matched_text' => $match->matchedText,
+                                'captures' => $match->captures,
+                            ],
+                            $result->matches,
+                        ),
+                    ],
+                    $displayResults,
+                );
+
+                $this->writeOutput(json_encode($payload, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES) . PHP_EOL);
+            } else {
+                $this->writeOutput($this->grepFormatter->format($displayResults, $options));
+            }
+
+            foreach ($results as $result) {
+                if ($search['filesWithoutMatches']) {
+                    if (!$result->hasMatches()) {
+                        return 0;
+                    }
+
+                    continue;
+                }
+
+                if ($result->hasMatches()) {
+                    return 0;
+                }
+            }
+
+            return 1;
+        }
+
+        /** @var array{
+         *   json: bool,
+         *   noIgnore: bool,
+         *   hidden: bool,
+         *   strictParse: bool,
+         *   filesWithMatches: bool,
+         *   glob: list<string>,
+         *   type: list<string>,
+         *   typeNot: list<string>,
+         *   indexDirs: list<string>,
+         *   lang: string,
+         *   jobs: int,
+         *   fallback: string,
+         *   pattern: ?string,
+         *   paths: list<string>
+         * } $search */
+        $search = $arguments['search'];
+
+        if ($search['pattern'] === null) {
+            $this->writeError("Missing AST pattern.\n");
+
+            return 2;
+        }
+
+        $fileTypeFilter = $this->createFileTypeFilter($search['type'], $search['typeNot']) ?? new FileTypeFilter(['php']);
+        $options = new AstSearchOptions(
+            language: $search['lang'],
+            jobs: $search['jobs'],
+            respectIgnore: !$search['noIgnore'],
+            includeHidden: $search['hidden'],
+            fileTypeFilter: $fileTypeFilter,
+            globPatterns: $search['glob'],
+            skipParseErrors: !$search['strictParse'],
+            jsonOutput: $search['json'],
+        );
+
+        try {
+            $matches = $arguments['mode'] === IndexMode::AstIndex->value
+                ? Greph::searchAstIndexedMany($search['pattern'], $search['paths'], $indexPaths, $options)
+                : Greph::searchAstCachedMany($search['pattern'], $search['paths'], $indexPaths, $options);
+        } catch (\RuntimeException $exception) {
+            $this->writeError($exception->getMessage() . PHP_EOL);
+
+            return 2;
+        }
+
+        if ($search['filesWithMatches']) {
+            return $this->writeAstMatchFiles($matches, $arguments['showIndexOrigin'] ? $entries : null);
+        }
+
+        if ($search['json']) {
+            $this->writeOutput($this->formatAstJsonMatches($matches, $arguments['showIndexOrigin'] ? $entries : null));
+        } else {
+            foreach ($matches as $match) {
+                $this->writeOutput(sprintf(
+                    '%s:%d:%s',
+                    $this->displayAstPath($match->file, $arguments['showIndexOrigin'] ? $entries : null),
+                    $match->startLine,
+                    $this->displayAstLine($match),
+                ) . PHP_EOL);
+            }
+        }
+
+        return $matches === [] ? 1 : 0;
+    }
+
+    /**
+     * @param array{
      *   root: string,
      *   indexDirs: list<string>,
      *   lifecycle: string,
      *   maxChangedFiles: int,
-     *   maxChangedBytes: int
+     *   maxChangedBytes: int,
+     *   dryRefresh: bool
      * } $arguments
      */
     private function runTextStats(array $arguments): int
     {
         $store = new TextIndexStore();
         $inspector = new IndexFreshnessInspector();
+        $queryCacheStore = new TextQueryCacheStore();
         $blocks = [];
+        $aggregateDisk = 0;
+        $aggregateQueryCacheCount = 0;
+        $aggregateQueryCacheSize = 0;
+        $staleCount = 0;
 
         foreach ($this->resolveTextIndexPaths($store, $arguments['root'], $arguments['indexDirs']) as $indexPath) {
             $index = $store->load($indexPath, includePostings: true);
             $freshness = $inspector->inspectText($index);
-            $blocks[] = $this->formatStatsBlock('Text index stats', [
+            $queryStats = $queryCacheStore->stats($index->indexPath);
+            $diskSize = $this->directorySize($index->indexPath);
+            $fields = [
                 'Root' => $this->displayPath($index->rootPath),
                 'Index' => $this->displayPath($index->indexPath),
                 'Files' => (string) count($index->files),
                 'Trigram postings' => (string) count($index->postings),
                 'Word postings' => (string) count($index->wordPostings),
-                'Disk size' => $this->formatBytes($this->directorySize($index->indexPath)),
+                'Disk size' => $this->formatBytes($diskSize),
+                'Query caches' => sprintf('%d (%s)', $queryStats['count'], $this->formatBytes($queryStats['size'])),
                 'Lifecycle' => $index->lifecycle->label(),
                 'Stale' => $freshness->stale ? 'yes' : 'no',
                 'Changes' => $freshness->summary(),
                 'Last refresh' => $this->formatTimestamp($index->builtAt),
                 'Last build time' => sprintf('%.2fms', $index->buildDurationMs),
-            ]);
+            ];
+
+            if ($arguments['dryRefresh']) {
+                $fields['Search behavior'] = $this->refreshDecisionLabel($index->lifecycle, $freshness);
+            }
+
+            $aggregateDisk += $diskSize;
+            $aggregateQueryCacheCount += $queryStats['count'];
+            $aggregateQueryCacheSize += $queryStats['size'];
+            $staleCount += $freshness->stale ? 1 : 0;
+            $blocks[] = $this->formatStatsBlock('Text index stats', $fields);
+        }
+
+        if (count($blocks) > 1) {
+            array_unshift($blocks, $this->formatStatsBlock('Text index aggregate', [
+                'Indexes' => (string) count($blocks),
+                'Aggregate disk size' => $this->formatBytes($aggregateDisk),
+                'Aggregate query caches' => sprintf('%d (%s)', $aggregateQueryCacheCount, $this->formatBytes($aggregateQueryCacheSize)),
+                'Stale indexes' => (string) $staleCount,
+            ]));
         }
 
         $this->writeOutput(implode(PHP_EOL, $blocks));
@@ -252,32 +658,60 @@ final class IndexApplication
      *   indexDirs: list<string>,
      *   lifecycle: string,
      *   maxChangedFiles: int,
-     *   maxChangedBytes: int
+     *   maxChangedBytes: int,
+     *   dryRefresh: bool
      * } $arguments
      */
     private function runAstStats(string $mode, array $arguments): int
     {
         $inspector = new IndexFreshnessInspector();
+        $queryCacheStore = new AstQueryCacheStore();
 
         if ($mode === 'index') {
             $store = new AstIndexStore();
             $blocks = [];
+            $aggregateDisk = 0;
+            $aggregateQueryCacheCount = 0;
+            $aggregateQueryCacheSize = 0;
+            $staleCount = 0;
 
             foreach ($this->resolveAstIndexPaths($store, $arguments['root'], $arguments['indexDirs']) as $indexPath) {
                 $index = $store->load($indexPath);
                 $freshness = $inspector->inspectAstIndex($index);
-                $blocks[] = $this->formatStatsBlock('AST index stats', [
+                $queryStats = $queryCacheStore->stats($index->indexPath);
+                $diskSize = $this->directorySize($index->indexPath);
+                $fields = [
                     'Root' => $this->displayPath($index->rootPath),
                     'Index' => $this->displayPath($index->indexPath),
                     'Files' => (string) count($index->files),
                     'Fact rows' => (string) count($index->facts),
-                    'Disk size' => $this->formatBytes($this->directorySize($index->indexPath)),
+                    'Disk size' => $this->formatBytes($diskSize),
+                    'Query caches' => sprintf('%d (%s)', $queryStats['count'], $this->formatBytes($queryStats['size'])),
                     'Lifecycle' => $index->lifecycle->label(),
                     'Stale' => $freshness->stale ? 'yes' : 'no',
                     'Changes' => $freshness->summary(),
                     'Last refresh' => $this->formatTimestamp($index->builtAt),
                     'Last build time' => sprintf('%.2fms', $index->buildDurationMs),
-                ]);
+                ];
+
+                if ($arguments['dryRefresh']) {
+                    $fields['Search behavior'] = $this->refreshDecisionLabel($index->lifecycle, $freshness);
+                }
+
+                $aggregateDisk += $diskSize;
+                $aggregateQueryCacheCount += $queryStats['count'];
+                $aggregateQueryCacheSize += $queryStats['size'];
+                $staleCount += $freshness->stale ? 1 : 0;
+                $blocks[] = $this->formatStatsBlock('AST index stats', $fields);
+            }
+
+            if (count($blocks) > 1) {
+                array_unshift($blocks, $this->formatStatsBlock('AST index aggregate', [
+                    'Indexes' => (string) count($blocks),
+                    'Aggregate disk size' => $this->formatBytes($aggregateDisk),
+                    'Aggregate query caches' => sprintf('%d (%s)', $aggregateQueryCacheCount, $this->formatBytes($aggregateQueryCacheSize)),
+                    'Stale indexes' => (string) $staleCount,
+                ]));
             }
 
             $this->writeOutput(implode(PHP_EOL, $blocks));
@@ -287,27 +721,59 @@ final class IndexApplication
 
         $store = new AstCacheStore();
         $blocks = [];
+        $aggregateDisk = 0;
+        $aggregateQueryCacheCount = 0;
+        $aggregateQueryCacheSize = 0;
+        $aggregateTreeCount = 0;
+        $aggregateTreeSize = 0;
+        $staleCount = 0;
 
         foreach ($this->resolveAstCachePaths($store, $arguments['root'], $arguments['indexDirs']) as $indexPath) {
             $cache = $store->load($indexPath);
+            $treeStats = $store->treeStats($cache->indexPath);
+            $queryStats = $queryCacheStore->stats($cache->indexPath);
             $cachedTreeCount = count(array_filter(
                 $cache->facts,
                 static fn (array $facts): bool => $facts['cached'],
             ));
             $freshness = $inspector->inspectAstCache($cache);
-            $blocks[] = $this->formatStatsBlock('AST cache stats', [
+            $diskSize = $this->directorySize($cache->indexPath);
+            $fields = [
                 'Root' => $this->displayPath($cache->rootPath),
                 'Index' => $this->displayPath($cache->indexPath),
                 'Files' => (string) count($cache->files),
                 'Fact rows' => (string) count($cache->facts),
-                'Cached trees' => (string) $cachedTreeCount,
-                'Disk size' => $this->formatBytes($this->directorySize($cache->indexPath)),
+                'Cached trees' => sprintf('%d (%s)', $cachedTreeCount, $this->formatBytes($treeStats['size'])),
+                'Disk size' => $this->formatBytes($diskSize),
+                'Query caches' => sprintf('%d (%s)', $queryStats['count'], $this->formatBytes($queryStats['size'])),
                 'Lifecycle' => $cache->lifecycle->label(),
                 'Stale' => $freshness->stale ? 'yes' : 'no',
                 'Changes' => $freshness->summary(),
                 'Last refresh' => $this->formatTimestamp($cache->builtAt),
                 'Last build time' => sprintf('%.2fms', $cache->buildDurationMs),
-            ]);
+            ];
+
+            if ($arguments['dryRefresh']) {
+                $fields['Search behavior'] = $this->refreshDecisionLabel($cache->lifecycle, $freshness);
+            }
+
+            $aggregateDisk += $diskSize;
+            $aggregateQueryCacheCount += $queryStats['count'];
+            $aggregateQueryCacheSize += $queryStats['size'];
+            $aggregateTreeCount += $treeStats['count'];
+            $aggregateTreeSize += $treeStats['size'];
+            $staleCount += $freshness->stale ? 1 : 0;
+            $blocks[] = $this->formatStatsBlock('AST cache stats', $fields);
+        }
+
+        if (count($blocks) > 1) {
+            array_unshift($blocks, $this->formatStatsBlock('AST cache aggregate', [
+                'Indexes' => (string) count($blocks),
+                'Aggregate disk size' => $this->formatBytes($aggregateDisk),
+                'Aggregate query caches' => sprintf('%d (%s)', $aggregateQueryCacheCount, $this->formatBytes($aggregateQueryCacheSize)),
+                'Aggregate cached trees' => sprintf('%d (%s)', $aggregateTreeCount, $this->formatBytes($aggregateTreeSize)),
+                'Stale indexes' => (string) $staleCount,
+            ]));
         }
 
         $this->writeOutput(implode(PHP_EOL, $blocks));
@@ -327,6 +793,7 @@ final class IndexApplication
      *   json: bool,
      *   noIgnore: bool,
      *   hidden: bool,
+     *   showIndexOrigin: bool,
      *   glob: list<string>,
      *   showFileNames: ?bool,
      *   showLineNumbers: bool,
@@ -381,7 +848,12 @@ final class IndexApplication
                 $options,
                 $arguments['indexDirs'][0] ?? null,
             );
-        $displayResults = $this->displayTextResults($results);
+        $displayResults = $this->displayTextResults(
+            $results,
+            $arguments['showIndexOrigin']
+                ? $this->textOriginEntries($arguments['paths'], $arguments['indexDirs'])
+                : null,
+        );
 
         if ($arguments['json']) {
             $payload = array_map(
@@ -428,6 +900,7 @@ final class IndexApplication
      *   json: bool,
      *   noIgnore: bool,
      *   hidden: bool,
+     *   showIndexOrigin: bool,
      *   strictParse: bool,
      *   filesWithMatches: bool,
      *   glob: list<string>,
@@ -496,16 +969,29 @@ final class IndexApplication
         }
 
         if ($arguments['filesWithMatches']) {
-            return $this->writeAstMatchFiles($matches);
+            return $this->writeAstMatchFiles(
+                $matches,
+                $arguments['showIndexOrigin']
+                    ? $this->astOriginEntries($mode, $arguments['paths'], $arguments['indexDirs'])
+                    : null,
+            );
         }
 
         if ($arguments['json']) {
-            $this->writeOutput($this->formatAstJsonMatches($matches));
+            $this->writeOutput($this->formatAstJsonMatches(
+                $matches,
+                $arguments['showIndexOrigin']
+                    ? $this->astOriginEntries($mode, $arguments['paths'], $arguments['indexDirs'])
+                    : null,
+            ));
         } else {
+            $originEntries = $arguments['showIndexOrigin']
+                ? $this->astOriginEntries($mode, $arguments['paths'], $arguments['indexDirs'])
+                : null;
             foreach ($matches as $match) {
                 $this->writeOutput(sprintf(
                     '%s:%d:%s',
-                    $this->displayPath($match->file),
+                    $this->displayAstPath($match->file, $originEntries),
                     $match->startLine,
                     $this->displayAstLine($match),
                 ) . PHP_EOL);
@@ -583,6 +1069,28 @@ final class IndexApplication
     /**
      * @param list<string> $arguments
      * @return array{
+     *   root: string,
+     *   indexDirs: list<string>,
+     *   lifecycle: string,
+     *   maxChangedFiles: int,
+     *   maxChangedBytes: int,
+     *   dryRefresh: bool
+     * }
+     */
+    private function parseStatsArguments(array $arguments): array
+    {
+        $parsed = $this->parseBuildArguments(array_values(array_filter(
+            $arguments,
+            static fn (string $argument): bool => $argument !== '--dry-refresh',
+        )));
+        $parsed['dryRefresh'] = in_array('--dry-refresh', $arguments, true);
+
+        return $parsed;
+    }
+
+    /**
+     * @param list<string> $arguments
+     * @return array{
      *   fixedString: bool,
      *   caseInsensitive: bool,
      *   wholeWord: bool,
@@ -593,6 +1101,7 @@ final class IndexApplication
      *   json: bool,
      *   noIgnore: bool,
      *   hidden: bool,
+     *   showIndexOrigin: bool,
      *   glob: list<string>,
      *   showFileNames: ?bool,
      *   showLineNumbers: bool,
@@ -620,6 +1129,7 @@ final class IndexApplication
             'json' => false,
             'noIgnore' => false,
             'hidden' => false,
+            'showIndexOrigin' => false,
             'glob' => [],
             'showFileNames' => null,
             'showLineNumbers' => true,
@@ -683,6 +1193,12 @@ final class IndexApplication
                 case '--hidden':
                     $parsed['hidden'] = true;
                     break;
+                case '--show-index-origin':
+                    $parsed['showIndexOrigin'] = true;
+                    break;
+                case '--no-index-origin':
+                    $parsed['showIndexOrigin'] = false;
+                    break;
                 case '--glob':
                     $parsed['glob'][] = $this->shiftValue($arguments, $argument);
                     break;
@@ -742,6 +1258,7 @@ final class IndexApplication
      *   json: bool,
      *   noIgnore: bool,
      *   hidden: bool,
+     *   showIndexOrigin: bool,
      *   strictParse: bool,
      *   filesWithMatches: bool,
      *   glob: list<string>,
@@ -761,6 +1278,7 @@ final class IndexApplication
             'json' => false,
             'noIgnore' => false,
             'hidden' => false,
+            'showIndexOrigin' => false,
             'strictParse' => false,
             'filesWithMatches' => false,
             'glob' => [],
@@ -801,6 +1319,12 @@ final class IndexApplication
                     break;
                 case '--hidden':
                     $parsed['hidden'] = true;
+                    break;
+                case '--show-index-origin':
+                    $parsed['showIndexOrigin'] = true;
+                    break;
+                case '--no-index-origin':
+                    $parsed['showIndexOrigin'] = false;
                     break;
                 case '--strict-parse':
                     $parsed['strictParse'] = true;
@@ -857,6 +1381,133 @@ final class IndexApplication
 
     /**
      * @param list<string> $arguments
+     * @return array{
+     *   manifest: ?string,
+     *   mode: ?string,
+     *   indexes: list<string>,
+     *   dryRefresh: bool
+     * }
+     */
+    private function parseSetCommandArguments(array $arguments): array
+    {
+        $parsed = [
+            'manifest' => null,
+            'mode' => null,
+            'indexes' => [],
+            'dryRefresh' => false,
+        ];
+
+        while ($arguments !== []) {
+            /** @var string $argument */
+            $argument = array_shift($arguments);
+
+            if ($argument === '--manifest') {
+                $parsed['manifest'] = $this->shiftValue($arguments, $argument);
+                continue;
+            }
+
+            if ($argument === '--mode') {
+                $parsed['mode'] = $this->shiftValue($arguments, $argument);
+                continue;
+            }
+
+            if ($argument === '--index') {
+                $parsed['indexes'][] = $this->shiftValue($arguments, $argument);
+                continue;
+            }
+
+            if ($argument === '--dry-refresh') {
+                $parsed['dryRefresh'] = true;
+                continue;
+            }
+
+            if ($argument[0] === '-') {
+                throw new \InvalidArgumentException(sprintf('Unknown argument: %s', $argument));
+            }
+
+            if ($parsed['manifest'] !== null) {
+                throw new \InvalidArgumentException(sprintf('Unknown argument: %s', $argument));
+            }
+
+            $parsed['manifest'] = $argument;
+        }
+
+        if ($parsed['mode'] !== null && IndexMode::tryFrom($parsed['mode']) === null) {
+            throw new \InvalidArgumentException(sprintf('Unknown index-set mode: %s', $parsed['mode']));
+        }
+
+        return $parsed;
+    }
+
+    /**
+     * @param list<string> $arguments
+     * @return array{
+     *   manifest: ?string,
+     *   mode: string,
+     *   indexes: list<string>,
+     *   showIndexOrigin: bool,
+     *   search: array<string, mixed>
+     * }
+     */
+    private function parseSetSearchArguments(array $arguments): array
+    {
+        $manifest = null;
+        $mode = IndexMode::Text->value;
+        $indexes = [];
+        $showIndexOrigin = false;
+        $remaining = [];
+
+        while ($arguments !== []) {
+            /** @var string $argument */
+            $argument = array_shift($arguments);
+
+            if ($argument === '--manifest') {
+                $manifest = $this->shiftValue($arguments, $argument);
+                continue;
+            }
+
+            if ($argument === '--mode') {
+                $mode = $this->shiftValue($arguments, $argument);
+                continue;
+            }
+
+            if ($argument === '--index') {
+                $indexes[] = $this->shiftValue($arguments, $argument);
+                continue;
+            }
+
+            if ($argument === '--show-index-origin') {
+                $showIndexOrigin = true;
+                continue;
+            }
+
+            if ($argument === '--no-index-origin') {
+                $showIndexOrigin = false;
+                continue;
+            }
+
+            $remaining[] = $argument;
+        }
+
+        if (IndexMode::tryFrom($mode) === null) {
+            throw new \InvalidArgumentException(sprintf('Unknown index-set mode: %s', $mode));
+        }
+
+        $search = $mode === IndexMode::Text->value
+            ? $this->parseSearchArguments($remaining)
+            : $this->parseAstSearchArguments($remaining);
+
+        return [
+            'manifest' => $manifest,
+            'mode' => $mode,
+            'indexes' => $indexes,
+            'showIndexOrigin' => $showIndexOrigin,
+            'search' => $search,
+        ];
+    }
+
+    /**
+     * @param list<string> $arguments
      */
     private function shiftValue(array &$arguments, string $argument): string
     {
@@ -909,14 +1560,15 @@ final class IndexApplication
 
     /**
      * @param list<TextFileResult> $results
+     * @param list<IndexSetEntry>|null $originEntries
      * @return list<TextFileResult>
      */
-    private function displayTextResults(array $results): array
+    private function displayTextResults(array $results, ?array $originEntries = null): array
     {
         $displayResults = [];
 
         foreach ($results as $result) {
-            $displayFile = $this->displayPath($result->file);
+            $displayFile = $this->displayTextPath($result->file, $originEntries);
             $displayMatches = [];
 
             foreach ($result->matches as $match) {
@@ -945,8 +1597,9 @@ final class IndexApplication
 
     /**
      * @param list<AstMatch> $matches
+     * @param list<IndexSetEntry>|null $originEntries
      */
-    private function writeAstMatchFiles(array $matches): int
+    private function writeAstMatchFiles(array $matches, ?array $originEntries = null): int
     {
         if ($matches === []) {
             return 1;
@@ -955,7 +1608,7 @@ final class IndexApplication
         $files = [];
 
         foreach ($matches as $match) {
-            $files[$this->displayPath($match->file)] = true;
+            $files[$this->displayAstPath($match->file, $originEntries)] = true;
         }
 
         $this->writeOutput(implode(PHP_EOL, array_keys($files)) . PHP_EOL);
@@ -965,12 +1618,13 @@ final class IndexApplication
 
     /**
      * @param list<AstMatch> $matches
+     * @param list<IndexSetEntry>|null $originEntries
      */
-    private function formatAstJsonMatches(array $matches): string
+    private function formatAstJsonMatches(array $matches, ?array $originEntries = null): string
     {
         $payload = array_map(
             fn (AstMatch $match): array => [
-                'file' => $this->displayPath($match->file),
+                'file' => $this->displayAstPath($match->file, $originEntries),
                 'start_line' => $match->startLine,
                 'end_line' => $match->endLine,
                 'start_file_pos' => $match->startFilePos,
@@ -981,6 +1635,351 @@ final class IndexApplication
         );
 
         return (string) json_encode($payload, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES) . PHP_EOL;
+    }
+
+    /**
+     * @param list<IndexSetEntry>|null $originEntries
+     */
+    private function displayTextPath(string $path, ?array $originEntries = null): string
+    {
+        return $this->displayOriginPath($path, $originEntries);
+    }
+
+    /**
+     * @param list<IndexSetEntry>|null $originEntries
+     */
+    private function displayAstPath(string $path, ?array $originEntries = null): string
+    {
+        return $this->displayOriginPath($path, $originEntries);
+    }
+
+    /**
+     * @param list<IndexSetEntry>|null $originEntries
+     */
+    private function displayOriginPath(string $path, ?array $originEntries = null): string
+    {
+        $displayPath = $this->displayPath($path);
+
+        if ($originEntries === null || $originEntries === []) {
+            return $displayPath;
+        }
+
+        foreach ($originEntries as $entry) {
+            if ($this->isWithinEntryRoot($path, $entry)) {
+                return sprintf('[%s] %s', $entry->name, $displayPath);
+            }
+        }
+
+        return $displayPath;
+    }
+
+    private function loadIndexSet(?string $manifestPath): IndexSet
+    {
+        return (new IndexSetLoader())->load($manifestPath);
+    }
+
+    /**
+     * @param list<string> $names
+     * @return list<IndexSetEntry>
+     */
+    private function selectedSetEntries(IndexSet $set, ?string $mode, array $names): array
+    {
+        $modeObject = $mode !== null ? IndexMode::from($mode) : null;
+
+        return $set->entries($modeObject, $names);
+    }
+
+    /**
+     * @param list<string> $paths
+     * @param list<string> $indexDirs
+     * @return list<IndexSetEntry>
+     */
+    private function textOriginEntries(array $paths, array $indexDirs): array
+    {
+        if ($indexDirs === []) {
+            return [];
+        }
+
+        $root = $paths[0] ?? '.';
+        $store = new TextIndexStore();
+        $entries = [];
+
+        foreach ($this->resolveTextIndexPaths($store, $root, $indexDirs) as $indexPath) {
+            $index = $store->load($indexPath);
+            $entries[] = new IndexSetEntry(
+                name: $this->displayPath($index->rootPath),
+                rootPath: $index->rootPath,
+                indexPath: $index->indexPath,
+                mode: IndexMode::Text,
+                lifecycle: $index->lifecycle,
+            );
+        }
+
+        return $entries;
+    }
+
+    /**
+     * @param list<string> $paths
+     * @param list<string> $indexDirs
+     * @return list<IndexSetEntry>
+     */
+    private function astOriginEntries(string $mode, array $paths, array $indexDirs): array
+    {
+        if ($indexDirs === []) {
+            return [];
+        }
+
+        $root = $paths[0] ?? '.';
+        $entries = [];
+
+        if ($mode === 'index') {
+            $store = new AstIndexStore();
+
+            foreach ($this->resolveAstIndexPaths($store, $root, $indexDirs) as $indexPath) {
+                $index = $store->load($indexPath);
+                $entries[] = new IndexSetEntry(
+                    name: $this->displayPath($index->rootPath),
+                    rootPath: $index->rootPath,
+                    indexPath: $index->indexPath,
+                    mode: IndexMode::AstIndex,
+                    lifecycle: $index->lifecycle,
+                );
+            }
+
+            return $entries;
+        }
+
+        $store = new AstCacheStore();
+
+        foreach ($this->resolveAstCachePaths($store, $root, $indexDirs) as $indexPath) {
+            $cache = $store->load($indexPath);
+            $entries[] = new IndexSetEntry(
+                name: $this->displayPath($cache->rootPath),
+                rootPath: $cache->rootPath,
+                indexPath: $cache->indexPath,
+                mode: IndexMode::AstCache,
+                lifecycle: $cache->lifecycle,
+            );
+        }
+
+        return $entries;
+    }
+
+    /**
+     * @return array{
+     *   block: string,
+     *   missing: bool,
+     *   stale: bool,
+     *   diskSize: int,
+     *   queryCacheCount: int,
+     *   queryCacheSize: int,
+     *   treeCount: int,
+     *   treeSize: int
+     * }
+     */
+    private function setEntryStats(IndexSetEntry $entry, bool $dryRefresh): array
+    {
+        $root = $this->displayPath($entry->rootPath);
+        $index = $this->displayPath($entry->indexPath);
+        $common = [
+            'Entry' => $entry->name,
+            'Mode' => $entry->mode->label(),
+            'Root' => $root,
+            'Index' => $index,
+            'Lifecycle' => $entry->lifecycle->label(),
+        ];
+
+        if ($entry->mode === IndexMode::Text) {
+            $store = new TextIndexStore();
+
+            if (!$store->exists($entry->indexPath)) {
+                return [
+                    'block' => $this->formatStatsBlock('Index set entry stats', [
+                        ...$common,
+                        'Status' => 'missing',
+                    ]),
+                    'missing' => true,
+                    'stale' => false,
+                    'diskSize' => 0,
+                    'queryCacheCount' => 0,
+                    'queryCacheSize' => 0,
+                    'treeCount' => 0,
+                    'treeSize' => 0,
+                ];
+            }
+
+            $inspector = new IndexFreshnessInspector();
+            $queryStats = (new TextQueryCacheStore())->stats($entry->indexPath);
+            $textIndex = $store->load($entry->indexPath, includePostings: true);
+            $freshness = $inspector->inspectText($textIndex);
+            $diskSize = $this->directorySize($entry->indexPath);
+            $fields = [
+                ...$common,
+                'Files' => (string) count($textIndex->files),
+                'Trigram postings' => (string) count($textIndex->postings),
+                'Word postings' => (string) count($textIndex->wordPostings),
+                'Disk size' => $this->formatBytes($diskSize),
+                'Query caches' => sprintf('%d (%s)', $queryStats['count'], $this->formatBytes($queryStats['size'])),
+                'Stale' => $freshness->stale ? 'yes' : 'no',
+                'Changes' => $freshness->summary(),
+                'Last refresh' => $this->formatTimestamp($textIndex->builtAt),
+                'Last build time' => sprintf('%.2fms', $textIndex->buildDurationMs),
+            ];
+
+            if ($dryRefresh) {
+                $fields['Search behavior'] = $this->refreshDecisionLabel($entry->lifecycle, $freshness);
+            }
+
+            return [
+                'block' => $this->formatStatsBlock('Index set entry stats', $fields),
+                'missing' => false,
+                'stale' => $freshness->stale,
+                'diskSize' => $diskSize,
+                'queryCacheCount' => $queryStats['count'],
+                'queryCacheSize' => $queryStats['size'],
+                'treeCount' => 0,
+                'treeSize' => 0,
+            ];
+        }
+
+        if ($entry->mode === IndexMode::AstIndex) {
+            $store = new AstIndexStore();
+
+            if (!$store->exists($entry->indexPath)) {
+                return [
+                    'block' => $this->formatStatsBlock('Index set entry stats', [
+                        ...$common,
+                        'Status' => 'missing',
+                    ]),
+                    'missing' => true,
+                    'stale' => false,
+                    'diskSize' => 0,
+                    'queryCacheCount' => 0,
+                    'queryCacheSize' => 0,
+                    'treeCount' => 0,
+                    'treeSize' => 0,
+                ];
+            }
+
+            $inspector = new IndexFreshnessInspector();
+            $queryStats = (new AstQueryCacheStore())->stats($entry->indexPath);
+            $astIndex = $store->load($entry->indexPath);
+            $freshness = $inspector->inspectAstIndex($astIndex);
+            $diskSize = $this->directorySize($entry->indexPath);
+            $fields = [
+                ...$common,
+                'Files' => (string) count($astIndex->files),
+                'Fact rows' => (string) count($astIndex->facts),
+                'Disk size' => $this->formatBytes($diskSize),
+                'Query caches' => sprintf('%d (%s)', $queryStats['count'], $this->formatBytes($queryStats['size'])),
+                'Stale' => $freshness->stale ? 'yes' : 'no',
+                'Changes' => $freshness->summary(),
+                'Last refresh' => $this->formatTimestamp($astIndex->builtAt),
+                'Last build time' => sprintf('%.2fms', $astIndex->buildDurationMs),
+            ];
+
+            if ($dryRefresh) {
+                $fields['Search behavior'] = $this->refreshDecisionLabel($entry->lifecycle, $freshness);
+            }
+
+            return [
+                'block' => $this->formatStatsBlock('Index set entry stats', $fields),
+                'missing' => false,
+                'stale' => $freshness->stale,
+                'diskSize' => $diskSize,
+                'queryCacheCount' => $queryStats['count'],
+                'queryCacheSize' => $queryStats['size'],
+                'treeCount' => 0,
+                'treeSize' => 0,
+            ];
+        }
+
+        $store = new AstCacheStore();
+
+        if (!$store->exists($entry->indexPath)) {
+            return [
+                'block' => $this->formatStatsBlock('Index set entry stats', [
+                    ...$common,
+                    'Status' => 'missing',
+                ]),
+                'missing' => true,
+                'stale' => false,
+                'diskSize' => 0,
+                'queryCacheCount' => 0,
+                'queryCacheSize' => 0,
+                'treeCount' => 0,
+                'treeSize' => 0,
+            ];
+        }
+
+        $inspector = new IndexFreshnessInspector();
+        $queryStats = (new AstQueryCacheStore())->stats($entry->indexPath);
+        $treeStats = $store->treeStats($entry->indexPath);
+        $cache = $store->load($entry->indexPath);
+        $freshness = $inspector->inspectAstCache($cache);
+        $cachedTreeCount = count(array_filter(
+            $cache->facts,
+            static fn (array $facts): bool => $facts['cached'],
+        ));
+        $diskSize = $this->directorySize($entry->indexPath);
+        $fields = [
+            ...$common,
+            'Files' => (string) count($cache->files),
+            'Fact rows' => (string) count($cache->facts),
+            'Cached trees' => sprintf('%d (%s)', $cachedTreeCount, $this->formatBytes($treeStats['size'])),
+            'Disk size' => $this->formatBytes($diskSize),
+            'Query caches' => sprintf('%d (%s)', $queryStats['count'], $this->formatBytes($queryStats['size'])),
+            'Stale' => $freshness->stale ? 'yes' : 'no',
+            'Changes' => $freshness->summary(),
+            'Last refresh' => $this->formatTimestamp($cache->builtAt),
+            'Last build time' => sprintf('%.2fms', $cache->buildDurationMs),
+        ];
+
+        if ($dryRefresh) {
+            $fields['Search behavior'] = $this->refreshDecisionLabel($entry->lifecycle, $freshness);
+        }
+
+        return [
+            'block' => $this->formatStatsBlock('Index set entry stats', $fields),
+            'missing' => false,
+            'stale' => $freshness->stale,
+            'diskSize' => $diskSize,
+            'queryCacheCount' => $queryStats['count'],
+            'queryCacheSize' => $queryStats['size'],
+            'treeCount' => $treeStats['count'],
+            'treeSize' => $treeStats['size'],
+        ];
+    }
+
+    private function refreshDecisionLabel(IndexLifecycle $lifecycle, \Greph\Index\IndexFreshness $freshness): string
+    {
+        if (!$freshness->stale) {
+            return 'use as-is (fresh)';
+        }
+
+        if ($lifecycle->shouldRejectStale()) {
+            return 'reject stale search';
+        }
+
+        if ($lifecycle->shouldAutoRefresh()) {
+            return $freshness->isCheapEnough($lifecycle)
+                ? 'auto-refresh before search'
+                : 'use stale index and skip auto-refresh';
+        }
+
+        if ($lifecycle->profile === IndexLifecycleProfile::Static) {
+            return 'use as-is (static index)';
+        }
+
+        return 'use stale index until explicit refresh';
+    }
+
+    private function isWithinEntryRoot(string $path, IndexSetEntry $entry): bool
+    {
+        $path = Filesystem::normalizePath($path);
+        $rootPath = Filesystem::normalizePath($entry->rootPath);
+
+        return $path === $rootPath || str_starts_with($path, $rootPath . '/');
     }
 
     private function displayAstLine(AstMatch $match): string
@@ -1023,15 +2022,19 @@ final class IndexApplication
 Usage:
   greph-index build [path] [--index-dir DIR] [--lifecycle PROFILE] [--auto-refresh-max-files N] [--auto-refresh-max-bytes N]
   greph-index refresh [path] [--index-dir DIR] [--lifecycle PROFILE] [--auto-refresh-max-files N] [--auto-refresh-max-bytes N]
-  greph-index stats [path] [--index-dir DIR...]
+  greph-index stats [path] [--index-dir DIR...] [--dry-refresh]
   greph-index search [options] pattern [path...]
+  greph-index set build [manifest] [--manifest FILE] [--mode MODE] [--index NAME...]
+  greph-index set refresh [manifest] [--manifest FILE] [--mode MODE] [--index NAME...]
+  greph-index set stats [manifest] [--manifest FILE] [--mode MODE] [--index NAME...] [--dry-refresh]
+  greph-index set search [--manifest FILE] [--mode MODE] [--index NAME...] [--show-index-origin] [options] pattern [path...]
   greph-index ast-index build [path] [--index-dir DIR] [--lifecycle PROFILE] [--auto-refresh-max-files N] [--auto-refresh-max-bytes N]
   greph-index ast-index refresh [path] [--index-dir DIR] [--lifecycle PROFILE] [--auto-refresh-max-files N] [--auto-refresh-max-bytes N]
-  greph-index ast-index stats [path] [--index-dir DIR...]
+  greph-index ast-index stats [path] [--index-dir DIR...] [--dry-refresh]
   greph-index ast-index search [options] pattern [path...]
   greph-index ast-cache build [path] [--index-dir DIR] [--lifecycle PROFILE] [--auto-refresh-max-files N] [--auto-refresh-max-bytes N]
   greph-index ast-cache refresh [path] [--index-dir DIR] [--lifecycle PROFILE] [--auto-refresh-max-files N] [--auto-refresh-max-bytes N]
-  greph-index ast-cache stats [path] [--index-dir DIR...]
+  greph-index ast-cache stats [path] [--index-dir DIR...] [--dry-refresh]
   greph-index ast-cache search [options] pattern [path...]
 
 Search Options:
@@ -1056,6 +2059,12 @@ Search Options:
   --no-ignore     Ignore .gitignore and .grephignore rules.
   --hidden        Include hidden files.
   --index-dir DIR Use a non-default index directory. Repeat for multi-index search.
+  --manifest FILE Load a named index-set manifest. Default: .greph-index-set.json
+  --mode MODE     Index-set mode: text|ast-index|ast-cache.
+  --index NAME    Restrict set operations to a named manifest entry. Repeatable.
+  --show-index-origin
+                  Prefix set-search output paths with the matching manifest entry.
+  --dry-refresh   Report what warmed search would do without mutating anything.
   --help          Show this help.
 
 AST Search Options:

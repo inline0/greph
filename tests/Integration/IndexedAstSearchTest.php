@@ -185,4 +185,41 @@ PHP,
         Workspace::remove($strictWorkspace);
         Workspace::remove($multiWorkspace);
     }
+
+    #[Test]
+    public function itSearchesAstIndexesThroughNamedIndexSets(): void
+    {
+        $setWorkspace = Workspace::createDirectory('indexed-ast-set');
+
+        try {
+            Workspace::writeFile($setWorkspace, 'core/Core.php', "<?php\n\$core = new CoreThing();\n");
+            Workspace::writeFile($setWorkspace, 'plugins/Demo/Plugin.php', "<?php\n\$plugin = new PluginThing();\n");
+            Workspace::writeFile(
+                $setWorkspace,
+                '.greph-index-set.json',
+                (string) json_encode([
+                    'name' => 'wordpress-ast',
+                    'indexes' => [
+                        ['name' => 'core-ast', 'root' => 'core', 'mode' => 'ast-index', 'priority' => 20],
+                        ['name' => 'plugin-ast', 'root' => 'plugins/Demo', 'mode' => 'ast-index', 'priority' => 10],
+                    ],
+                ], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES),
+            );
+            Greph::buildAstIndex($setWorkspace . '/core');
+            Greph::buildAstIndex($setWorkspace . '/plugins/Demo');
+
+            $matches = Greph::searchAstIndexedSet(
+                'new $CLASS()',
+                $setWorkspace,
+                new AstSearchOptions(),
+                $setWorkspace . '/.greph-index-set.json',
+            );
+
+            $matched = array_map(static fn ($match): string => basename($match->file), $matches);
+            $this->assertContains('Core.php', $matched);
+            $this->assertContains('Plugin.php', $matched);
+        } finally {
+            Workspace::remove($setWorkspace);
+        }
+    }
 }

@@ -185,4 +185,41 @@ PHP,
         Workspace::remove($strictWorkspace);
         Workspace::remove($multiWorkspace);
     }
+
+    #[Test]
+    public function itSearchesCachedAstIndexesThroughNamedIndexSets(): void
+    {
+        $setWorkspace = Workspace::createDirectory('cached-ast-set');
+
+        try {
+            Workspace::writeFile($setWorkspace, 'core/Core.php', "<?php\n\$core = new CoreThing();\n");
+            Workspace::writeFile($setWorkspace, 'plugins/Demo/Plugin.php', "<?php\n\$plugin = new PluginThing();\n");
+            Workspace::writeFile(
+                $setWorkspace,
+                '.greph-index-set.json',
+                (string) json_encode([
+                    'name' => 'wordpress-cache',
+                    'indexes' => [
+                        ['name' => 'core-cache', 'root' => 'core', 'mode' => 'ast-cache', 'priority' => 20],
+                        ['name' => 'plugin-cache', 'root' => 'plugins/Demo', 'mode' => 'ast-cache', 'priority' => 10],
+                    ],
+                ], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES),
+            );
+            Greph::buildAstCache($setWorkspace . '/core');
+            Greph::buildAstCache($setWorkspace . '/plugins/Demo');
+
+            $matches = Greph::searchAstCachedSet(
+                'new $CLASS()',
+                $setWorkspace,
+                new AstSearchOptions(),
+                $setWorkspace . '/.greph-index-set.json',
+            );
+
+            $matched = array_map(static fn ($match): string => basename($match->file), $matches);
+            $this->assertContains('Core.php', $matched);
+            $this->assertContains('Plugin.php', $matched);
+        } finally {
+            Workspace::remove($setWorkspace);
+        }
+    }
 }

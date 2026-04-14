@@ -102,6 +102,13 @@ $results = Greph::searchTextIndexedMany('function', '.', [
     'core/.greph-index',
     'plugins/demo/.greph-index',
 ]);
+$results = Greph::searchTextIndexedSet(
+    'function',
+    '.',
+    new TextSearchOptions(fixedString: true),
+    '.greph-index-set.json',
+    ['core-text', 'plugin-text'],
+);
 
 // Indexed AST (fact index)
 Greph::buildAstIndex('.');
@@ -110,6 +117,12 @@ $matches = Greph::searchAstIndexedMany('new $CLASS()', '.', [
     'core/.greph-ast-index',
     'plugins/demo/.greph-ast-index',
 ]);
+$matches = Greph::searchAstIndexedSet(
+    'new $CLASS()',
+    '.',
+    new AstSearchOptions(),
+    '.greph-index-set.json',
+);
 
 // Cached AST (parsed-tree cache)
 Greph::buildAstCache('.');
@@ -118,6 +131,12 @@ $matches = Greph::searchAstCachedMany('array($$$ITEMS)', '.', [
     'core/.greph-ast-cache',
     'plugins/demo/.greph-ast-cache',
 ]);
+$matches = Greph::searchAstCachedSet(
+    'array($$$ITEMS)',
+    '.',
+    new AstSearchOptions(),
+    '.greph-index-set.json',
+);
 ```
 
 ## CLI
@@ -138,11 +157,16 @@ Greph exposes four executables:
 ./vendor/bin/greph-index build . --lifecycle opportunistic-refresh
 ./vendor/bin/greph-index search -F "function" .
 ./vendor/bin/greph-index search -F "function" . --index-dir core/.greph-index --index-dir plugins/demo/.greph-index
+./vendor/bin/greph-index set build
+./vendor/bin/greph-index set stats --dry-refresh
+./vendor/bin/greph-index set search --show-index-origin -F "function" .
 ./vendor/bin/greph-index ast-index build .
 ./vendor/bin/greph-index ast-index search 'new $CLASS()' src
 ./vendor/bin/greph-index ast-index search 'new $CLASS()' . --index-dir core/.greph-ast-index --index-dir plugins/demo/.greph-ast-index
+./vendor/bin/greph-index set search --mode ast-index 'new $CLASS()' .
 ./vendor/bin/greph-index ast-cache build .
 ./vendor/bin/greph-index ast-cache search 'array($$$ITEMS)' src
+./vendor/bin/greph-index set search --mode ast-cache 'array($$$ITEMS)' .
 
 ./vendor/bin/rg -F "function" src
 ./vendor/bin/rg --files src
@@ -164,16 +188,22 @@ Lifecycle profiles:
 - `opportunistic-refresh`: refresh on search only when the changed set is cheap
 - `strict-stale-check`: refuse stale indexed searches
 
+This makes mixed sets practical without a daemon:
+
+- keep a stable `static` core index around
+- keep plugin or app indexes as `opportunistic-refresh`
+- let strict workloads fail hard with `strict-stale-check`
+
 Examples:
 
 ```bash
 ./vendor/bin/greph-index build . --lifecycle static
 ./vendor/bin/greph-index build . --lifecycle opportunistic-refresh --auto-refresh-max-files 32 --auto-refresh-max-bytes 1048576
 ./vendor/bin/greph-index ast-cache build . --lifecycle strict-stale-check
-./vendor/bin/greph-index stats .
+./vendor/bin/greph-index stats . --dry-refresh
 ```
 
-`greph-index stats` reports lifecycle, stale status, and the current change summary for text, AST index, and AST cache stores.
+`greph-index stats` reports lifecycle, stale status, change summary, query-cache usage, and optional dry-run search behavior for text, AST index, and AST cache stores.
 
 ## Multi-Index Search
 
@@ -188,6 +218,63 @@ Greph can search multiple warmed indexes in one request. This is intended for re
   --index-dir wordpress/.greph-ast-index \
   --index-dir wp-content/plugins/my-plugin/.greph-ast-index
 ```
+
+For repeated multi-index workflows, use a manifest instead of repeating flags:
+
+```json
+{
+  "name": "wordpress-local",
+  "indexes": [
+    {
+      "name": "core-text",
+      "root": "wordpress",
+      "mode": "text",
+      "lifecycle": "static",
+      "priority": 100
+    },
+    {
+      "name": "plugin-text",
+      "root": "wp-content/plugins/my-plugin",
+      "mode": "text",
+      "lifecycle": "opportunistic-refresh",
+      "max_changed_files": 16,
+      "max_changed_bytes": 262144,
+      "priority": 200
+    },
+    {
+      "name": "plugin-ast",
+      "root": "wp-content/plugins/my-plugin",
+      "mode": "ast-index",
+      "priority": 200
+    },
+    {
+      "name": "plugin-cache",
+      "root": "wp-content/plugins/my-plugin",
+      "mode": "ast-cache",
+      "priority": 200
+    }
+  ]
+}
+```
+
+Save that as `.greph-index-set.json`, then:
+
+```bash
+./vendor/bin/greph-index set build
+./vendor/bin/greph-index set stats --dry-refresh
+./vendor/bin/greph-index set search --show-index-origin -F "apply_filters" .
+./vendor/bin/greph-index set search --mode ast-index 'new $CLASS()' .
+./vendor/bin/greph-index set search --mode ast-cache 'array($$$ITEMS)' .
+```
+
+Useful WordPress shape:
+
+- `wordpress` text index: `static`
+- `wordpress` AST index: `static`
+- plugin text/AST indexes: `opportunistic-refresh`
+- theme text/AST indexes: `opportunistic-refresh`
+
+That keeps warmed baseline indexes stable while letting active overlays refresh cheaply when a command runs.
 
 ## Documentation
 

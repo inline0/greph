@@ -156,6 +156,8 @@ PHP,
         $this->assertSame(0, $searchExit);
         $this->assertStringContainsString('greph-index build [path] [--index-dir DIR] [--lifecycle PROFILE]', $stdout);
         $this->assertStringContainsString('greph-index stats [path] [--index-dir DIR...]', $stdout);
+        $this->assertStringContainsString('greph-index set build [manifest] [--manifest FILE] [--mode MODE] [--index NAME...]', $stdout);
+        $this->assertStringContainsString('greph-index set search [--manifest FILE] [--mode MODE] [--index NAME...] [--show-index-origin]', $stdout);
         $this->assertStringContainsString('greph-index ast-index build [path] [--index-dir DIR] [--lifecycle PROFILE]', $stdout);
         $this->assertStringContainsString('greph-index ast-index stats [path] [--index-dir DIR...]', $stdout);
         $this->assertStringContainsString('greph-index ast-cache search [options] pattern [path...]', $stdout);
@@ -279,6 +281,7 @@ PHP,
             $searchExit = $application->run([
                 'greph-index',
                 'search',
+                '--show-index-origin',
                 '--index-dir',
                 $multiWorkspace . '/core/.greph-index',
                 '--index-dir',
@@ -296,12 +299,110 @@ PHP,
             $this->assertSame(0, $searchExit);
             $this->assertStringContainsString('Lifecycle: opportunistic-refresh', $stdout);
             $this->assertStringContainsString('Stale: yes', $stdout);
-            $this->assertStringContainsString('Core.php:2:function coreThing(): void {}', $stdout);
-            $this->assertStringContainsString('Plugin.php:2:function pluginThing(): void {}', $stdout);
-            $this->assertStringContainsString('New.php:2:function refreshedThing(): void {}', $stdout);
+            $this->assertStringContainsString('[core] core/Core.php:2:function coreThing(): void {}', $stdout);
+            $this->assertStringContainsString('[plugin] plugin/Plugin.php:2:function pluginThing(): void {}', $stdout);
+            $this->assertStringContainsString('[core] core/New.php:2:function refreshedThing(): void {}', $stdout);
         } finally {
             chdir($originalWorkingDirectory);
             Workspace::remove($multiWorkspace);
+        }
+    }
+
+    #[Test]
+    public function itBuildsRefreshesStatsAndSearchesNamedIndexSets(): void
+    {
+        $setWorkspace = Workspace::createDirectory('index-application-set');
+        $originalWorkingDirectory = getcwd() ?: '.';
+        chdir($setWorkspace);
+
+        try {
+            Workspace::writeFile($setWorkspace, 'core/Core.php', "<?php\nfunction coreThing(): void {}\n\$core = new CoreThing();\n");
+            Workspace::writeFile($setWorkspace, 'plugins/Demo/Plugin.php', "<?php\nfunction pluginThing(): void {}\nrender_widget();\n\$plugin = new PluginThing();\n");
+            Workspace::writeFile(
+                $setWorkspace,
+                '.greph-index-set.json',
+                (string) json_encode([
+                    'name' => 'wordpress-local',
+                    'indexes' => [
+                        ['name' => 'core-text', 'root' => 'core', 'mode' => 'text', 'lifecycle' => 'static', 'priority' => 20],
+                        ['name' => 'plugin-text', 'root' => 'plugins/Demo', 'mode' => 'text', 'lifecycle' => 'opportunistic-refresh', 'priority' => 10],
+                        ['name' => 'plugin-ast', 'root' => 'plugins/Demo', 'mode' => 'ast-index', 'priority' => 10],
+                        ['name' => 'plugin-cache', 'root' => 'plugins/Demo', 'mode' => 'ast-cache', 'priority' => 10],
+                    ],
+                ], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES),
+            );
+
+            $harness = $this->newApplication();
+            $application = $harness['application'];
+
+            $buildExit = $application->run(['greph-index', 'set', 'build']);
+            $statsExit = $application->run(['greph-index', 'set', 'stats', '--dry-refresh']);
+            $textSearchExit = $application->run([
+                'greph-index',
+                'set',
+                'search',
+                '--show-index-origin',
+                '-F',
+                'function',
+                '.',
+            ]);
+            $astIndexSearchExit = $application->run([
+                'greph-index',
+                'set',
+                'search',
+                '--mode',
+                'ast-index',
+                '--show-index-origin',
+                'new $CLASS()',
+                '.',
+            ]);
+            $astCacheSearchExit = $application->run([
+                'greph-index',
+                'set',
+                'search',
+                '--mode',
+                'ast-cache',
+                '-l',
+                'render_widget()',
+                '.',
+            ]);
+
+            sleep(1);
+            Workspace::writeFile($setWorkspace, 'plugins/Demo/NewPlugin.php', "<?php\nfunction refreshedPluginThing(): void {}\n\$newPlugin = new NewPluginThing();\n");
+
+            $refreshExit = $application->run([
+                'greph-index',
+                'set',
+                'refresh',
+                '--index',
+                'plugin-text',
+                '--index',
+                'plugin-ast',
+                '--index',
+                'plugin-cache',
+            ]);
+
+            $stdout = $this->readStream($harness['stdout']);
+
+            $this->assertSame(0, $buildExit);
+            $this->assertSame(0, $statsExit);
+            $this->assertSame(0, $textSearchExit);
+            $this->assertSame(0, $astIndexSearchExit);
+            $this->assertSame(0, $astCacheSearchExit);
+            $this->assertSame(0, $refreshExit);
+            $this->assertStringContainsString('Index set stats', $stdout);
+            $this->assertStringContainsString('Set: wordpress-local', $stdout);
+            $this->assertStringContainsString('Search behavior:', $stdout);
+            $this->assertStringContainsString('[core-text] core/Core.php:2:function coreThing(): void {}', $stdout);
+            $this->assertStringContainsString('[plugin-text] plugins/Demo/Plugin.php:2:function pluginThing(): void {}', $stdout);
+            $this->assertStringContainsString('[plugin-ast] plugins/Demo/Plugin.php:4:$plugin = new PluginThing();', $stdout);
+            $this->assertStringContainsString("plugins/Demo/Plugin.php\n", $stdout);
+            $this->assertStringContainsString('Refreshed set entry plugin-text [text]', $stdout);
+            $this->assertStringContainsString('Refreshed set entry plugin-ast [ast-index]', $stdout);
+            $this->assertStringContainsString('Refreshed set entry plugin-cache [ast-cache]', $stdout);
+        } finally {
+            chdir($originalWorkingDirectory);
+            Workspace::remove($setWorkspace);
         }
     }
 
@@ -352,6 +453,15 @@ PHP,
         } catch (\InvalidArgumentException $exception) {
             $this->assertSame('Unknown fallback mode: bogus', $exception->getMessage());
         }
+
+        $setUnknownMode = $this->newApplication()['application'];
+
+        try {
+            $setUnknownMode->run(['greph-index', 'set', 'build', '--mode', 'bogus']);
+            self::fail('Expected unknown set mode.');
+        } catch (\InvalidArgumentException $exception) {
+            $this->assertSame('Unknown index-set mode: bogus', $exception->getMessage());
+        }
     }
 
     #[Test]
@@ -362,7 +472,7 @@ PHP,
         $parsedFlags = $this->invokeMethod(
             $application,
             'parseSearchArguments',
-            ['-w', '-v', '-n', '-A', '2', '-B', '1', '-C', '3', '--type', 'php', '--type-not', 'txt', 'needle'],
+            ['-w', '-v', '-n', '--show-index-origin', '-A', '2', '-B', '1', '-C', '3', '--type', 'php', '--type-not', 'txt', 'needle'],
         );
         $parsedTerminated = $this->invokeMethod(
             $application,
@@ -372,12 +482,27 @@ PHP,
         $parsedAst = $this->invokeMethod(
             $application,
             'parseAstSearchArguments',
-            ['--json', '--hidden', '--strict-parse', '-l', '--glob', '*.php', '--type', 'php', '--type-not', 'txt', '--index-dir', '.ast', '--lang', 'php', '-j', '4', '--fallback', 'scan', 'new $CLASS()', 'src/Ast.php'],
+            ['--json', '--hidden', '--show-index-origin', '--strict-parse', '-l', '--glob', '*.php', '--type', 'php', '--type-not', 'txt', '--index-dir', '.ast', '--lang', 'php', '-j', '4', '--fallback', 'scan', 'new $CLASS()', 'src/Ast.php'],
         );
         $parsedBuild = $this->invokeMethod(
             $application,
             'parseBuildArguments',
             ['--index-dir', '.index', '--lifecycle', 'static', '--auto-refresh-max-files', '9', '--auto-refresh-max-bytes', '2048', '.'],
+        );
+        $parsedStats = $this->invokeMethod(
+            $application,
+            'parseStatsArguments',
+            ['--index-dir', '.index', '--dry-refresh', '.'],
+        );
+        $parsedSet = $this->invokeMethod(
+            $application,
+            'parseSetCommandArguments',
+            ['--manifest', '.greph-index-set.json', '--mode', 'ast-cache', '--index', 'plugin-cache', '--dry-refresh'],
+        );
+        $parsedSetSearch = $this->invokeMethod(
+            $application,
+            'parseSetSearchArguments',
+            ['--manifest', '.greph-index-set.json', '--mode', 'ast-index', '--index', 'plugin-ast', '--show-index-origin', 'new $CLASS()', 'src/Ast.php'],
         );
         $displayNames = $this->invokeMethod(
             $application,
@@ -388,6 +513,7 @@ PHP,
         $this->assertTrue($parsedFlags['wholeWord']);
         $this->assertTrue($parsedFlags['invertMatch']);
         $this->assertTrue($parsedFlags['showLineNumbers']);
+        $this->assertTrue($parsedFlags['showIndexOrigin']);
         $this->assertSame(2, $parsedFlags['afterContext']);
         $this->assertSame(1, $parsedFlags['beforeContext']);
         $this->assertSame(3, $parsedFlags['context']);
@@ -397,6 +523,7 @@ PHP,
         $this->assertSame(['single.txt', 'counts.txt'], $parsedTerminated['paths']);
         $this->assertTrue($parsedAst['json']);
         $this->assertTrue($parsedAst['hidden']);
+        $this->assertTrue($parsedAst['showIndexOrigin']);
         $this->assertTrue($parsedAst['strictParse']);
         $this->assertTrue($parsedAst['filesWithMatches']);
         $this->assertSame(['*.php'], $parsedAst['glob']);
@@ -412,6 +539,17 @@ PHP,
         $this->assertSame('static', $parsedBuild['lifecycle']);
         $this->assertSame(9, $parsedBuild['maxChangedFiles']);
         $this->assertSame(2048, $parsedBuild['maxChangedBytes']);
+        $this->assertTrue($parsedStats['dryRefresh']);
+        $this->assertSame(['.index'], $parsedStats['indexDirs']);
+        $this->assertSame('.greph-index-set.json', $parsedSet['manifest']);
+        $this->assertSame('ast-cache', $parsedSet['mode']);
+        $this->assertSame(['plugin-cache'], $parsedSet['indexes']);
+        $this->assertTrue($parsedSet['dryRefresh']);
+        $this->assertSame('.greph-index-set.json', $parsedSetSearch['manifest']);
+        $this->assertSame('ast-index', $parsedSetSearch['mode']);
+        $this->assertSame(['plugin-ast'], $parsedSetSearch['indexes']);
+        $this->assertTrue($parsedSetSearch['showIndexOrigin']);
+        $this->assertSame('new $CLASS()', $parsedSetSearch['search']['pattern']);
         $this->assertTrue($displayNames);
     }
 
