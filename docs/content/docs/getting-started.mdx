@@ -149,7 +149,63 @@ vendor/bin/greph-index ast-cache build .
 vendor/bin/greph-index ast-cache search 'array($$$ITEMS)' src
 ```
 
-Indexes live in `.greph-index`, `.greph-ast-index`, and `.greph-ast-cache` at the project root. Use `refresh` after editing tracked files to apply incremental updates. See [Indexed / Text](/docs/indexed/text) and [Indexed / AST](/docs/indexed/ast) for details.
+Indexes live in `.greph-index`, `.greph-ast-index`, and `.greph-ast-cache` at the project root by default.
+
+For actively changing trees, choose a lifecycle profile instead of treating every warmed index the same:
+
+```bash
+vendor/bin/greph-index build . --lifecycle static
+vendor/bin/greph-index build . \
+  --lifecycle opportunistic-refresh \
+  --auto-refresh-max-files 32 \
+  --auto-refresh-max-bytes 1048576
+vendor/bin/greph-index stats . --dry-refresh
+```
+
+The common pattern is:
+
+- keep a stable baseline as `static`
+- keep actively changing overlays as `opportunistic-refresh`
+- inspect stale behavior with `stats --dry-refresh`
+
+### Multi-index warmed search
+
+You can search several warmed indexes in one command:
+
+```bash
+vendor/bin/greph-index search -F "apply_filters" . \
+  --index-dir wordpress/.greph-index \
+  --index-dir wp-content/plugins/my-plugin/.greph-index \
+  --show-index-origin
+
+vendor/bin/greph-index ast-index search 'new $CLASS()' . \
+  --index-dir wordpress/.greph-ast-index \
+  --index-dir wp-content/plugins/my-plugin/.greph-ast-index \
+  --show-index-origin
+```
+
+### Named index sets
+
+If you do that repeatedly, put the layout into `.greph-index-set.json` and use the set subcommands instead of repeating flags:
+
+```bash
+vendor/bin/greph-index set build
+vendor/bin/greph-index set stats --dry-refresh
+vendor/bin/greph-index set search --show-index-origin -F "apply_filters" .
+vendor/bin/greph-index set search --mode ast-index 'new $CLASS()' .
+vendor/bin/greph-index set search --mode ast-cache 'array($$$ITEMS)' .
+```
+
+### Planner trace
+
+To see how warmed search is narrowing candidates, add `--trace-plan`:
+
+```bash
+vendor/bin/greph-index search --trace-plan -F "function" .
+vendor/bin/greph-index ast-index search --trace-plan 'new $CLASS()' .
+```
+
+See [Indexed / Text](/docs/indexed/text) and [Indexed / AST](/docs/indexed/ast) for the full warmed workflow.
 
 ## Compatibility wrappers
 
@@ -169,4 +225,4 @@ Greph picks up two on-disk conventions:
 - `.gitignore`: respected by default. Pass `--no-ignore` to disable.
 - `.grephignore`: same syntax as `.gitignore`, applied on top. Useful for tool-specific exclusions you do not want in version control.
 
-The default index directories are `.greph-index`, `.greph-ast-index`, and `.greph-ast-cache` at the chosen root. Override with `--index-dir` on any `greph-index` subcommand.
+The default index directories are `.greph-index`, `.greph-ast-index`, and `.greph-ast-cache` at the chosen root. Override with `--index-dir` on any `greph-index` subcommand, or use `.greph-index-set.json` for repeatable multi-index layouts.

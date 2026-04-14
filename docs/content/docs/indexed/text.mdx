@@ -5,7 +5,15 @@ description: Warmed trigram and identifier postings index for repeated text-sear
 
 # Indexed Text Search
 
-Indexed text search is the warmed-cache version of [text search](/docs/modes/text). The first call builds an on-disk store of trigrams and identifier postings; subsequent calls use the store to skip files that obviously cannot contain the pattern. The result is order-of-magnitude lower latency for repeated literal queries on large repositories.
+Indexed text search is the warmed-cache version of [text search](/docs/modes/text). The first call builds an on-disk store of trigrams and identifier postings; subsequent calls use the store to skip files that obviously cannot contain the pattern. The result is much lower latency for repeated queries on large repositories without introducing a daemon or watcher process.
+
+The warmed text surface now includes:
+
+- single-index search
+- repeated `--index-dir` multi-index search
+- manifest-backed set search
+- lifecycle-aware stale handling
+- planner diagnostics via `--trace-plan`
 
 The index is exposed under the `greph-index` CLI and the `Greph::buildTextIndex()` / `Greph::searchTextIndexed()` facade methods.
 
@@ -20,6 +28,12 @@ The index is exposed under the `greph-index` CLI and the `Greph::buildTextIndex(
 
 # Use a non-default index directory
 ./vendor/bin/greph-index build . --index-dir /tmp/greph-index
+
+# Build with an explicit lifecycle policy
+./vendor/bin/greph-index build . \
+  --lifecycle opportunistic-refresh \
+  --auto-refresh-max-files 32 \
+  --auto-refresh-max-bytes 1048576
 ```
 
 The index is stored at `<root>/.greph-index/` by default.
@@ -38,13 +52,28 @@ The four counters are added, updated, deleted, and unchanged file counts. On a f
 ./vendor/bin/greph-index refresh .
 ```
 
-`refresh` re-walks the indexed root, hashes every file, and rewrites only the entries whose hash has changed. The output uses the same four counters so you can see exactly what moved:
+`refresh` re-walks the indexed root, hashes every file, and rewrites only the entries whose metadata changed. The output uses the same four counters so you can see exactly what moved:
 
 ```text
 Refreshed index for 2547 files in .greph-index (193428 trigrams, +3 ~7 -1 =2536)
 ```
 
-Run `refresh` after editing tracked files. There is no watcher; refreshes are explicit.
+Run `refresh` after editing tracked files when you are using `manual-refresh`. For `opportunistic-refresh` indexes, Greph can refresh the index automatically during search if the changed set is still cheap enough.
+
+## Lifecycle profiles
+
+Greph stays daemon-free. Lifecycle profiles control how a warmed index behaves when the source tree changes:
+
+- `static`: never freshness-check or mutate automatically
+- `manual-refresh`: surface stale information in `stats`, but never refresh during search
+- `opportunistic-refresh`: refresh during search only when the changed set is below the configured thresholds
+- `strict-stale-check`: reject stale warmed searches instead of refreshing
+
+Use `greph-index stats --dry-refresh` to inspect what warmed search would do before running it:
+
+```bash
+./vendor/bin/greph-index stats . --dry-refresh
+```
 
 ## Querying the index
 
@@ -61,16 +90,61 @@ Run `refresh` after editing tracked files. There is no watcher; refreshes are ex
 # Files only
 ./vendor/bin/greph-index search -F -l "function" .
 
+# Multi-index search
+./vendor/bin/greph-index search -F "apply_filters" . \
+  --index-dir wordpress/.greph-index \
+  --index-dir wp-content/plugins/my-plugin/.greph-index \
+  --show-index-origin
+
 # Regex search
 ./vendor/bin/greph-index search "function\s+\w+" .
 
 # JSON output
 ./vendor/bin/greph-index search --json -F "function" .
+
+# Planner trace to stderr
+./vendor/bin/greph-index search --trace-plan -F "function" .
 ```
 
 The flag set is the same as native text search. See the [CLI reference](/docs/cli#greph-index) for the full list.
 
 If the index does not exist at the requested location, `greph-index search` raises an error. There is no automatic fallback to a non-indexed scan in this command (the AST commands have an opt-in `--fallback scan`, but the text command does not). Build the index first.
+
+## Named index sets
+
+If you repeatedly search the same warmed layout, use a manifest instead of repeating `--index-dir` flags:
+
+```json
+{
+  "name": "wordpress-local",
+  "indexes": [
+    {
+      "name": "core-text",
+      "root": "wordpress",
+      "mode": "text",
+      "lifecycle": "static",
+      "priority": 100
+    },
+    {
+      "name": "plugin-text",
+      "root": "wp-content/plugins/my-plugin",
+      "mode": "text",
+      "lifecycle": "opportunistic-refresh",
+      "max_changed_files": 16,
+      "max_changed_bytes": 262144,
+      "priority": 200
+    }
+  ]
+}
+```
+
+Save it as `.greph-index-set.json`, then:
+
+```bash
+./vendor/bin/greph-index set build
+./vendor/bin/greph-index set stats --dry-refresh
+./vendor/bin/greph-index set search --show-index-origin -F "apply_filters" .
+```
 
 ## What the index stores
 
@@ -78,11 +152,34 @@ The text index is a trigram + identifier postings store. For every indexed file 
 
 - **Trigram set**: the set of three-byte sequences present in the file content. Used as a coarse pre-filter for both literal and regex queries.
 - **Identifier postings**: the set of identifier-shaped tokens (`[A-Za-z_][A-Za-z0-9_]*`) present in the file. Used to accelerate whole-word queries.
-- **Content hash**: the digest of the file content. Used by `refresh` to detect changes.
+- **Lifecycle metadata**: stored thresholds and stale-check behavior.
+- **Content metadata**: size and mtime for refresh decisions and stale inspection.
 
 When a query arrives, Greph extracts the same shapes from the pattern (trigrams from literal substrings, identifier tokens from whole-word patterns), intersects the postings, and only re-reads the matching files. Files that survive the intersection are searched with the same engine as native text mode.
 
+For some warmed summary queries, Greph can answer directly from the postings:
+
+- whole-word `-l`
+- whole-word `-L`
+- whole-word `-q`
+
+That avoids reopening candidate files entirely when the postings already prove the answer.
+
 This is the same idea as ripgrep's optional preindexing and codesearch's trigram index, but built specifically around the on-disk shapes that warmed PHP can hit fastest.
+
+## Planner diagnostics
+
+`--trace-plan` emits the warmed text planner decision to `stderr` while leaving the normal result stream untouched.
+
+The trace includes:
+
+- lifecycle profile
+- selected file count
+- candidate source (`full-scan`, `trigram-postings`, `word-postings`, or `invert-scan`)
+- postings term count
+- candidate and verified file counts
+- direct-summary eligibility
+- query-cache eligibility and population decision
 
 ## When to use it
 
@@ -105,9 +202,10 @@ The published benchmark numbers in the [README](https://github.com/inline0/greph
 ```php
 use Greph\Greph;
 use Greph\Text\TextSearchOptions;
+use Greph\Index\IndexLifecycleProfile;
 
 // Build once
-Greph::buildTextIndex('.');
+Greph::buildTextIndex('.', lifecycle: IndexLifecycleProfile::OpportunisticRefresh);
 
 // Refresh after edits
 Greph::refreshTextIndex('.');
@@ -120,4 +218,4 @@ $results = Greph::searchTextIndexed(
 );
 ```
 
-`searchTextIndexed` accepts the same `TextSearchOptions` as native text search and returns the same `list<TextFileResult>` shape. The only difference is the path that produced the results.
+`searchTextIndexed` accepts the same `TextSearchOptions` as native text search and returns the same `list<TextFileResult>` shape. For multi-index or manifest-backed flows, use `searchTextIndexedMany(...)` and `searchTextIndexedSet(...)`.

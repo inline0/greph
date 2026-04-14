@@ -7,7 +7,7 @@ description: Warmed AST fact index for repeated structural queries.
 
 Indexed AST search is the warmed-cache version of [AST search](/docs/modes/ast). The first call extracts node-level facts (call names, instantiations, class declarations, method declarations) into an on-disk store; subsequent calls use the store to skip files that obviously cannot contain a structural match. The matcher then re-verifies the candidates against the source.
 
-The fact index is exposed under the `greph-index ast-index` CLI subcommand and the `Greph::buildAstIndex()` / `Greph::searchAstIndexed()` facade methods.
+The fact index is exposed under the `greph-index ast-index` CLI subcommand and the `Greph::buildAstIndex()` / `Greph::searchAstIndexed()` facade methods. It also participates in warmed multi-index and manifest-backed set workflows.
 
 ## Building the index
 
@@ -20,6 +20,12 @@ The fact index is exposed under the `greph-index ast-index` CLI subcommand and t
 
 # Use a non-default index directory
 ./vendor/bin/greph-index ast-index build . --index-dir /tmp/greph-ast-index
+
+# Build a mutable overlay that can refresh cheaply on demand
+./vendor/bin/greph-index ast-index build . \
+  --lifecycle opportunistic-refresh \
+  --auto-refresh-max-files 32 \
+  --auto-refresh-max-bytes 1048576
 ```
 
 The fact index is stored at `<root>/.greph-ast-index/` by default.
@@ -40,6 +46,13 @@ The four counters track added, updated, deleted, and unchanged files since the l
 
 `refresh` re-walks the indexed root, re-parses changed files, and rewrites only the fact rows that moved. The output uses the same four counters as the text index.
 
+Lifecycle profiles behave the same way as warmed text indexes:
+
+- `static`: never freshness-check or mutate automatically
+- `manual-refresh`: report stale state in `stats`, but never refresh during search
+- `opportunistic-refresh`: refresh on search only when the changed set is still cheap enough
+- `strict-stale-check`: reject stale searches instead of refreshing
+
 ## Querying the index
 
 ```bash
@@ -47,6 +60,7 @@ The four counters track added, updated, deleted, and unchanged files since the l
 ./vendor/bin/greph-index ast-index search '$obj->$method($$$ARGS)' src
 ./vendor/bin/greph-index ast-index search --json 'array($$$ITEMS)' src
 ./vendor/bin/greph-index ast-index search -l 'array($$$ITEMS)' src
+./vendor/bin/greph-index ast-index search --trace-plan 'new $CLASS()' src
 ```
 
 The metavariable syntax is identical to native AST search. See [Modes / AST Search](/docs/modes/ast) for the full grammar.
@@ -66,6 +80,8 @@ The metavariable syntax is identical to native AST search. See [Modes / AST Sear
 | `--strict-parse` | Fail on parse errors instead of skipping them |
 | `--fallback MODE` | Missing-index behavior: `fail` (default) or `scan` |
 | `--index-dir DIR` | Use a non-default index directory |
+| `--trace-plan` | Emit warmed AST planner diagnostics to `stderr` |
+| `--show-index-origin` | Prefix output with the matching index label in multi-index or set mode |
 
 ### Missing-index fallback
 
@@ -74,6 +90,41 @@ By default, `ast-index search` raises an error when no index exists at the reque
 ```bash
 ./vendor/bin/greph-index ast-index search --fallback scan 'new $CLASS()' src
 ```
+
+### Multi-index search
+
+You can search across several warmed AST indexes in one command by repeating `--index-dir`. This is useful for layouts such as WordPress core plus a plugin or theme.
+
+```bash
+./vendor/bin/greph-index ast-index search \
+  --index-dir ../wordpress/.greph-ast-index \
+  --index-dir ./.greph-ast-index \
+  --show-index-origin \
+  'new $CLASS()' .
+```
+
+When `--show-index-origin` is enabled, output is prefixed with the matching warmed index entry name so you can see which root produced the hit.
+
+### Manifest-backed index sets
+
+For stable warmed setups, define a manifest and let `greph-index set` operate on the grouped indexes:
+
+```bash
+./vendor/bin/greph-index set build
+./vendor/bin/greph-index set stats --mode ast-index --dry-refresh
+./vendor/bin/greph-index set search --mode ast-index --show-index-origin 'new $CLASS()' .
+```
+
+The set subcommands share the same lifecycle handling, stale checks, and planner diagnostics as direct `ast-index` usage.
+
+### Planner diagnostics
+
+`--trace-plan` shows how Greph narrowed the query before the full matcher ran. For `ast-index` that typically includes:
+
+- the coarse fact signature extracted from the pattern
+- how many warmed indexes were searched
+- how many files were rejected by the fact filter
+- how many candidate files were re-parsed for exact structural verification
 
 ## What the index stores
 
@@ -105,14 +156,15 @@ For patterns whose distinguishing feature is not in the fact set (for example, c
 ```php
 use Greph\Greph;
 use Greph\Ast\AstSearchOptions;
+use Greph\Index\IndexLifecycleProfile;
 
-Greph::buildAstIndex('.');
+Greph::buildAstIndex('.', lifecycle: IndexLifecycleProfile::OpportunisticRefresh);
 
 $matches = Greph::searchAstIndexed(
     'new $CLASS()',
     'src',
-    new AstSearchOptions(jobs: 4),
+    new AstSearchOptions(jobs: 4, tracePlan: true),
 );
 ```
 
-`searchAstIndexed` accepts the same `AstSearchOptions` as native AST search and returns the same `list<AstMatch>` shape.
+`searchAstIndexed` accepts the same `AstSearchOptions` as native AST search and returns the same `list<AstMatch>` shape. For multi-index or manifest-backed flows, use `searchAstIndexedMany(...)` and `searchAstIndexedSet(...)`.

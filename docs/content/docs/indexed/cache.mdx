@@ -7,7 +7,7 @@ description: Cached parsed-tree store that skips the PHP-Parser pipeline on repe
 
 Cached AST search is a complementary warm-cache mode to the [fact index](/docs/indexed/ast). Instead of storing extracted facts and re-parsing matched files, the cache stores serialized parsed trees on disk. Subsequent queries deserialize the trees and run the matcher directly, skipping the PHP-Parser pipeline entirely.
 
-The cache is exposed under the `greph-index ast-cache` CLI subcommand and the `Greph::buildAstCache()` / `Greph::searchAstCached()` facade methods.
+The cache is exposed under the `greph-index ast-cache` CLI subcommand and the `Greph::buildAstCache()` / `Greph::searchAstCached()` facade methods. It also supports multi-index and manifest-backed set search.
 
 ## Building the cache
 
@@ -17,6 +17,12 @@ The cache is exposed under the `greph-index ast-cache` CLI subcommand and the `G
 
 # Use a non-default cache directory
 ./vendor/bin/greph-index ast-cache build . --index-dir /tmp/greph-ast-cache
+
+# Build a cache that may refresh automatically for small changes
+./vendor/bin/greph-index ast-cache build . \
+  --lifecycle opportunistic-refresh \
+  --auto-refresh-max-files 32 \
+  --auto-refresh-max-bytes 1048576
 ```
 
 The cache is stored at `<root>/.greph-ast-cache/` by default. Cache builds are typically the slowest of the three index modes because every file must be parsed once.
@@ -37,6 +43,13 @@ The cached tree count is usually slightly lower than the file count because file
 
 `refresh` re-walks the indexed root, re-parses changed files, and rewrites only the cached trees that moved.
 
+Lifecycle profiles match the other warmed modes:
+
+- `static`: never freshness-check or mutate automatically
+- `manual-refresh`: report stale state in `stats`, but never refresh during search
+- `opportunistic-refresh`: refresh during search only when the changed set is below the configured thresholds
+- `strict-stale-check`: reject stale searches instead of refreshing
+
 ## Querying the cache
 
 ```bash
@@ -44,9 +57,41 @@ The cached tree count is usually slightly lower than the file count because file
 ./vendor/bin/greph-index ast-cache search '$obj->$method($$$ARGS)' src
 ./vendor/bin/greph-index ast-cache search --json 'array($$$ITEMS)' src
 ./vendor/bin/greph-index ast-cache search --fallback scan 'new $CLASS()' src
+./vendor/bin/greph-index ast-cache search --trace-plan 'array($$$ITEMS)' src
 ```
 
 The flag set is identical to [`ast-index search`](/docs/indexed/ast#querying-the-index), including `--fallback scan` for missing caches.
+
+### Multi-index cache search
+
+Repeat `--index-dir` to search several warmed caches in one call:
+
+```bash
+./vendor/bin/greph-index ast-cache search \
+  --index-dir ../wordpress/.greph-ast-cache \
+  --index-dir ./.greph-ast-cache \
+  --show-index-origin \
+  'array($$$ITEMS)' .
+```
+
+### Manifest-backed cache sets
+
+If you already keep named warmed sets, the same manifest can drive cached AST search:
+
+```bash
+./vendor/bin/greph-index set build --mode ast-cache
+./vendor/bin/greph-index set stats --mode ast-cache --dry-refresh
+./vendor/bin/greph-index set search --mode ast-cache --show-index-origin 'array($$$ITEMS)' .
+```
+
+### Planner diagnostics
+
+`--trace-plan` reports the cached AST planner decisions to `stderr`, including:
+
+- which warmed caches were searched
+- whether stale refresh logic ran
+- candidate file counts after file-level narrowing
+- how many cached trees were deserialized for exact structural matching
 
 ## Cache vs fact index
 
@@ -68,17 +113,18 @@ In practice the fact index has the fastest cold query and the cache has the fast
 ```php
 use Greph\Greph;
 use Greph\Ast\AstSearchOptions;
+use Greph\Index\IndexLifecycleProfile;
 
-Greph::buildAstCache('.');
+Greph::buildAstCache('.', lifecycle: IndexLifecycleProfile::Static);
 
 $matches = Greph::searchAstCached(
     'array($$$ITEMS)',
     'src',
-    new AstSearchOptions(jobs: 4),
+    new AstSearchOptions(jobs: 4, tracePlan: true),
 );
 ```
 
-`searchAstCached` accepts the same `AstSearchOptions` as native AST search and returns the same `list<AstMatch>` shape. The only difference is that the parser pipeline is bypassed for files that are already in the cache.
+`searchAstCached` accepts the same `AstSearchOptions` as native AST search and returns the same `list<AstMatch>` shape. The only difference is that the parser pipeline is bypassed for files that are already in the cache. For multi-index or manifest-backed flows, use `searchAstCachedMany(...)` and `searchAstCachedSet(...)`.
 
 ## When to use it
 

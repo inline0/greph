@@ -11,7 +11,7 @@ Greph is a pure PHP search and refactoring engine for source trees. It covers th
 - **AST search** with PHP structural patterns and metavariables.
 - **AST rewrite** with format-preserving structural refactoring.
 
-It also ships warmed indexed modes for both text and AST workloads, plus `rg` and `sg` compatibility wrappers for tool and agent environments.
+It also ships warmed indexed modes for both text and AST workloads, lifecycle-aware refresh policies, manifest-backed warmed index sets, and `rg` / `sg` compatibility wrappers for tool and agent environments.
 
 ## Why Greph exists
 
@@ -26,6 +26,9 @@ Greph eliminates that gap. Your PHP code can run text searches, structural match
 - Format-preserving AST rewrite with dry-run, interactive, and write modes
 - Warmed text indexes (trigram + identifier postings) for repeated workloads
 - Warmed AST fact index and cached AST search for repeated structural queries
+- Lifecycle-aware warmed indexes: `static`, `manual-refresh`, `opportunistic-refresh`, `strict-stale-check`
+- Multi-index and named set search across warmed text, AST fact, and AST cache stores
+- Planner diagnostics with `--trace-plan` and index-origin labeling for warmed searches
 - ripgrep and ast-grep CLI compatibility wrappers backed by the same engine
 - pcntl-based parallel worker pool with single-process fallback
 - gitignore- and `.grephignore`-aware file walker with binary detection

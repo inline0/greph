@@ -140,15 +140,23 @@ The facade does not write to disk; the caller decides whether to apply the chang
 #### `buildTextIndex`
 
 ```php
-public static function buildTextIndex(string $rootPath = '.', ?string $indexPath = null): IndexBuildResult
+public static function buildTextIndex(
+    string $rootPath = '.',
+    ?string $indexPath = null,
+    IndexLifecycle|IndexLifecycleProfile|string|null $lifecycle = null,
+): IndexBuildResult
 ```
 
-Build a fresh trigram + identifier postings index for `$rootPath`. The index is stored at `$indexPath` (defaults to `$rootPath/.greph-index`). Returns an `IndexBuildResult` with the file count, trigram count, and added/updated/deleted/unchanged counts.
+Build a fresh trigram + identifier postings index for `$rootPath`. The index is stored at `$indexPath` (defaults to `$rootPath/.greph-index`). `$lifecycle` can be `static`, `manual-refresh`, `opportunistic-refresh`, or `strict-stale-check`. Returns an `IndexBuildResult` with the file count, trigram count, and added/updated/deleted/unchanged counts.
 
 #### `refreshTextIndex`
 
 ```php
-public static function refreshTextIndex(string $rootPath = '.', ?string $indexPath = null): IndexBuildResult
+public static function refreshTextIndex(
+    string $rootPath = '.',
+    ?string $indexPath = null,
+    IndexLifecycle|IndexLifecycleProfile|string|null $lifecycle = null,
+): IndexBuildResult
 ```
 
 Incrementally refresh an existing text index. Files are re-hashed and only changed entries are rewritten.
@@ -171,6 +179,41 @@ Greph::buildTextIndex('.');
 $results = Greph::searchTextIndexed('function', 'src');
 ```
 
+#### `searchTextIndexedMany`
+
+```php
+public static function searchTextIndexedMany(
+    string $pattern,
+    string|array $paths,
+    array $indexPaths,
+    ?TextSearchOptions $options = null,
+): array
+```
+
+Run warmed text search across several text index directories. Greph searches each applicable index, de-duplicates by absolute file path, and falls back to native scan only for paths outside every provided index root.
+
+#### `loadIndexSet`
+
+```php
+public static function loadIndexSet(?string $manifestPath = null): IndexSet
+```
+
+Load an index-set manifest, defaulting to `.greph-index-set.json` in the current working directory.
+
+#### `searchTextIndexedSet`
+
+```php
+public static function searchTextIndexedSet(
+    string $pattern,
+    string|array $paths,
+    ?TextSearchOptions $options = null,
+    ?string $manifestPath = null,
+    array $entryNames = [],
+): array
+```
+
+Resolve the selected `text` entries from an index-set manifest and run the equivalent of `searchTextIndexedMany`.
+
 ---
 
 ### Indexed AST search
@@ -178,8 +221,16 @@ $results = Greph::searchTextIndexed('function', 'src');
 #### `buildAstIndex` / `refreshAstIndex`
 
 ```php
-public static function buildAstIndex(string $rootPath = '.', ?string $indexPath = null): AstIndexBuildResult
-public static function refreshAstIndex(string $rootPath = '.', ?string $indexPath = null): AstIndexBuildResult
+public static function buildAstIndex(
+    string $rootPath = '.',
+    ?string $indexPath = null,
+    IndexLifecycle|IndexLifecycleProfile|string|null $lifecycle = null,
+): AstIndexBuildResult
+public static function refreshAstIndex(
+    string $rootPath = '.',
+    ?string $indexPath = null,
+    IndexLifecycle|IndexLifecycleProfile|string|null $lifecycle = null,
+): AstIndexBuildResult
 ```
 
 Build or incrementally refresh the AST fact index. Stores extracted facts at `$rootPath/.greph-ast-index` by default.
@@ -197,11 +248,46 @@ public static function searchAstIndexed(
 
 Use the fact index to narrow candidates before re-verifying matches against the source. Returns the same `list<AstMatch>` shape as `searchAst`.
 
+#### `searchAstIndexedMany`
+
+```php
+public static function searchAstIndexedMany(
+    string $pattern,
+    string|array $paths,
+    array $indexPaths,
+    ?AstSearchOptions $options = null,
+): array
+```
+
+Run warmed AST fact search across several AST index directories.
+
+#### `searchAstIndexedSet`
+
+```php
+public static function searchAstIndexedSet(
+    string $pattern,
+    string|array $paths,
+    ?AstSearchOptions $options = null,
+    ?string $manifestPath = null,
+    array $entryNames = [],
+): array
+```
+
+Resolve the selected `ast-index` entries from an index-set manifest and run the equivalent of `searchAstIndexedMany`.
+
 #### `buildAstCache` / `refreshAstCache`
 
 ```php
-public static function buildAstCache(string $rootPath = '.', ?string $indexPath = null): AstCacheBuildResult
-public static function refreshAstCache(string $rootPath = '.', ?string $indexPath = null): AstCacheBuildResult
+public static function buildAstCache(
+    string $rootPath = '.',
+    ?string $indexPath = null,
+    IndexLifecycle|IndexLifecycleProfile|string|null $lifecycle = null,
+): AstCacheBuildResult
+public static function refreshAstCache(
+    string $rootPath = '.',
+    ?string $indexPath = null,
+    IndexLifecycle|IndexLifecycleProfile|string|null $lifecycle = null,
+): AstCacheBuildResult
 ```
 
 Build or incrementally refresh the cached parsed-tree store. Stores serialized trees at `$rootPath/.greph-ast-cache` by default.
@@ -218,6 +304,33 @@ public static function searchAstCached(
 ```
 
 Run AST search against the cached parsed trees, skipping the parser entirely. Returns the same `list<AstMatch>` shape as `searchAst`.
+
+#### `searchAstCachedMany`
+
+```php
+public static function searchAstCachedMany(
+    string $pattern,
+    string|array $paths,
+    array $indexPaths,
+    ?AstSearchOptions $options = null,
+): array
+```
+
+Run warmed cached-AST search across several cache directories.
+
+#### `searchAstCachedSet`
+
+```php
+public static function searchAstCachedSet(
+    string $pattern,
+    string|array $paths,
+    ?AstSearchOptions $options = null,
+    ?string $manifestPath = null,
+    array $entryNames = [],
+): array
+```
+
+Resolve the selected `ast-cache` entries from an index-set manifest and run the equivalent of `searchAstCachedMany`.
 
 ---
 
@@ -238,6 +351,7 @@ new TextSearchOptions(
     bool $filesWithMatches = false,
     bool $filesWithoutMatches = false,
     bool $jsonOutput = false,
+    bool $tracePlan = false,
     int $jobs = 1,
     bool $respectIgnore = true,
     bool $includeHidden = false,
@@ -259,6 +373,8 @@ Validation:
 - `maxCount === null || maxCount >= 1`
 
 Use `walkOptions()` to derive the matching `WalkOptions` if you want to walk the file tree separately.
+
+`tracePlan` is consumed by warmed indexed searchers and `greph-index` CLI flows to emit planner diagnostics to `stderr`. Native `searchText` itself does not use it.
 
 ---
 
@@ -282,10 +398,11 @@ new AstSearchOptions(
     bool $dryRun = false,
     bool $interactive = false,
     bool $jsonOutput = false,
+    bool $tracePlan = false,
 )
 ```
 
-The default file type filter for AST mode is `php`. When `skipParseErrors` is `true` (default), files that fail to parse are silently skipped; flip it to `false` to surface parse errors as exceptions.
+The default file type filter for AST mode is `php`. When `skipParseErrors` is `true` (default), files that fail to parse are silently skipped; flip it to `false` to surface parse errors as exceptions. `tracePlan` is consumed by warmed AST searchers and `greph-index ast-index|ast-cache search` to emit candidate-pruning diagnostics.
 
 ---
 

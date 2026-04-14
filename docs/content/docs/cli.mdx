@@ -120,6 +120,11 @@ greph-index build [path] [--index-dir DIR]
 greph-index refresh [path] [--index-dir DIR]
 greph-index search [options] pattern [path...]
 
+greph-index set build [manifest] [--manifest FILE] [--mode MODE] [--index NAME...]
+greph-index set refresh [manifest] [--manifest FILE] [--mode MODE] [--index NAME...]
+greph-index set stats [manifest] [--manifest FILE] [--mode MODE] [--index NAME...] [--dry-refresh]
+greph-index set search [options] pattern [path...]
+
 greph-index ast-index build [path] [--index-dir DIR]
 greph-index ast-index refresh [path] [--index-dir DIR]
 greph-index ast-index search [options] pattern [path...]
@@ -135,6 +140,12 @@ greph-index ast-cache search [options] pattern [path...]
 # Build (full)
 ./vendor/bin/greph-index build .
 
+# Build with lifecycle policy
+./vendor/bin/greph-index build . \
+  --lifecycle opportunistic-refresh \
+  --auto-refresh-max-files 32 \
+  --auto-refresh-max-bytes 1048576
+
 # Refresh (incremental: added, updated, deleted, unchanged)
 ./vendor/bin/greph-index refresh .
 
@@ -142,9 +153,28 @@ greph-index ast-cache search [options] pattern [path...]
 ./vendor/bin/greph-index search -F "function" .
 ./vendor/bin/greph-index search -i -w "function" .
 ./vendor/bin/greph-index search -c "function" .
+./vendor/bin/greph-index search --trace-plan -F "function" .
+./vendor/bin/greph-index search -F "function" . \
+  --index-dir core/.greph-index \
+  --index-dir plugins/demo/.greph-index \
+  --show-index-origin
 ```
 
-The text index is a trigram + identifier postings store. It lives at `.greph-index/` in the indexed root by default.
+The text index is a warmed trigram + identifier postings store. It lives at `.greph-index/` in the indexed root by default.
+
+### Index sets
+
+Index sets turn repeated multi-index workflows into a named manifest:
+
+```bash
+./vendor/bin/greph-index set build
+./vendor/bin/greph-index set stats --dry-refresh
+./vendor/bin/greph-index set search --show-index-origin -F "function" .
+./vendor/bin/greph-index set search --mode ast-index 'new $CLASS()' .
+./vendor/bin/greph-index set search --mode ast-cache 'array($$$ITEMS)' .
+```
+
+The default manifest file is `.greph-index-set.json`. Each entry points at a root, a mode, and a lifecycle profile. `set build` and `set refresh` operate on the enabled entries; `set search` fans out across the selected entries and de-duplicates overlapping matches.
 
 ### AST fact index
 
@@ -152,6 +182,11 @@ The text index is a trigram + identifier postings store. It lives at `.greph-ind
 ./vendor/bin/greph-index ast-index build .
 ./vendor/bin/greph-index ast-index refresh .
 ./vendor/bin/greph-index ast-index search 'new $CLASS()' src
+./vendor/bin/greph-index ast-index search --trace-plan 'new $CLASS()' src
+./vendor/bin/greph-index ast-index search 'new $CLASS()' . \
+  --index-dir core/.greph-ast-index \
+  --index-dir plugins/demo/.greph-ast-index \
+  --show-index-origin
 ```
 
 The AST fact index extracts node-level facts (calls, instantiations, classes, methods) into a queryable store. Lookups are O(log n) on the fact key, then verified against the source. Stored at `.greph-ast-index/` by default.
@@ -162,6 +197,7 @@ The AST fact index extracts node-level facts (calls, instantiations, classes, me
 ./vendor/bin/greph-index ast-cache build .
 ./vendor/bin/greph-index ast-cache refresh .
 ./vendor/bin/greph-index ast-cache search 'array($$$ITEMS)' src
+./vendor/bin/greph-index ast-cache search --trace-plan 'array($$$ITEMS)' src
 ```
 
 The AST cache stores parsed trees on disk so searches skip the parser entirely. Stored at `.greph-ast-cache/` by default.
@@ -174,7 +210,16 @@ Additional flags:
 
 | Flag | Meaning |
 |---|---|
-| `--index-dir DIR` | Use a non-default index directory |
+| `--index-dir DIR` | Use a non-default warmed index directory. Repeatable for multi-index search and stats. |
+| `--lifecycle PROFILE` | Build policy: `static`, `manual-refresh`, `opportunistic-refresh`, `strict-stale-check` |
+| `--auto-refresh-max-files N` | Opportunistic refresh file threshold |
+| `--auto-refresh-max-bytes N` | Opportunistic refresh byte threshold |
+| `--manifest FILE` | Load an index-set manifest. Default: `.greph-index-set.json` |
+| `--mode MODE` | Restrict set operations to `text`, `ast-index`, or `ast-cache` |
+| `--index NAME` | Restrict set operations to a named manifest entry. Repeatable. |
+| `--show-index-origin` | Prefix warmed multi-index or set output with the matching index entry name |
+| `--trace-plan` | Emit warmed planner diagnostics to `stderr` |
+| `--dry-refresh` | In `stats`, report what a warmed search would do without mutating anything |
 | `--lang NAME` | AST language for `ast-index` / `ast-cache` searches. Default: `php` |
 | `-j N`, `--jobs N` | Workers for AST scans |
 | `-l`, `--files-with-matches` | List matching file paths only (AST mode) |
