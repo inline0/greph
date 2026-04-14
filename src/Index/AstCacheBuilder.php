@@ -7,15 +7,10 @@ namespace Greph\Index;
 use Greph\Ast\Parsers\ParserFactory;
 use Greph\Exceptions\ParseException;
 use Greph\Support\Filesystem;
-use Greph\Walker\FileTypeFilter;
 use Greph\Walker\FileWalker;
-use Greph\Walker\GitignoreFilter;
-use Greph\Walker\WalkOptions;
 
 final class AstCacheBuilder
 {
-    private const MAX_INDEXED_FILE_SIZE_BYTES = 10485760;
-
     private FileWalker $fileWalker;
 
     private AstFactExtractor $factExtractor;
@@ -24,36 +19,49 @@ final class AstCacheBuilder
 
     private ParserFactory $parserFactory;
 
+    private IndexFileScanner $scanner;
+
     public function __construct(
         ?FileWalker $fileWalker = null,
         ?AstFactExtractor $factExtractor = null,
         ?AstCacheStore $store = null,
         ?ParserFactory $parserFactory = null,
+        ?IndexFileScanner $scanner = null,
     ) {
         $this->fileWalker = $fileWalker ?? new FileWalker();
         $this->factExtractor = $factExtractor ?? new AstFactExtractor();
         $this->store = $store ?? new AstCacheStore();
         $this->parserFactory = $parserFactory ?? new ParserFactory();
+        $this->scanner = $scanner ?? new IndexFileScanner($this->fileWalker);
     }
 
-    public function build(string $rootPath, ?string $indexPath = null): AstCacheBuildResult
-    {
+    public function build(
+        string $rootPath,
+        ?string $indexPath = null,
+        IndexLifecycle|IndexLifecycleProfile|string|null $lifecycle = null,
+    ): AstCacheBuildResult {
         $start = hrtime(true);
         $rootPath = $this->resolveRootPath($rootPath);
         $indexPath = $this->resolveIndexPath($rootPath, $indexPath);
         Filesystem::remove($indexPath);
 
-        return $this->rebuild($rootPath, $indexPath, null, $start);
+        return $this->rebuild($rootPath, $indexPath, null, $start, IndexLifecycle::normalize($lifecycle));
     }
 
-    public function refresh(string $rootPath, ?string $indexPath = null): AstCacheBuildResult
-    {
+    public function refresh(
+        string $rootPath,
+        ?string $indexPath = null,
+        IndexLifecycle|IndexLifecycleProfile|string|null $lifecycle = null,
+    ): AstCacheBuildResult {
         $start = hrtime(true);
         $rootPath = $this->resolveRootPath($rootPath);
         $indexPath = $this->resolveIndexPath($rootPath, $indexPath);
         $existing = $this->store->exists($indexPath) ? $this->store->load($indexPath) : null;
+        $lifecycle = $lifecycle !== null
+            ? IndexLifecycle::normalize($lifecycle)
+            : ($existing !== null ? $existing->lifecycle : new IndexLifecycle());
 
-        return $this->rebuild($rootPath, $indexPath, $existing, $start);
+        return $this->rebuild($rootPath, $indexPath, $existing, $start, $lifecycle);
     }
 
     private function resolveRootPath(string $rootPath): string
@@ -80,8 +88,13 @@ final class AstCacheBuilder
         return Filesystem::normalizePath($rootPath . '/' . $indexPath);
     }
 
-    private function rebuild(string $rootPath, string $indexPath, ?AstCache $existing, int $start): AstCacheBuildResult
-    {
+    private function rebuild(
+        string $rootPath,
+        string $indexPath,
+        ?AstCache $existing,
+        int $start,
+        IndexLifecycle $lifecycle,
+    ): AstCacheBuildResult {
         $scannedFiles = $this->scanFiles($rootPath, $indexPath);
         $existingByPath = [];
 
@@ -163,6 +176,7 @@ final class AstCacheBuilder
             version: $this->store->version(),
             builtAt: time(),
             buildDurationMs: (hrtime(true) - $start) / 1_000_000,
+            lifecycle: $lifecycle,
             nextFileId: $nextFileId,
             files: $files,
             facts: $facts,
@@ -188,50 +202,14 @@ final class AstCacheBuilder
      */
     private function scanFiles(string $rootPath, string $indexPath): array
     {
-        $files = $this->fileWalker->walk(
-            $rootPath,
-            new WalkOptions(
-                respectIgnore: false,
-                includeHidden: true,
-                skipBinaryFiles: true,
-                includeGitDirectory: false,
-                fileTypeFilter: new FileTypeFilter(['php']),
-                maxFileSizeBytes: self::MAX_INDEXED_FILE_SIZE_BYTES,
-            ),
-        );
-        $ignoreFilter = new GitignoreFilter($rootPath);
-        $scannedFiles = [];
-        $order = 0;
+        $scannedFiles = $this->scanner->scanPhp($rootPath, $indexPath);
 
-        foreach ($files as $file) {
-            if ($this->isInsideIndexPath($file, $indexPath)) {
-                continue;
-            }
-
-            $relativePath = Filesystem::relativePath($rootPath, $file);
-            $size = filesize($file);
-            $mtime = filemtime($file);
-
-            $scannedFiles[] = [
-                'absolutePath' => $file,
-                'relativePath' => $relativePath,
-                'size' => is_int($size) ? $size : 0,
-                'mtime' => is_int($mtime) ? $mtime : 0,
-                'hidden' => $this->isHiddenPath($relativePath),
-                'ignored' => $ignoreFilter->shouldIgnore($file, false),
-                'order' => $order++,
-            ];
+        foreach ($scannedFiles as &$scan) {
+            $scan['hidden'] = $this->isHiddenPath($scan['relativePath']);
         }
+        unset($scan);
 
         return $scannedFiles;
-    }
-
-    private function isInsideIndexPath(string $path, string $indexPath): bool
-    {
-        $path = Filesystem::normalizePath($path);
-        $indexPath = Filesystem::normalizePath($indexPath);
-
-        return $path === $indexPath || str_starts_with($path, $indexPath . '/');
     }
 
     /**

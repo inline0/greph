@@ -71,6 +71,7 @@ vendor/bin/greph-index ast-cache search 'array($$$ITEMS)' src
 ```php
 use Greph\Greph;
 use Greph\Ast\AstSearchOptions;
+use Greph\Index\IndexLifecycleProfile;
 use Greph\Text\TextSearchOptions;
 
 // Text search
@@ -95,16 +96,28 @@ $rewrites = Greph::rewriteAst(
 );
 
 // Indexed text
-Greph::buildTextIndex('.');
+Greph::buildTextIndex('.', lifecycle: IndexLifecycleProfile::OpportunisticRefresh);
 $results = Greph::searchTextIndexed('function', 'src');
+$results = Greph::searchTextIndexedMany('function', '.', [
+    'core/.greph-index',
+    'plugins/demo/.greph-index',
+]);
 
 // Indexed AST (fact index)
 Greph::buildAstIndex('.');
 $matches = Greph::searchAstIndexed('new $CLASS()', 'src');
+$matches = Greph::searchAstIndexedMany('new $CLASS()', '.', [
+    'core/.greph-ast-index',
+    'plugins/demo/.greph-ast-index',
+]);
 
 // Cached AST (parsed-tree cache)
 Greph::buildAstCache('.');
 $matches = Greph::searchAstCached('array($$$ITEMS)', 'src');
+$matches = Greph::searchAstCachedMany('array($$$ITEMS)', '.', [
+    'core/.greph-ast-cache',
+    'plugins/demo/.greph-ast-cache',
+]);
 ```
 
 ## CLI
@@ -122,9 +135,12 @@ Greph exposes four executables:
 ./vendor/bin/greph -p 'array($$$ITEMS)' -r '[$$$ITEMS]' src
 
 ./vendor/bin/greph-index build .
+./vendor/bin/greph-index build . --lifecycle opportunistic-refresh
 ./vendor/bin/greph-index search -F "function" .
+./vendor/bin/greph-index search -F "function" . --index-dir core/.greph-index --index-dir plugins/demo/.greph-index
 ./vendor/bin/greph-index ast-index build .
 ./vendor/bin/greph-index ast-index search 'new $CLASS()' src
+./vendor/bin/greph-index ast-index search 'new $CLASS()' . --index-dir core/.greph-ast-index --index-dir plugins/demo/.greph-ast-index
 ./vendor/bin/greph-index ast-cache build .
 ./vendor/bin/greph-index ast-cache search 'array($$$ITEMS)' src
 
@@ -136,6 +152,42 @@ Greph exposes four executables:
 ```
 
 The compatibility wrappers are intentionally probe-driven rather than hand-waved. See [FEATURE_MATRIX.md](FEATURE_MATRIX.md) for the current supported surface and the raw evidence in [FEATURE_MATRIX.json](FEATURE_MATRIX.json).
+
+## Warm Index Lifecycle
+
+Greph stays daemon-free. Warm indexes live on disk and are reused across runs.
+
+Lifecycle profiles:
+
+- `static`: never freshness-check or mutate automatically
+- `manual-refresh`: inspect freshness in `stats`, never auto-refresh during search
+- `opportunistic-refresh`: refresh on search only when the changed set is cheap
+- `strict-stale-check`: refuse stale indexed searches
+
+Examples:
+
+```bash
+./vendor/bin/greph-index build . --lifecycle static
+./vendor/bin/greph-index build . --lifecycle opportunistic-refresh --auto-refresh-max-files 32 --auto-refresh-max-bytes 1048576
+./vendor/bin/greph-index ast-cache build . --lifecycle strict-stale-check
+./vendor/bin/greph-index stats .
+```
+
+`greph-index stats` reports lifecycle, stale status, and the current change summary for text, AST index, and AST cache stores.
+
+## Multi-Index Search
+
+Greph can search multiple warmed indexes in one request. This is intended for real layouts like WordPress core + plugin + theme, monorepos, or a static baseline plus a mutable overlay.
+
+```bash
+./vendor/bin/greph-index search -F "apply_filters" . \
+  --index-dir wordpress/.greph-index \
+  --index-dir wp-content/plugins/my-plugin/.greph-index
+
+./vendor/bin/greph-index ast-index search 'new $CLASS()' . \
+  --index-dir wordpress/.greph-ast-index \
+  --index-dir wp-content/plugins/my-plugin/.greph-ast-index
+```
 
 ## Documentation
 

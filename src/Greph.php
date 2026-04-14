@@ -13,6 +13,8 @@ use Greph\Index\AstCacheBuilder;
 use Greph\Index\AstIndexBuildResult;
 use Greph\Index\AstIndexBuilder;
 use Greph\Index\CachedAstSearcher;
+use Greph\Index\IndexLifecycle;
+use Greph\Index\IndexLifecycleProfile;
 use Greph\Index\IndexBuildResult;
 use Greph\Index\IndexedAstSearcher;
 use Greph\Index\IndexedTextSearcher;
@@ -73,34 +75,52 @@ final class Greph
         return $searcher->sortResults($flattened, $files->paths());
     }
 
-    public static function buildTextIndex(string $rootPath = '.', ?string $indexPath = null): IndexBuildResult
-    {
-        return (new TextIndexBuilder())->build($rootPath, $indexPath);
+    public static function buildTextIndex(
+        string $rootPath = '.',
+        ?string $indexPath = null,
+        IndexLifecycle|IndexLifecycleProfile|string|null $lifecycle = null,
+    ): IndexBuildResult {
+        return (new TextIndexBuilder())->build($rootPath, $indexPath, $lifecycle);
     }
 
-    public static function refreshTextIndex(string $rootPath = '.', ?string $indexPath = null): IndexBuildResult
-    {
-        return (new TextIndexBuilder())->refresh($rootPath, $indexPath);
+    public static function refreshTextIndex(
+        string $rootPath = '.',
+        ?string $indexPath = null,
+        IndexLifecycle|IndexLifecycleProfile|string|null $lifecycle = null,
+    ): IndexBuildResult {
+        return (new TextIndexBuilder())->refresh($rootPath, $indexPath, $lifecycle);
     }
 
-    public static function buildAstIndex(string $rootPath = '.', ?string $indexPath = null): AstIndexBuildResult
-    {
-        return (new AstIndexBuilder())->build($rootPath, $indexPath);
+    public static function buildAstIndex(
+        string $rootPath = '.',
+        ?string $indexPath = null,
+        IndexLifecycle|IndexLifecycleProfile|string|null $lifecycle = null,
+    ): AstIndexBuildResult {
+        return (new AstIndexBuilder())->build($rootPath, $indexPath, $lifecycle);
     }
 
-    public static function refreshAstIndex(string $rootPath = '.', ?string $indexPath = null): AstIndexBuildResult
-    {
-        return (new AstIndexBuilder())->refresh($rootPath, $indexPath);
+    public static function refreshAstIndex(
+        string $rootPath = '.',
+        ?string $indexPath = null,
+        IndexLifecycle|IndexLifecycleProfile|string|null $lifecycle = null,
+    ): AstIndexBuildResult {
+        return (new AstIndexBuilder())->refresh($rootPath, $indexPath, $lifecycle);
     }
 
-    public static function buildAstCache(string $rootPath = '.', ?string $indexPath = null): AstCacheBuildResult
-    {
-        return (new AstCacheBuilder())->build($rootPath, $indexPath);
+    public static function buildAstCache(
+        string $rootPath = '.',
+        ?string $indexPath = null,
+        IndexLifecycle|IndexLifecycleProfile|string|null $lifecycle = null,
+    ): AstCacheBuildResult {
+        return (new AstCacheBuilder())->build($rootPath, $indexPath, $lifecycle);
     }
 
-    public static function refreshAstCache(string $rootPath = '.', ?string $indexPath = null): AstCacheBuildResult
-    {
-        return (new AstCacheBuilder())->refresh($rootPath, $indexPath);
+    public static function refreshAstCache(
+        string $rootPath = '.',
+        ?string $indexPath = null,
+        IndexLifecycle|IndexLifecycleProfile|string|null $lifecycle = null,
+    ): AstCacheBuildResult {
+        return (new AstCacheBuilder())->refresh($rootPath, $indexPath, $lifecycle);
     }
 
     /**
@@ -116,6 +136,22 @@ final class Greph
         $options ??= new TextSearchOptions();
 
         return (new IndexedTextSearcher())->search($pattern, $paths, $options, $indexPath);
+    }
+
+    /**
+     * @param string|list<string> $paths
+     * @param list<string> $indexPaths
+     * @return list<TextFileResult>
+     */
+    public static function searchTextIndexedMany(
+        string $pattern,
+        string|array $paths,
+        array $indexPaths,
+        ?TextSearchOptions $options = null,
+    ): array {
+        $options ??= new TextSearchOptions();
+
+        return (new IndexedTextSearcher())->searchMany($pattern, $paths, $options, $indexPaths);
     }
 
     /**
@@ -172,6 +208,22 @@ final class Greph
 
     /**
      * @param string|list<string> $paths
+     * @param list<string> $indexPaths
+     * @return list<AstMatch>
+     */
+    public static function searchAstIndexedMany(
+        string $pattern,
+        string|array $paths,
+        array $indexPaths,
+        ?AstSearchOptions $options = null,
+    ): array {
+        $options ??= new AstSearchOptions();
+
+        return (new IndexedAstSearcher())->searchMany($pattern, $paths, $options, $indexPaths);
+    }
+
+    /**
+     * @param string|list<string> $paths
      * @return list<AstMatch>
      */
     public static function searchAstCached(
@@ -183,6 +235,22 @@ final class Greph
         $options ??= new AstSearchOptions();
 
         return (new CachedAstSearcher())->search($pattern, $paths, $options, $indexPath);
+    }
+
+    /**
+     * @param string|list<string> $paths
+     * @param list<string> $indexPaths
+     * @return list<AstMatch>
+     */
+    public static function searchAstCachedMany(
+        string $pattern,
+        string|array $paths,
+        array $indexPaths,
+        ?AstSearchOptions $options = null,
+    ): array {
+        $options ??= new AstSearchOptions();
+
+        return (new CachedAstSearcher())->searchMany($pattern, $paths, $options, $indexPaths);
     }
 
     /**

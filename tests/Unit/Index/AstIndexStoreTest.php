@@ -7,6 +7,7 @@ namespace Greph\Tests\Unit\Index;
 use Greph\Index\AstIndex;
 use Greph\Index\AstIndexBuilder;
 use Greph\Index\AstIndexStore;
+use Greph\Index\IndexLifecycle;
 use Greph\Tests\Support\Workspace;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
@@ -115,6 +116,7 @@ final class AstIndexStoreTest extends TestCase
             version: $store->version(),
             builtAt: 10,
             buildDurationMs: 9.5,
+            lifecycle: new IndexLifecycle(),
             nextFileId: 2,
             files: [
                 ['id' => 1, 'p' => 'src/App.php', 's' => 10, 'm' => 1, 'h' => false, 'g' => false, 'o' => 0],

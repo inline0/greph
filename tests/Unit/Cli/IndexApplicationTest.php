@@ -154,10 +154,10 @@ PHP,
         $this->assertSame(0, $searchHelpExit);
         $this->assertSame(0, $buildExit);
         $this->assertSame(0, $searchExit);
-        $this->assertStringContainsString('greph-index build [path] [--index-dir DIR]', $stdout);
-        $this->assertStringContainsString('greph-index stats [path] [--index-dir DIR]', $stdout);
-        $this->assertStringContainsString('greph-index ast-index build [path] [--index-dir DIR]', $stdout);
-        $this->assertStringContainsString('greph-index ast-index stats [path] [--index-dir DIR]', $stdout);
+        $this->assertStringContainsString('greph-index build [path] [--index-dir DIR] [--lifecycle PROFILE]', $stdout);
+        $this->assertStringContainsString('greph-index stats [path] [--index-dir DIR...]', $stdout);
+        $this->assertStringContainsString('greph-index ast-index build [path] [--index-dir DIR] [--lifecycle PROFILE]', $stdout);
+        $this->assertStringContainsString('greph-index ast-index stats [path] [--index-dir DIR...]', $stdout);
         $this->assertStringContainsString('greph-index ast-cache search [options] pattern [path...]', $stdout);
         $this->assertStringContainsString('.custom-index', $stdout);
     }
@@ -241,6 +241,71 @@ PHP,
     }
 
     #[Test]
+    public function itSupportsLifecycleFlagsMultiIndexSearchAndStaleStats(): void
+    {
+        $multiWorkspace = Workspace::createDirectory('index-application-many');
+        $originalWorkingDirectory = getcwd() ?: '.';
+        chdir($multiWorkspace);
+
+        try {
+            Workspace::writeFile($multiWorkspace, 'core/Core.php', "<?php\nfunction coreThing(): void {}\n");
+            Workspace::writeFile($multiWorkspace, 'plugin/Plugin.php', "<?php\nfunction pluginThing(): void {}\n");
+            $harness = $this->newApplication();
+            $application = $harness['application'];
+
+            $buildExit = $application->run([
+                'greph-index',
+                'build',
+                'core',
+                '--lifecycle',
+                'opportunistic-refresh',
+                '--auto-refresh-max-files',
+                '2',
+                '--auto-refresh-max-bytes',
+                '4096',
+            ]);
+            $pluginBuildExit = $application->run([
+                'greph-index',
+                'build',
+                'plugin',
+                '--lifecycle',
+                'static',
+            ]);
+
+            sleep(1);
+            Workspace::writeFile($multiWorkspace, 'core/New.php', "<?php\nfunction refreshedThing(): void {}\n");
+
+            $statsExit = $application->run(['greph-index', 'stats', 'core']);
+            $searchExit = $application->run([
+                'greph-index',
+                'search',
+                '--index-dir',
+                $multiWorkspace . '/core/.greph-index',
+                '--index-dir',
+                $multiWorkspace . '/plugin/.greph-index',
+                '-F',
+                'function',
+                $multiWorkspace,
+            ]);
+
+            $stdout = $this->readStream($harness['stdout']);
+
+            $this->assertSame(0, $buildExit);
+            $this->assertSame(0, $pluginBuildExit);
+            $this->assertSame(0, $statsExit);
+            $this->assertSame(0, $searchExit);
+            $this->assertStringContainsString('Lifecycle: opportunistic-refresh', $stdout);
+            $this->assertStringContainsString('Stale: yes', $stdout);
+            $this->assertStringContainsString('Core.php:2:function coreThing(): void {}', $stdout);
+            $this->assertStringContainsString('Plugin.php:2:function pluginThing(): void {}', $stdout);
+            $this->assertStringContainsString('New.php:2:function refreshedThing(): void {}', $stdout);
+        } finally {
+            chdir($originalWorkingDirectory);
+            Workspace::remove($multiWorkspace);
+        }
+    }
+
+    #[Test]
     public function itRejectsInvalidIndexedCliArguments(): void
     {
         $buildMissingValue = $this->newApplication()['application'];
@@ -309,6 +374,11 @@ PHP,
             'parseAstSearchArguments',
             ['--json', '--hidden', '--strict-parse', '-l', '--glob', '*.php', '--type', 'php', '--type-not', 'txt', '--index-dir', '.ast', '--lang', 'php', '-j', '4', '--fallback', 'scan', 'new $CLASS()', 'src/Ast.php'],
         );
+        $parsedBuild = $this->invokeMethod(
+            $application,
+            'parseBuildArguments',
+            ['--index-dir', '.index', '--lifecycle', 'static', '--auto-refresh-max-files', '9', '--auto-refresh-max-bytes', '2048', '.'],
+        );
         $displayNames = $this->invokeMethod(
             $application,
             'shouldDisplayFileNames',
@@ -332,12 +402,16 @@ PHP,
         $this->assertSame(['*.php'], $parsedAst['glob']);
         $this->assertSame(['php'], $parsedAst['type']);
         $this->assertSame(['txt'], $parsedAst['typeNot']);
-        $this->assertSame('.ast', $parsedAst['indexDir']);
+        $this->assertSame(['.ast'], $parsedAst['indexDirs']);
         $this->assertSame('php', $parsedAst['lang']);
         $this->assertSame(4, $parsedAst['jobs']);
         $this->assertSame('scan', $parsedAst['fallback']);
         $this->assertSame('new $CLASS()', $parsedAst['pattern']);
         $this->assertSame(['src/Ast.php'], $parsedAst['paths']);
+        $this->assertSame(['.index'], $parsedBuild['indexDirs']);
+        $this->assertSame('static', $parsedBuild['lifecycle']);
+        $this->assertSame(9, $parsedBuild['maxChangedFiles']);
+        $this->assertSame(2048, $parsedBuild['maxChangedBytes']);
         $this->assertTrue($displayNames);
     }
 

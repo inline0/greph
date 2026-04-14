@@ -111,6 +111,7 @@ final class AstCacheStore
             version: $metadata['version'],
             builtAt: $metadata['builtAt'],
             buildDurationMs: (float) ($metadata['buildDurationMs'] ?? 0.0),
+            lifecycle: IndexLifecycle::fromMetadata($metadata),
             nextFileId: $metadata['nextFileId'],
             files: $files,
             facts: $facts,
@@ -128,6 +129,7 @@ final class AstCacheStore
             'builtAt' => $cache->builtAt,
             'buildDurationMs' => $cache->buildDurationMs,
             'nextFileId' => $cache->nextFileId,
+            ...$cache->lifecycle->toMetadata(),
         ];
 
         $this->writeAtomic($this->metadataPath($cache->indexPath), $metadata);

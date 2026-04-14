@@ -106,6 +106,7 @@ final class AstIndexStore
             version: $metadata['version'],
             builtAt: $metadata['builtAt'],
             buildDurationMs: (float) ($metadata['buildDurationMs'] ?? 0.0),
+            lifecycle: IndexLifecycle::fromMetadata($metadata),
             nextFileId: $metadata['nextFileId'],
             files: $files,
             facts: $facts,
@@ -122,6 +123,7 @@ final class AstIndexStore
             'builtAt' => $index->builtAt,
             'buildDurationMs' => $index->buildDurationMs,
             'nextFileId' => $index->nextFileId,
+            ...$index->lifecycle->toMetadata(),
         ];
 
         $this->writeAtomic($this->metadataPath($index->indexPath), $metadata);

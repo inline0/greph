@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Greph\Index;
 
+use Greph\Greph;
 use Greph\Support\Filesystem;
 use Greph\Text\LiteralExtractor;
 use Greph\Text\TextFileResult;
@@ -23,18 +24,26 @@ final class IndexedTextSearcher
 
     private TextQueryCacheStore $queryCacheStore;
 
+    private TextIndexBuilder $builder;
+
+    private IndexFreshnessInspector $freshnessInspector;
+
     public function __construct(
         ?TextSearcher $textSearcher = null,
         ?LiteralExtractor $literalExtractor = null,
         ?TrigramExtractor $trigramExtractor = null,
         ?TextIndexStore $store = null,
         ?TextQueryCacheStore $queryCacheStore = null,
+        ?TextIndexBuilder $builder = null,
+        ?IndexFreshnessInspector $freshnessInspector = null,
     ) {
         $this->textSearcher = $textSearcher ?? new TextSearcher();
         $this->literalExtractor = $literalExtractor ?? new LiteralExtractor();
         $this->trigramExtractor = $trigramExtractor ?? new TrigramExtractor();
         $this->store = $store ?? new TextIndexStore();
         $this->queryCacheStore = $queryCacheStore ?? new TextQueryCacheStore();
+        $this->builder = $builder ?? new TextIndexBuilder(store: $this->store);
+        $this->freshnessInspector = $freshnessInspector ?? new IndexFreshnessInspector();
     }
 
     /**
@@ -45,13 +54,89 @@ final class IndexedTextSearcher
     {
         $paths = is_array($paths) ? $paths : [$paths];
         $resolvedPaths = $this->resolvePaths($paths);
-        $indexPath = $this->resolveIndexPath($resolvedPaths, $indexPath);
+        $index = $this->loadManagedIndex($resolvedPaths, $indexPath);
 
-        if ($indexPath === null) {
-            throw new \RuntimeException('No index found for the requested paths. Build one with greph-index build first.');
+        return $this->searchInIndex($pattern, $resolvedPaths, $options, $index);
+    }
+
+    /**
+     * @param string|list<string> $paths
+     * @param list<string> $indexPaths
+     * @return list<TextFileResult>
+     */
+    public function searchMany(string $pattern, string|array $paths, TextSearchOptions $options, array $indexPaths): array
+    {
+        if ($indexPaths === []) {
+            throw new \RuntimeException('At least one index path is required for multi-index search.');
         }
 
-        $index = $this->store->load($indexPath);
+        $paths = is_array($paths) ? $paths : [$paths];
+        $resolvedPaths = $this->resolvePaths($paths);
+        $indexes = [];
+
+        foreach ($indexPaths as $indexPath) {
+            $indexes[] = $this->loadManagedIndex($resolvedPaths, $indexPath);
+        }
+
+        $resultsByPath = [];
+        $order = [];
+
+        foreach ($indexes as $index) {
+            $applicablePaths = array_values(array_filter(
+                $resolvedPaths,
+                fn (string $path): bool => $this->pathIntersectsRoot($path, $index->rootPath),
+            ));
+
+            if ($applicablePaths === []) {
+                continue;
+            }
+
+            foreach ($this->searchInIndex($pattern, $applicablePaths, $options, $index) as $result) {
+                if (isset($resultsByPath[$result->file])) {
+                    continue;
+                }
+
+                $resultsByPath[$result->file] = $result;
+                $order[] = $result->file;
+            }
+        }
+
+        $fallbackPaths = array_values(array_filter(
+            $resolvedPaths,
+            function (string $path) use ($indexes): bool {
+                foreach ($indexes as $index) {
+                    if ($this->pathIntersectsRoot($path, $index->rootPath)) {
+                        return false;
+                    }
+                }
+
+                return true;
+            },
+        ));
+
+        if ($fallbackPaths !== []) {
+            foreach (Greph::searchText($pattern, $fallbackPaths, $options) as $result) {
+                if (isset($resultsByPath[$result->file])) {
+                    continue;
+                }
+
+                $resultsByPath[$result->file] = $result;
+                $order[] = $result->file;
+            }
+        }
+
+        return array_values(array_map(
+            static fn (string $path): TextFileResult => $resultsByPath[$path],
+            $order,
+        ));
+    }
+
+    /**
+     * @param list<string> $resolvedPaths
+     * @return list<TextFileResult>
+     */
+    private function searchInIndex(string $pattern, array $resolvedPaths, TextSearchOptions $options, TextIndex $index): array
+    {
         $selectedPaths = [];
         $selectedPathSet = [];
         $fallbackPaths = [];
@@ -156,6 +241,47 @@ final class IndexedTextSearcher
         }
 
         return $results;
+    }
+
+    /**
+     * @param list<string> $resolvedPaths
+     */
+    private function loadManagedIndex(array $resolvedPaths, ?string $indexPath): TextIndex
+    {
+        $indexPath = $this->resolveIndexPath($resolvedPaths, $indexPath);
+
+        if ($indexPath === null) {
+            throw new \RuntimeException('No index found for the requested paths. Build one with greph-index build first.');
+        }
+
+        $index = $this->store->load($indexPath);
+        $lifecycle = $index->lifecycle;
+
+        if (!$lifecycle->shouldInspectFreshness()) {
+            return $index;
+        }
+
+        $freshness = $this->freshnessInspector->inspectText($index);
+
+        if (!$freshness->stale) {
+            return $index;
+        }
+
+        if ($lifecycle->shouldRejectStale()) {
+            throw new \RuntimeException(sprintf(
+                'Text index is stale: %s [%s]',
+                $this->displayPath($index->indexPath),
+                $freshness->summary(),
+            ));
+        }
+
+        if ($lifecycle->shouldAutoRefresh() && $freshness->isCheapEnough($lifecycle)) {
+            $this->builder->refresh($index->rootPath, $index->indexPath, $lifecycle);
+
+            return $this->store->load($index->indexPath);
+        }
+
+        return $index;
     }
 
     /**
@@ -660,6 +786,10 @@ final class IndexedTextSearcher
 
         foreach ($resolvedPaths as $path) {
             if (!$this->isWithinRoot($path, $rootPath)) {
+                if (is_dir($path) && $this->pathContainsRoot($path, $rootPath)) {
+                    $selection['directories'][] = $rootPath;
+                }
+
                 continue;
             }
 
@@ -695,6 +825,22 @@ final class IndexedTextSearcher
     private function isWithinRoot(string $path, string $rootPath): bool
     {
         return $path === $rootPath || str_starts_with($path, $rootPath . '/');
+    }
+
+    private function pathContainsRoot(string $path, string $rootPath): bool
+    {
+        return $path === $rootPath || str_starts_with($rootPath, $path . '/');
+    }
+
+    private function pathIntersectsRoot(string $path, string $rootPath): bool
+    {
+        return $this->isWithinRoot($path, $rootPath)
+            || (is_dir($path) && $this->pathContainsRoot($path, $rootPath));
+    }
+
+    private function displayPath(string $path): string
+    {
+        return Filesystem::relativePath(getcwd() ?: '.', $path);
     }
 
     /**

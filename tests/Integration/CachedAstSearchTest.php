@@ -6,6 +6,7 @@ namespace Greph\Tests\Integration;
 
 use Greph\Ast\AstSearchOptions;
 use Greph\Greph;
+use Greph\Index\IndexLifecycleProfile;
 use Greph\Tests\Support\Workspace;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
@@ -132,5 +133,56 @@ PHP,
         $this->assertNotSame([], $refreshedCacheFiles);
         $this->assertCount(1, $refreshedMatches);
         $this->assertSame($this->workspace . '/src/Newer.php', $refreshedMatches[0]->file);
+    }
+
+    #[Test]
+    public function itSupportsCachedAstLifecyclesAndMultiIndexSearch(): void
+    {
+        $refreshWorkspace = Workspace::createDirectory('cached-ast-lifecycle');
+        Workspace::writeFile($refreshWorkspace, 'src/App.php', "<?php\n\$service = new Service();\n");
+        Greph::buildAstCache($refreshWorkspace, lifecycle: IndexLifecycleProfile::OpportunisticRefresh);
+
+        sleep(1);
+        Workspace::writeFile($refreshWorkspace, 'src/New.php', "<?php\n\$fresh = new FreshThing();\n");
+
+        $refreshedMatches = Greph::searchAstCached('new $CLASS()', $refreshWorkspace);
+        $this->assertContains('New.php', array_map(static fn ($match): string => basename($match->file), $refreshedMatches));
+
+        $strictWorkspace = Workspace::createDirectory('cached-ast-strict');
+        Workspace::writeFile($strictWorkspace, 'src/App.php', "<?php\n\$service = new Service();\n");
+        Greph::buildAstCache($strictWorkspace, lifecycle: IndexLifecycleProfile::StrictStaleCheck);
+
+        sleep(1);
+        Workspace::writeFile($strictWorkspace, 'src/New.php', "<?php\n\$strict = new StrictThing();\n");
+
+        try {
+            Greph::searchAstCached('new $CLASS()', $strictWorkspace);
+            self::fail('Expected strict stale AST cache to reject search.');
+        } catch (\RuntimeException $exception) {
+            $this->assertStringContainsString('AST cache is stale', $exception->getMessage());
+        }
+
+        $multiWorkspace = Workspace::createDirectory('cached-ast-many');
+        Workspace::writeFile($multiWorkspace, 'core/Core.php', "<?php\n\$core = new CoreThing();\n");
+        Workspace::writeFile($multiWorkspace, 'plugins/Demo/Plugin.php', "<?php\n\$plugin = new PluginThing();\n");
+        Greph::buildAstCache($multiWorkspace . '/core');
+        Greph::buildAstCache($multiWorkspace . '/plugins/Demo');
+
+        $manyMatches = Greph::searchAstCachedMany(
+            'new $CLASS()',
+            $multiWorkspace,
+            [
+                $multiWorkspace . '/core/.greph-ast-cache',
+                $multiWorkspace . '/plugins/Demo/.greph-ast-cache',
+            ],
+        );
+
+        $matched = array_map(static fn ($match): string => basename($match->file), $manyMatches);
+        $this->assertContains('Core.php', $matched);
+        $this->assertContains('Plugin.php', $matched);
+
+        Workspace::remove($refreshWorkspace);
+        Workspace::remove($strictWorkspace);
+        Workspace::remove($multiWorkspace);
     }
 }

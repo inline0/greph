@@ -7,6 +7,7 @@ namespace Greph\Tests\Unit\Index;
 use Greph\Index\AstCache;
 use Greph\Index\AstCacheBuilder;
 use Greph\Index\AstCacheStore;
+use Greph\Index\IndexLifecycle;
 use Greph\Tests\Support\Workspace;
 use PhpParser\Node\Expr\ConstFetch;
 use PhpParser\Node\Stmt\Expression;
@@ -151,6 +152,7 @@ final class AstCacheStoreTest extends TestCase
             version: $store->version(),
             builtAt: 10,
             buildDurationMs: 8.5,
+            lifecycle: new IndexLifecycle(),
             nextFileId: 2,
             files: [
                 ['id' => 1, 'p' => 'src/App.php', 's' => 10, 'm' => 1, 'h' => false, 'g' => false, 'o' => 0],

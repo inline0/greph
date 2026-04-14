@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Greph\Tests\Integration;
 
 use Greph\Greph;
+use Greph\Index\IndexLifecycleProfile;
 use Greph\Tests\Support\Workspace;
 use Greph\Text\TextSearchOptions;
 use PHPUnit\Framework\Attributes\Test;
@@ -254,5 +255,73 @@ final class IndexedTextSearchTest extends TestCase
             array_map(static fn ($result): int => $result->matchCount(), $firstResults),
             array_map(static fn ($result): int => $result->matchCount(), $secondResults),
         );
+    }
+
+    #[Test]
+    public function itSupportsOpportunisticRefreshStrictStaleChecksAndMultiIndexSearch(): void
+    {
+        $refreshWorkspace = Workspace::createDirectory('indexed-text-lifecycle');
+        Workspace::writeFile($refreshWorkspace, 'src/App.php', "<?php\nfunction alpha(): void {}\n");
+        Greph::buildTextIndex($refreshWorkspace, lifecycle: IndexLifecycleProfile::OpportunisticRefresh);
+
+        sleep(1);
+        Workspace::writeFile($refreshWorkspace, 'src/New.php', "<?php\nfunction beta(): void {}\n");
+
+        $refreshedResults = Greph::searchTextIndexed(
+            'beta',
+            $refreshWorkspace,
+            new TextSearchOptions(fixedString: true),
+        );
+
+        $this->assertContains('New.php', array_map(
+            static fn ($result): string => basename($result->file),
+            array_filter($refreshedResults, static fn ($result): bool => $result->hasMatches()),
+        ));
+
+        $strictWorkspace = Workspace::createDirectory('indexed-text-strict');
+        Workspace::writeFile($strictWorkspace, 'src/App.php', "<?php\nfunction strictThing(): void {}\n");
+        Greph::buildTextIndex($strictWorkspace, lifecycle: IndexLifecycleProfile::StrictStaleCheck);
+
+        sleep(1);
+        Workspace::writeFile($strictWorkspace, 'src/New.php', "<?php\nfunction strictFresh(): void {}\n");
+
+        try {
+            Greph::searchTextIndexed(
+                'strictFresh',
+                $strictWorkspace,
+                new TextSearchOptions(fixedString: true),
+            );
+            self::fail('Expected strict stale text index to reject search.');
+        } catch (\RuntimeException $exception) {
+            $this->assertStringContainsString('Text index is stale', $exception->getMessage());
+        }
+
+        $multiWorkspace = Workspace::createDirectory('indexed-text-many');
+        Workspace::writeFile($multiWorkspace, 'core/Core.php', "<?php\nfunction coreThing(): void {}\n");
+        Workspace::writeFile($multiWorkspace, 'plugins/Demo/Plugin.php', "<?php\nfunction pluginThing(): void {}\n");
+        Greph::buildTextIndex($multiWorkspace . '/core');
+        Greph::buildTextIndex($multiWorkspace . '/plugins/Demo');
+
+        $manyResults = Greph::searchTextIndexedMany(
+            'function',
+            $multiWorkspace,
+            [
+                $multiWorkspace . '/core/.greph-index',
+                $multiWorkspace . '/plugins/Demo/.greph-index',
+            ],
+            new TextSearchOptions(fixedString: true),
+        );
+
+        $matched = array_map(
+            static fn ($result): string => basename($result->file),
+            array_filter($manyResults, static fn ($result): bool => $result->hasMatches()),
+        );
+
+        $this->assertContains('Core.php', $matched);
+        $this->assertContains('Plugin.php', $matched);
+
+        Workspace::remove($refreshWorkspace);
+        Workspace::remove($strictWorkspace);
+        Workspace::remove($multiWorkspace);
     }
 }

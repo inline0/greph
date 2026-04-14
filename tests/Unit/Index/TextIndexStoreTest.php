@@ -6,6 +6,7 @@ namespace Greph\Tests\Unit\Index;
 
 use Greph\Index\TextIndex;
 use Greph\Index\TextIndexBuilder;
+use Greph\Index\IndexLifecycle;
 use Greph\Index\TextIndexStore;
 use Greph\Tests\Support\Workspace;
 use PHPUnit\Framework\Attributes\Test;
@@ -140,6 +141,7 @@ final class TextIndexStoreTest extends TestCase
             version: $store->version(),
             builtAt: 10,
             buildDurationMs: 12.5,
+            lifecycle: new IndexLifecycle(),
             nextFileId: 2,
             files: [
                 ['id' => 1, 'p' => 'src/App.php', 's' => 10, 'm' => 1, 'h' => false, 'g' => false, 'o' => 0],

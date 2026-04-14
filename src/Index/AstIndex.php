@@ -26,6 +26,7 @@ final readonly class AstIndex
         public int $version,
         public int $builtAt,
         public float $buildDurationMs,
+        public IndexLifecycle $lifecycle,
         public int $nextFileId,
         public array $files,
         public array $facts,

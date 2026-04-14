@@ -8,6 +8,9 @@ use Greph\Ast\AstMatch;
 use Greph\Ast\AstSearchOptions;
 use Greph\Index\AstCacheStore;
 use Greph\Index\AstIndexStore;
+use Greph\Index\IndexFreshnessInspector;
+use Greph\Index\IndexLifecycle;
+use Greph\Index\IndexLifecycleProfile;
 use Greph\Index\TextIndexStore;
 use Greph\Output\GrepFormatter;
 use Greph\Greph;
@@ -101,13 +104,29 @@ final class IndexApplication
     }
 
     /**
-     * @param array{root: string, indexDir: ?string} $arguments
+     * @param array{
+     *   root: string,
+     *   indexDirs: list<string>,
+     *   lifecycle: string,
+     *   maxChangedFiles: int,
+     *   maxChangedBytes: int
+     * } $arguments
      */
     private function runBuild(array $arguments, bool $refresh): int
     {
+        if (count($arguments['indexDirs']) > 1) {
+            throw new \InvalidArgumentException('Build and refresh accept at most one --index-dir.');
+        }
+
+        $indexDir = $arguments['indexDirs'][0] ?? null;
+        $lifecycle = new IndexLifecycle(
+            profile: IndexLifecycleProfile::from($arguments['lifecycle']),
+            maxChangedFiles: $arguments['maxChangedFiles'],
+            maxChangedBytes: $arguments['maxChangedBytes'],
+        );
         $result = $refresh
-            ? Greph::refreshTextIndex($arguments['root'], $arguments['indexDir'])
-            : Greph::buildTextIndex($arguments['root'], $arguments['indexDir']);
+            ? Greph::refreshTextIndex($arguments['root'], $indexDir, $lifecycle)
+            : Greph::buildTextIndex($arguments['root'], $indexDir, $lifecycle);
 
         $verb = $refresh ? 'Refreshed' : 'Built';
         $this->writeOutput(sprintf(
@@ -127,14 +146,31 @@ final class IndexApplication
     }
 
     /**
-     * @param array{root: string, indexDir: ?string} $arguments
+     * @param array{
+     *   root: string,
+     *   indexDirs: list<string>,
+     *   lifecycle: string,
+     *   maxChangedFiles: int,
+     *   maxChangedBytes: int
+     * } $arguments
      */
     private function runAstBuild(string $mode, array $arguments, bool $refresh): int
     {
+        if (count($arguments['indexDirs']) > 1) {
+            throw new \InvalidArgumentException('Build and refresh accept at most one --index-dir.');
+        }
+
+        $indexDir = $arguments['indexDirs'][0] ?? null;
+        $lifecycle = new IndexLifecycle(
+            profile: IndexLifecycleProfile::from($arguments['lifecycle']),
+            maxChangedFiles: $arguments['maxChangedFiles'],
+            maxChangedBytes: $arguments['maxChangedBytes'],
+        );
+
         if ($mode === 'index') {
             $result = $refresh
-                ? Greph::refreshAstIndex($arguments['root'], $arguments['indexDir'])
-                : Greph::buildAstIndex($arguments['root'], $arguments['indexDir']);
+                ? Greph::refreshAstIndex($arguments['root'], $indexDir, $lifecycle)
+                : Greph::buildAstIndex($arguments['root'], $indexDir, $lifecycle);
 
             $this->writeOutput(sprintf(
                 '%s AST index for %d files in %s (%d fact rows, %.2fms, +%d ~%d -%d =%d)' . PHP_EOL,
@@ -153,8 +189,8 @@ final class IndexApplication
         }
 
         $result = $refresh
-            ? Greph::refreshAstCache($arguments['root'], $arguments['indexDir'])
-            : Greph::buildAstCache($arguments['root'], $arguments['indexDir']);
+            ? Greph::refreshAstCache($arguments['root'], $indexDir, $lifecycle)
+            : Greph::buildAstCache($arguments['root'], $indexDir, $lifecycle);
 
         $this->writeOutput(sprintf(
             '%s AST cache for %d files in %s (%d cached trees, %.2fms, +%d ~%d -%d =%d)' . PHP_EOL,
@@ -173,69 +209,108 @@ final class IndexApplication
     }
 
     /**
-     * @param array{root: string, indexDir: ?string} $arguments
+     * @param array{
+     *   root: string,
+     *   indexDirs: list<string>,
+     *   lifecycle: string,
+     *   maxChangedFiles: int,
+     *   maxChangedBytes: int
+     * } $arguments
      */
     private function runTextStats(array $arguments): int
     {
         $store = new TextIndexStore();
-        $indexPath = $this->resolveTextIndexPath($store, $arguments['root'], $arguments['indexDir']);
-        $index = $store->load($indexPath, includePostings: true);
+        $inspector = new IndexFreshnessInspector();
+        $blocks = [];
 
-        $this->writeOutput($this->formatStatsBlock('Text index stats', [
-            'Root' => $this->displayPath($index->rootPath),
-            'Index' => $this->displayPath($index->indexPath),
-            'Files' => (string) count($index->files),
-            'Trigram postings' => (string) count($index->postings),
-            'Word postings' => (string) count($index->wordPostings),
-            'Disk size' => $this->formatBytes($this->directorySize($index->indexPath)),
-            'Last refresh' => $this->formatTimestamp($index->builtAt),
-            'Last build time' => sprintf('%.2fms', $index->buildDurationMs),
-        ]));
+        foreach ($this->resolveTextIndexPaths($store, $arguments['root'], $arguments['indexDirs']) as $indexPath) {
+            $index = $store->load($indexPath, includePostings: true);
+            $freshness = $inspector->inspectText($index);
+            $blocks[] = $this->formatStatsBlock('Text index stats', [
+                'Root' => $this->displayPath($index->rootPath),
+                'Index' => $this->displayPath($index->indexPath),
+                'Files' => (string) count($index->files),
+                'Trigram postings' => (string) count($index->postings),
+                'Word postings' => (string) count($index->wordPostings),
+                'Disk size' => $this->formatBytes($this->directorySize($index->indexPath)),
+                'Lifecycle' => $index->lifecycle->label(),
+                'Stale' => $freshness->stale ? 'yes' : 'no',
+                'Changes' => $freshness->summary(),
+                'Last refresh' => $this->formatTimestamp($index->builtAt),
+                'Last build time' => sprintf('%.2fms', $index->buildDurationMs),
+            ]);
+        }
+
+        $this->writeOutput(implode(PHP_EOL, $blocks));
 
         return 0;
     }
 
     /**
-     * @param array{root: string, indexDir: ?string} $arguments
+     * @param array{
+     *   root: string,
+     *   indexDirs: list<string>,
+     *   lifecycle: string,
+     *   maxChangedFiles: int,
+     *   maxChangedBytes: int
+     * } $arguments
      */
     private function runAstStats(string $mode, array $arguments): int
     {
+        $inspector = new IndexFreshnessInspector();
+
         if ($mode === 'index') {
             $store = new AstIndexStore();
-            $indexPath = $this->resolveAstIndexPath($store, $arguments['root'], $arguments['indexDir']);
-            $index = $store->load($indexPath);
+            $blocks = [];
 
-            $this->writeOutput($this->formatStatsBlock('AST index stats', [
-                'Root' => $this->displayPath($index->rootPath),
-                'Index' => $this->displayPath($index->indexPath),
-                'Files' => (string) count($index->files),
-                'Fact rows' => (string) count($index->facts),
-                'Disk size' => $this->formatBytes($this->directorySize($index->indexPath)),
-                'Last refresh' => $this->formatTimestamp($index->builtAt),
-                'Last build time' => sprintf('%.2fms', $index->buildDurationMs),
-            ]));
+            foreach ($this->resolveAstIndexPaths($store, $arguments['root'], $arguments['indexDirs']) as $indexPath) {
+                $index = $store->load($indexPath);
+                $freshness = $inspector->inspectAstIndex($index);
+                $blocks[] = $this->formatStatsBlock('AST index stats', [
+                    'Root' => $this->displayPath($index->rootPath),
+                    'Index' => $this->displayPath($index->indexPath),
+                    'Files' => (string) count($index->files),
+                    'Fact rows' => (string) count($index->facts),
+                    'Disk size' => $this->formatBytes($this->directorySize($index->indexPath)),
+                    'Lifecycle' => $index->lifecycle->label(),
+                    'Stale' => $freshness->stale ? 'yes' : 'no',
+                    'Changes' => $freshness->summary(),
+                    'Last refresh' => $this->formatTimestamp($index->builtAt),
+                    'Last build time' => sprintf('%.2fms', $index->buildDurationMs),
+                ]);
+            }
+
+            $this->writeOutput(implode(PHP_EOL, $blocks));
 
             return 0;
         }
 
         $store = new AstCacheStore();
-        $indexPath = $this->resolveAstCachePath($store, $arguments['root'], $arguments['indexDir']);
-        $cache = $store->load($indexPath);
-        $cachedTreeCount = count(array_filter(
-            $cache->facts,
-            static fn (array $facts): bool => $facts['cached'],
-        ));
+        $blocks = [];
 
-        $this->writeOutput($this->formatStatsBlock('AST cache stats', [
-            'Root' => $this->displayPath($cache->rootPath),
-            'Index' => $this->displayPath($cache->indexPath),
-            'Files' => (string) count($cache->files),
-            'Fact rows' => (string) count($cache->facts),
-            'Cached trees' => (string) $cachedTreeCount,
-            'Disk size' => $this->formatBytes($this->directorySize($cache->indexPath)),
-            'Last refresh' => $this->formatTimestamp($cache->builtAt),
-            'Last build time' => sprintf('%.2fms', $cache->buildDurationMs),
-        ]));
+        foreach ($this->resolveAstCachePaths($store, $arguments['root'], $arguments['indexDirs']) as $indexPath) {
+            $cache = $store->load($indexPath);
+            $cachedTreeCount = count(array_filter(
+                $cache->facts,
+                static fn (array $facts): bool => $facts['cached'],
+            ));
+            $freshness = $inspector->inspectAstCache($cache);
+            $blocks[] = $this->formatStatsBlock('AST cache stats', [
+                'Root' => $this->displayPath($cache->rootPath),
+                'Index' => $this->displayPath($cache->indexPath),
+                'Files' => (string) count($cache->files),
+                'Fact rows' => (string) count($cache->facts),
+                'Cached trees' => (string) $cachedTreeCount,
+                'Disk size' => $this->formatBytes($this->directorySize($cache->indexPath)),
+                'Lifecycle' => $cache->lifecycle->label(),
+                'Stale' => $freshness->stale ? 'yes' : 'no',
+                'Changes' => $freshness->summary(),
+                'Last refresh' => $this->formatTimestamp($cache->builtAt),
+                'Last build time' => sprintf('%.2fms', $cache->buildDurationMs),
+            ]);
+        }
+
+        $this->writeOutput(implode(PHP_EOL, $blocks));
 
         return 0;
     }
@@ -261,7 +336,7 @@ final class IndexApplication
      *   context: ?int,
      *   type: list<string>,
      *   typeNot: list<string>,
-     *   indexDir: ?string,
+     *   indexDirs: list<string>,
      *   pattern: ?string,
      *   paths: list<string>
      * } $arguments
@@ -298,12 +373,14 @@ final class IndexApplication
             showFileNames: $this->shouldDisplayFileNames($arguments),
         );
 
-        $results = Greph::searchTextIndexed(
-            $arguments['pattern'],
-            $arguments['paths'],
-            $options,
-            $arguments['indexDir'],
-        );
+        $results = count($arguments['indexDirs']) > 1
+            ? Greph::searchTextIndexedMany($arguments['pattern'], $arguments['paths'], $arguments['indexDirs'], $options)
+            : Greph::searchTextIndexed(
+                $arguments['pattern'],
+                $arguments['paths'],
+                $options,
+                $arguments['indexDirs'][0] ?? null,
+            );
         $displayResults = $this->displayTextResults($results);
 
         if ($arguments['json']) {
@@ -356,7 +433,7 @@ final class IndexApplication
      *   glob: list<string>,
      *   type: list<string>,
      *   typeNot: list<string>,
-     *   indexDir: ?string,
+     *   indexDirs: list<string>,
      *   lang: string,
      *   jobs: int,
      *   fallback: string,
@@ -387,8 +464,16 @@ final class IndexApplication
         try {
             try {
                 $matches = $mode === 'index'
-                    ? Greph::searchAstIndexed($arguments['pattern'], $arguments['paths'], $options, $arguments['indexDir'])
-                    : Greph::searchAstCached($arguments['pattern'], $arguments['paths'], $options, $arguments['indexDir']);
+                    ? (
+                        count($arguments['indexDirs']) > 1
+                            ? Greph::searchAstIndexedMany($arguments['pattern'], $arguments['paths'], $arguments['indexDirs'], $options)
+                            : Greph::searchAstIndexed($arguments['pattern'], $arguments['paths'], $options, $arguments['indexDirs'][0] ?? null)
+                    )
+                    : (
+                        count($arguments['indexDirs']) > 1
+                            ? Greph::searchAstCachedMany($arguments['pattern'], $arguments['paths'], $arguments['indexDirs'], $options)
+                            : Greph::searchAstCached($arguments['pattern'], $arguments['paths'], $options, $arguments['indexDirs'][0] ?? null)
+                    );
             } catch (\RuntimeException $exception) {
                 if (
                     $arguments['fallback'] === 'scan'
@@ -439,13 +524,22 @@ final class IndexApplication
 
     /**
      * @param list<string> $arguments
-     * @return array{root: string, indexDir: ?string}
+     * @return array{
+     *   root: string,
+     *   indexDirs: list<string>,
+     *   lifecycle: string,
+     *   maxChangedFiles: int,
+     *   maxChangedBytes: int
+     * }
      */
     private function parseBuildArguments(array $arguments): array
     {
         $parsed = [
             'root' => '.',
-            'indexDir' => null,
+            'indexDirs' => [],
+            'lifecycle' => IndexLifecycleProfile::ManualRefresh->value,
+            'maxChangedFiles' => IndexLifecycle::DEFAULT_MAX_CHANGED_FILES,
+            'maxChangedBytes' => IndexLifecycle::DEFAULT_MAX_CHANGED_BYTES,
         ];
 
         while ($arguments !== []) {
@@ -453,7 +547,22 @@ final class IndexApplication
             $argument = array_shift($arguments);
 
             if ($argument === '--index-dir') {
-                $parsed['indexDir'] = $this->shiftValue($arguments, $argument);
+                $parsed['indexDirs'][] = $this->shiftValue($arguments, $argument);
+                continue;
+            }
+
+            if ($argument === '--lifecycle') {
+                $parsed['lifecycle'] = $this->shiftValue($arguments, $argument);
+                continue;
+            }
+
+            if ($argument === '--auto-refresh-max-files') {
+                $parsed['maxChangedFiles'] = max(0, (int) $this->shiftValue($arguments, $argument));
+                continue;
+            }
+
+            if ($argument === '--auto-refresh-max-bytes') {
+                $parsed['maxChangedBytes'] = max(0, (int) $this->shiftValue($arguments, $argument));
                 continue;
             }
 
@@ -462,6 +571,10 @@ final class IndexApplication
             }
 
             $parsed['root'] = $argument;
+        }
+
+        if (IndexLifecycleProfile::tryFrom($parsed['lifecycle']) === null) {
+            throw new \InvalidArgumentException(sprintf('Unknown lifecycle: %s', $parsed['lifecycle']));
         }
 
         return $parsed;
@@ -489,7 +602,7 @@ final class IndexApplication
      *   context: ?int,
      *   type: list<string>,
      *   typeNot: list<string>,
-     *   indexDir: ?string,
+     *   indexDirs: list<string>,
      *   pattern: ?string,
      *   paths: list<string>
      * }
@@ -516,7 +629,7 @@ final class IndexApplication
             'context' => null,
             'type' => [],
             'typeNot' => [],
-            'indexDir' => null,
+            'indexDirs' => [],
             'pattern' => null,
             'paths' => [],
         ];
@@ -574,7 +687,7 @@ final class IndexApplication
                     $parsed['glob'][] = $this->shiftValue($arguments, $argument);
                     break;
                 case '--index-dir':
-                    $parsed['indexDir'] = $this->shiftValue($arguments, $argument);
+                    $parsed['indexDirs'][] = $this->shiftValue($arguments, $argument);
                     break;
                 case '-h':
                     $parsed['showFileNames'] = false;
@@ -634,7 +747,7 @@ final class IndexApplication
      *   glob: list<string>,
      *   type: list<string>,
      *   typeNot: list<string>,
-     *   indexDir: ?string,
+     *   indexDirs: list<string>,
      *   lang: string,
      *   jobs: int,
      *   fallback: string,
@@ -653,7 +766,7 @@ final class IndexApplication
             'glob' => [],
             'type' => [],
             'typeNot' => [],
-            'indexDir' => null,
+            'indexDirs' => [],
             'lang' => 'php',
             'jobs' => 1,
             'fallback' => 'fail',
@@ -706,7 +819,7 @@ final class IndexApplication
                     $parsed['typeNot'][] = $this->shiftValue($arguments, $argument);
                     break;
                 case '--index-dir':
-                    $parsed['indexDir'] = $this->shiftValue($arguments, $argument);
+                    $parsed['indexDirs'][] = $this->shiftValue($arguments, $argument);
                     break;
                 case '--lang':
                     $parsed['lang'] = $this->shiftValue($arguments, $argument);
@@ -908,17 +1021,17 @@ final class IndexApplication
     {
         return <<<TEXT
 Usage:
-  greph-index build [path] [--index-dir DIR]
-  greph-index refresh [path] [--index-dir DIR]
-  greph-index stats [path] [--index-dir DIR]
+  greph-index build [path] [--index-dir DIR] [--lifecycle PROFILE] [--auto-refresh-max-files N] [--auto-refresh-max-bytes N]
+  greph-index refresh [path] [--index-dir DIR] [--lifecycle PROFILE] [--auto-refresh-max-files N] [--auto-refresh-max-bytes N]
+  greph-index stats [path] [--index-dir DIR...]
   greph-index search [options] pattern [path...]
-  greph-index ast-index build [path] [--index-dir DIR]
-  greph-index ast-index refresh [path] [--index-dir DIR]
-  greph-index ast-index stats [path] [--index-dir DIR]
+  greph-index ast-index build [path] [--index-dir DIR] [--lifecycle PROFILE] [--auto-refresh-max-files N] [--auto-refresh-max-bytes N]
+  greph-index ast-index refresh [path] [--index-dir DIR] [--lifecycle PROFILE] [--auto-refresh-max-files N] [--auto-refresh-max-bytes N]
+  greph-index ast-index stats [path] [--index-dir DIR...]
   greph-index ast-index search [options] pattern [path...]
-  greph-index ast-cache build [path] [--index-dir DIR]
-  greph-index ast-cache refresh [path] [--index-dir DIR]
-  greph-index ast-cache stats [path] [--index-dir DIR]
+  greph-index ast-cache build [path] [--index-dir DIR] [--lifecycle PROFILE] [--auto-refresh-max-files N] [--auto-refresh-max-bytes N]
+  greph-index ast-cache refresh [path] [--index-dir DIR] [--lifecycle PROFILE] [--auto-refresh-max-files N] [--auto-refresh-max-bytes N]
+  greph-index ast-cache stats [path] [--index-dir DIR...]
   greph-index ast-cache search [options] pattern [path...]
 
 Search Options:
@@ -942,7 +1055,7 @@ Search Options:
   --json          Emit JSON output.
   --no-ignore     Ignore .gitignore and .grephignore rules.
   --hidden        Include hidden files.
-  --index-dir DIR Use a non-default index directory.
+  --index-dir DIR Use a non-default index directory. Repeat for multi-index search.
   --help          Show this help.
 
 AST Search Options:
@@ -958,7 +1071,12 @@ AST Search Options:
   --hidden                Include hidden files.
   --strict-parse          Fail on parse errors instead of skipping them.
   --fallback MODE         Missing-index behavior: fail|scan.
-  --index-dir DIR         Use a non-default AST index/cache directory.
+  --index-dir DIR         Use a non-default AST index/cache directory. Repeat for multi-index search.
+  --lifecycle PROFILE     Build policy: static|manual-refresh|opportunistic-refresh|strict-stale-check.
+  --auto-refresh-max-files N
+                          Opportunistic refresh file-change threshold.
+  --auto-refresh-max-bytes N
+                          Opportunistic refresh byte threshold.
   --help                  Show this help.
 
 TEXT;
@@ -982,6 +1100,22 @@ TEXT;
         return $store->locateFrom($root) ?? $store->defaultPath($this->resolveRootPath($root));
     }
 
+    /**
+     * @param list<string> $indexDirs
+     * @return list<string>
+     */
+    private function resolveTextIndexPaths(TextIndexStore $store, string $root, array $indexDirs): array
+    {
+        if ($indexDirs === []) {
+            return [$this->resolveTextIndexPath($store, $root, null)];
+        }
+
+        return array_values(array_unique(array_map(
+            fn (string $indexDir): string => $this->resolveTextIndexPath($store, $root, $indexDir),
+            $indexDirs,
+        )));
+    }
+
     private function resolveAstIndexPath(AstIndexStore $store, string $root, ?string $indexDir): string
     {
         if ($indexDir !== null && $indexDir !== '') {
@@ -995,6 +1129,22 @@ TEXT;
         return $store->locateFrom($root) ?? $store->defaultPath($this->resolveRootPath($root));
     }
 
+    /**
+     * @param list<string> $indexDirs
+     * @return list<string>
+     */
+    private function resolveAstIndexPaths(AstIndexStore $store, string $root, array $indexDirs): array
+    {
+        if ($indexDirs === []) {
+            return [$this->resolveAstIndexPath($store, $root, null)];
+        }
+
+        return array_values(array_unique(array_map(
+            fn (string $indexDir): string => $this->resolveAstIndexPath($store, $root, $indexDir),
+            $indexDirs,
+        )));
+    }
+
     private function resolveAstCachePath(AstCacheStore $store, string $root, ?string $indexDir): string
     {
         if ($indexDir !== null && $indexDir !== '') {
@@ -1006,6 +1156,22 @@ TEXT;
         }
 
         return $store->locateFrom($root) ?? $store->defaultPath($this->resolveRootPath($root));
+    }
+
+    /**
+     * @param list<string> $indexDirs
+     * @return list<string>
+     */
+    private function resolveAstCachePaths(AstCacheStore $store, string $root, array $indexDirs): array
+    {
+        if ($indexDirs === []) {
+            return [$this->resolveAstCachePath($store, $root, null)];
+        }
+
+        return array_values(array_unique(array_map(
+            fn (string $indexDir): string => $this->resolveAstCachePath($store, $root, $indexDir),
+            $indexDirs,
+        )));
     }
 
     /**

@@ -9,6 +9,7 @@ use Greph\Ast\AstSearchOptions;
 use Greph\Ast\PatternParser;
 use Greph\Ast\StoredNode;
 use Greph\Index\AstQueryCacheStore;
+use Greph\Index\IndexLifecycle;
 use Greph\Index\TextIndex;
 use Greph\Index\TextQueryCacheStore;
 use Greph\Tests\Support\Workspace;
@@ -78,6 +79,7 @@ final class QueryCacheStoreTest extends TestCase
             version: $index->version,
             builtAt: 999,
             buildDurationMs: 0.0,
+            lifecycle: new IndexLifecycle(),
             nextFileId: $index->nextFileId,
             files: $index->files,
             postings: [],
@@ -315,6 +317,7 @@ final class QueryCacheStoreTest extends TestCase
             version: 1,
             builtAt: 123,
             buildDurationMs: 0.0,
+            lifecycle: new IndexLifecycle(),
             nextFileId: 2,
             files: [
                 ['id' => 1, 'p' => 'src/App.php', 's' => 20, 'm' => 1, 'h' => false, 'g' => false, 'o' => 0],

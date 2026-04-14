@@ -10,6 +10,7 @@ use Greph\Ast\AstSearcher;
 use Greph\Ast\Pattern;
 use Greph\Ast\PatternParser;
 use Greph\Ast\Parsers\ParserFactory;
+use Greph\Greph;
 use Greph\Support\Filesystem;
 use Greph\Walker\FileList;
 
@@ -25,12 +26,18 @@ final class IndexedAstSearcher
 
     private AstQueryCacheStore $queryCacheStore;
 
+    private AstIndexBuilder $builder;
+
+    private IndexFreshnessInspector $freshnessInspector;
+
     public function __construct(
         ?AstIndexStore $store = null,
         ?AstSearcher $astSearcher = null,
         ?PatternParser $patternParser = null,
         ?AstFactQuery $factQuery = null,
         ?AstQueryCacheStore $queryCacheStore = null,
+        ?AstIndexBuilder $builder = null,
+        ?IndexFreshnessInspector $freshnessInspector = null,
     ) {
         $sharedParserFactory = null;
 
@@ -43,6 +50,8 @@ final class IndexedAstSearcher
         $this->patternParser = $patternParser ?? new PatternParser($sharedParserFactory);
         $this->factQuery = $factQuery ?? new AstFactQuery();
         $this->queryCacheStore = $queryCacheStore ?? new AstQueryCacheStore();
+        $this->builder = $builder ?? new AstIndexBuilder(store: $this->store);
+        $this->freshnessInspector = $freshnessInspector ?? new IndexFreshnessInspector();
     }
 
     /**
@@ -53,14 +62,100 @@ final class IndexedAstSearcher
     {
         $paths = is_array($paths) ? $paths : [$paths];
         $resolvedPaths = $this->resolvePaths($paths);
-        $indexPath = $this->resolveIndexPath($resolvedPaths, $indexPath);
+        $parsedPattern = $this->patternParser->parse($pattern, $options->language);
+        $index = $this->loadManagedIndex($resolvedPaths, $indexPath);
 
-        if ($indexPath === null) {
-            throw new \RuntimeException('No AST index found for the requested paths. Build one first.');
+        return $this->searchInIndex($pattern, $resolvedPaths, $options, $index, $parsedPattern);
+    }
+
+    /**
+     * @param string|list<string> $paths
+     * @param list<string> $indexPaths
+     * @return list<AstMatch>
+     */
+    public function searchMany(string $pattern, string|array $paths, AstSearchOptions $options, array $indexPaths): array
+    {
+        if ($indexPaths === []) {
+            throw new \RuntimeException('At least one AST index path is required for multi-index search.');
         }
 
-        $index = $this->store->load($indexPath);
+        $paths = is_array($paths) ? $paths : [$paths];
+        $resolvedPaths = $this->resolvePaths($paths);
         $parsedPattern = $this->patternParser->parse($pattern, $options->language);
+        $indexes = [];
+
+        foreach ($indexPaths as $indexPath) {
+            $indexes[] = $this->loadManagedIndex($resolvedPaths, $indexPath);
+        }
+
+        $matchesByKey = [];
+        $orderedKeys = [];
+
+        foreach ($indexes as $index) {
+            $applicablePaths = array_values(array_filter(
+                $resolvedPaths,
+                fn (string $path): bool => $this->pathIntersectsRoot($path, $index->rootPath),
+            ));
+
+            if ($applicablePaths === []) {
+                continue;
+            }
+
+            foreach ($this->searchInIndex($pattern, $applicablePaths, $options, $index, $parsedPattern) as $match) {
+                $key = $match->file . ':' . $match->startFilePos . ':' . $match->endFilePos;
+
+                if (isset($matchesByKey[$key])) {
+                    continue;
+                }
+
+                $matchesByKey[$key] = $match;
+                $orderedKeys[] = $key;
+            }
+        }
+
+        $fallbackPaths = array_values(array_filter(
+            $resolvedPaths,
+            function (string $path) use ($indexes): bool {
+                foreach ($indexes as $index) {
+                    if ($this->pathIntersectsRoot($path, $index->rootPath)) {
+                        return false;
+                    }
+                }
+
+                return true;
+            },
+        ));
+
+        if ($fallbackPaths !== []) {
+            foreach (Greph::searchAst($pattern, $fallbackPaths, $options) as $match) {
+                $key = $match->file . ':' . $match->startFilePos . ':' . $match->endFilePos;
+
+                if (isset($matchesByKey[$key])) {
+                    continue;
+                }
+
+                $matchesByKey[$key] = $match;
+                $orderedKeys[] = $key;
+            }
+        }
+
+        return array_values(array_map(
+            static fn (string $key): AstMatch => $matchesByKey[$key],
+            $orderedKeys,
+        ));
+    }
+
+    /**
+     * @param list<string> $resolvedPaths
+     * @return list<AstMatch>
+     */
+    private function searchInIndex(
+        string $pattern,
+        array $resolvedPaths,
+        AstSearchOptions $options,
+        AstIndex $index,
+        Pattern $parsedPattern,
+    ): array {
         $selection = $this->buildSelection($resolvedPaths, $index->rootPath);
         $selectedPaths = [];
         $selectedPathSet = [];
@@ -216,6 +311,47 @@ final class IndexedAstSearcher
     }
 
     /**
+     * @param list<string> $resolvedPaths
+     */
+    private function loadManagedIndex(array $resolvedPaths, ?string $indexPath): AstIndex
+    {
+        $indexPath = $this->resolveIndexPath($resolvedPaths, $indexPath);
+
+        if ($indexPath === null) {
+            throw new \RuntimeException('No AST index found for the requested paths. Build one first.');
+        }
+
+        $index = $this->store->load($indexPath);
+        $lifecycle = $index->lifecycle;
+
+        if (!$lifecycle->shouldInspectFreshness()) {
+            return $index;
+        }
+
+        $freshness = $this->freshnessInspector->inspectAstIndex($index);
+
+        if (!$freshness->stale) {
+            return $index;
+        }
+
+        if ($lifecycle->shouldRejectStale()) {
+            throw new \RuntimeException(sprintf(
+                'AST index is stale: %s [%s]',
+                $this->displayPath($index->indexPath),
+                $freshness->summary(),
+            ));
+        }
+
+        if ($lifecycle->shouldAutoRefresh() && $freshness->isCheapEnough($lifecycle)) {
+            $this->builder->refresh($index->rootPath, $index->indexPath, $lifecycle);
+
+            return $this->store->load($index->indexPath);
+        }
+
+        return $index;
+    }
+
+    /**
      * @param array{files: array<string, true>, directories: list<string>} $selection
      */
     private function matchesSelection(string $absolutePath, array $selection): bool
@@ -246,6 +382,10 @@ final class IndexedAstSearcher
 
         foreach ($resolvedPaths as $path) {
             if (!$this->isWithinRoot($path, $rootPath)) {
+                if (is_dir($path) && $this->pathContainsRoot($path, $rootPath)) {
+                    $selection['directories'][] = $rootPath;
+                }
+
                 continue;
             }
 
@@ -265,6 +405,22 @@ final class IndexedAstSearcher
         return $path === $rootPath || str_starts_with($path, $rootPath . '/');
     }
 
+    private function pathContainsRoot(string $path, string $rootPath): bool
+    {
+        return $path === $rootPath || str_starts_with($rootPath, $path . '/');
+    }
+
+    private function pathIntersectsRoot(string $path, string $rootPath): bool
+    {
+        return $this->isWithinRoot($path, $rootPath)
+            || (is_dir($path) && $this->pathContainsRoot($path, $rootPath));
+    }
+
+    private function displayPath(string $path): string
+    {
+        return Filesystem::relativePath(getcwd() ?: '.', $path);
+    }
+
     /**
      * @param list<string> $resolvedPaths
      * @param array<string, true> $explicitSelections
@@ -282,7 +438,7 @@ final class IndexedAstSearcher
         }
 
         foreach ($resolvedPaths as $path) {
-            if (!$this->isWithinRoot($path, $rootPath)) {
+            if (!$this->pathIntersectsRoot($path, $rootPath)) {
                 return false;
             }
         }
