@@ -146,6 +146,53 @@ final class IndexedAstSearcher
     }
 
     /**
+     * @param string|list<string> $paths
+     * @return array<string, mixed>
+     */
+    public function plan(string $pattern, string|array $paths, AstSearchOptions $options, ?string $indexPath = null): array
+    {
+        $paths = is_array($paths) ? $paths : [$paths];
+        $resolvedPaths = $this->resolvePaths($paths);
+        $parsedPattern = $this->patternParser->parse($pattern, $options->language);
+        $index = $this->loadManagedIndex($resolvedPaths, $indexPath);
+
+        return $this->planForIndex($pattern, $resolvedPaths, $options, $index, $parsedPattern);
+    }
+
+    /**
+     * @param string|list<string> $paths
+     * @param list<string> $indexPaths
+     * @return array<string, mixed>
+     */
+    public function planMany(string $pattern, string|array $paths, AstSearchOptions $options, array $indexPaths): array
+    {
+        if ($indexPaths === []) {
+            throw new \RuntimeException('At least one AST index path is required for multi-index search.');
+        }
+
+        $paths = is_array($paths) ? $paths : [$paths];
+        $resolvedPaths = $this->resolvePaths($paths);
+        $parsedPattern = $this->patternParser->parse($pattern, $options->language);
+        $plans = [];
+
+        foreach ($indexPaths as $indexPath) {
+            $plans[] = $this->planForIndex(
+                $pattern,
+                $resolvedPaths,
+                $options,
+                $this->loadManagedIndex($resolvedPaths, $indexPath),
+                $parsedPattern,
+            );
+        }
+
+        return [
+            'mode' => 'ast-index',
+            'indexes' => $plans,
+            'index_count' => count($plans),
+        ];
+    }
+
+    /**
      * @param list<string> $resolvedPaths
      * @return list<AstMatch>
      */
@@ -249,6 +296,87 @@ final class IndexedAstSearcher
         }
 
         return $matches;
+    }
+
+    /**
+     * @param list<string> $resolvedPaths
+     * @return array<string, mixed>
+     */
+    private function planForIndex(
+        string $pattern,
+        array $resolvedPaths,
+        AstSearchOptions $options,
+        AstIndex $index,
+        Pattern $parsedPattern,
+    ): array {
+        $selection = $this->buildSelection($resolvedPaths, $index->rootPath);
+        $selectedPaths = [];
+        $selectedPathSet = [];
+        $fallbackPaths = [];
+        $explicitSelections = [];
+
+        foreach ($resolvedPaths as $path) {
+            if ($this->isWithinRoot($path, $index->rootPath)) {
+                if (is_file($path)) {
+                    $explicitSelections[$path] = true;
+                }
+
+                continue;
+            }
+
+            $fallbackPaths[] = $path;
+        }
+
+        foreach ($index->files as $file) {
+            $absolutePath = $index->rootPath . '/' . $file['p'];
+
+            if (!$this->matchesSelection($absolutePath, $selection)) {
+                continue;
+            }
+
+            if (
+                !isset($explicitSelections[$absolutePath])
+                && !$this->matchesQueryFilters($file, $absolutePath, $index->rootPath, $options)
+            ) {
+                continue;
+            }
+
+            $selectedPaths[] = $absolutePath;
+            $selectedPathSet[$absolutePath] = true;
+        }
+
+        foreach (array_keys($explicitSelections) as $explicitPath) {
+            if (!isset($selectedPathSet[$explicitPath])) {
+                $fallbackPaths[] = $explicitPath;
+            }
+        }
+
+        $candidateIds = $this->candidateIds($index, $parsedPattern);
+
+        return [
+            'mode' => 'ast-index',
+            'index_path' => $index->indexPath,
+            'root_path' => $index->rootPath,
+            'lifecycle' => $index->lifecycle->label(),
+            'pattern_root' => $parsedPattern->root::class,
+            'selection' => [
+                'directories' => count($selection['directories']),
+                'files' => count($selection['files']),
+                'selected_files' => count($selectedPaths),
+                'fallback_paths' => count($fallbackPaths),
+            ],
+            'cache' => [
+                'query_cache_eligible' => $this->canUseQueryCache($resolvedPaths, $index->rootPath, $options, $explicitSelections, $fallbackPaths),
+                'query_cache_populate' => $this->canPopulateQueryCache($resolvedPaths, $index->rootPath, $options, $explicitSelections, $fallbackPaths),
+            ],
+            'plan' => [
+                'candidate_source' => $candidateIds === null ? 'full-scan' : 'fact-prune',
+                'candidate_file_count' => $candidateIds === null ? count($selectedPaths) : count($candidateIds),
+                'verified_file_count' => ($candidateIds === null ? count($selectedPaths) : count($candidateIds)) + count($fallbackPaths),
+                'selected_file_count' => count($selectedPaths),
+                'explicit_selection_count' => count($explicitSelections),
+            ],
+        ];
     }
 
     /**

@@ -41,8 +41,12 @@ final class BenchmarkRunnerTest extends TestCase
                 'indexed-summary',
                 'indexed-text',
                 'indexed-text-cold',
+                'indexed-text-many',
+                'indexed-set-text',
                 'ast-indexed',
                 'ast-cached',
+                'ast-indexed-set',
+                'ast-cached-set',
                 'indexed-build',
                 'indexed-refresh',
                 'ast-indexed-build',
@@ -59,14 +63,20 @@ final class BenchmarkRunnerTest extends TestCase
     {
         $runtimeTextPath = $this->invokePrivate('textIndexPath', [['category' => 'indexed-text'], 'wordpress']);
         $coldTextPath = $this->invokePrivate('textIndexPath', [['category' => 'indexed-text-cold'], 'wordpress']);
+        $manyTextPath = $this->invokePrivate('textIndexPath', [['category' => 'indexed-text-many'], 'wordpress']);
+        $setTextPath = $this->invokePrivate('textIndexPath', [['category' => 'indexed-set-text'], 'wordpress']);
         $buildTextPath = $this->invokePrivate('textIndexPath', [['category' => 'indexed-build'], 'wordpress']);
         $refreshTextPath = $this->invokePrivate('textIndexPath', [['category' => 'indexed-refresh'], 'wordpress']);
 
         $this->assertStringContainsString('/build/benchmarks/indexes/runtime/wordpress', $runtimeTextPath);
         $this->assertStringContainsString('/build/benchmarks/indexes/cold/wordpress', $coldTextPath);
+        $this->assertStringContainsString('/build/benchmarks/indexes/many/wordpress', $manyTextPath);
+        $this->assertStringContainsString('/build/benchmarks/indexes/set/wordpress', $setTextPath);
         $this->assertStringContainsString('/build/benchmarks/indexes/build/wordpress', $buildTextPath);
         $this->assertStringContainsString('/build/benchmarks/indexes/refresh/wordpress', $refreshTextPath);
         $this->assertNotSame($runtimeTextPath, $coldTextPath);
+        $this->assertNotSame($runtimeTextPath, $manyTextPath);
+        $this->assertNotSame($runtimeTextPath, $setTextPath);
         $this->assertNotSame($runtimeTextPath, $buildTextPath);
         $this->assertNotSame($runtimeTextPath, $refreshTextPath);
 

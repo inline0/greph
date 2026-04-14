@@ -27,6 +27,7 @@ final readonly class AstSearchOptions
         public bool $dryRun = false,
         public bool $interactive = false,
         public bool $jsonOutput = false,
+        public bool $tracePlan = false,
     ) {
         if ($this->jobs < 1) {
             throw new \InvalidArgumentException('Job count must be greater than zero.');

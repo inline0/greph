@@ -77,6 +77,8 @@ PHP,
         $maxCountExit = $application->run(['greph-index', 'search', '-F', '-m', '1', 'needle', 'counts.txt']);
         $noFilenameExit = $application->run(['greph-index', 'search', '-h', '-F', 'needle', '.']);
         $withFilenameExit = $application->run(['greph-index', 'search', '-H', '-F', 'needle', 'single.txt']);
+        $wholeWordFilesExit = $application->run(['greph-index', 'search', '-F', '-w', '-l', 'function', '.']);
+        $traceExit = $application->run(['greph-index', 'search', '--trace-plan', '-F', 'function', '.']);
 
         sleep(1);
         Workspace::writeFile($this->workspace, 'src/App.php', "<?php\nfunction refreshed(): void {}\n");
@@ -102,6 +104,8 @@ PHP,
         $this->assertSame(0, $maxCountExit);
         $this->assertSame(0, $noFilenameExit);
         $this->assertSame(0, $withFilenameExit);
+        $this->assertSame(0, $wholeWordFilesExit);
+        $this->assertSame(0, $traceExit);
         $this->assertSame(0, $refreshExit);
         $this->assertStringContainsString('Built index for', $stdout);
         $this->assertStringContainsString('Text index stats', $stdout);
@@ -115,7 +119,9 @@ PHP,
         $this->assertStringContainsString("vendor/ignored.txt:1:ignored needle\n", $stdout);
         $this->assertStringContainsString("before\n", $stdout);
         $this->assertStringContainsString("after\n", $stdout);
+        $this->assertStringContainsString("src/App.php\n", $stdout);
         $this->assertStringContainsString('Refreshed index for', $stdout);
+        $this->assertStringContainsString('"mode": "text"', $this->readStream($harness['stderr']));
     }
 
     #[Test]
@@ -366,6 +372,15 @@ PHP,
                 'render_widget()',
                 '.',
             ]);
+            $traceExit = $application->run([
+                'greph-index',
+                'set',
+                'search',
+                '--trace-plan',
+                '-F',
+                'function',
+                '.',
+            ]);
 
             sleep(1);
             Workspace::writeFile($setWorkspace, 'plugins/Demo/NewPlugin.php', "<?php\nfunction refreshedPluginThing(): void {}\n\$newPlugin = new NewPluginThing();\n");
@@ -389,6 +404,7 @@ PHP,
             $this->assertSame(0, $textSearchExit);
             $this->assertSame(0, $astIndexSearchExit);
             $this->assertSame(0, $astCacheSearchExit);
+            $this->assertSame(0, $traceExit);
             $this->assertSame(0, $refreshExit);
             $this->assertStringContainsString('Index set stats', $stdout);
             $this->assertStringContainsString('Set: wordpress-local', $stdout);
@@ -400,6 +416,7 @@ PHP,
             $this->assertStringContainsString('Refreshed set entry plugin-text [text]', $stdout);
             $this->assertStringContainsString('Refreshed set entry plugin-ast [ast-index]', $stdout);
             $this->assertStringContainsString('Refreshed set entry plugin-cache [ast-cache]', $stdout);
+            $this->assertStringContainsString('"index_count": 2', $this->readStream($harness['stderr']));
         } finally {
             chdir($originalWorkingDirectory);
             Workspace::remove($setWorkspace);
@@ -472,7 +489,7 @@ PHP,
         $parsedFlags = $this->invokeMethod(
             $application,
             'parseSearchArguments',
-            ['-w', '-v', '-n', '--show-index-origin', '-A', '2', '-B', '1', '-C', '3', '--type', 'php', '--type-not', 'txt', 'needle'],
+            ['-w', '-v', '-n', '--show-index-origin', '--trace-plan', '-A', '2', '-B', '1', '-C', '3', '--type', 'php', '--type-not', 'txt', 'needle'],
         );
         $parsedTerminated = $this->invokeMethod(
             $application,
@@ -482,7 +499,7 @@ PHP,
         $parsedAst = $this->invokeMethod(
             $application,
             'parseAstSearchArguments',
-            ['--json', '--hidden', '--show-index-origin', '--strict-parse', '-l', '--glob', '*.php', '--type', 'php', '--type-not', 'txt', '--index-dir', '.ast', '--lang', 'php', '-j', '4', '--fallback', 'scan', 'new $CLASS()', 'src/Ast.php'],
+            ['--json', '--hidden', '--show-index-origin', '--trace-plan', '--strict-parse', '-l', '--glob', '*.php', '--type', 'php', '--type-not', 'txt', '--index-dir', '.ast', '--lang', 'php', '-j', '4', '--fallback', 'scan', 'new $CLASS()', 'src/Ast.php'],
         );
         $parsedBuild = $this->invokeMethod(
             $application,
@@ -514,6 +531,7 @@ PHP,
         $this->assertTrue($parsedFlags['invertMatch']);
         $this->assertTrue($parsedFlags['showLineNumbers']);
         $this->assertTrue($parsedFlags['showIndexOrigin']);
+        $this->assertTrue($parsedFlags['tracePlan']);
         $this->assertSame(2, $parsedFlags['afterContext']);
         $this->assertSame(1, $parsedFlags['beforeContext']);
         $this->assertSame(3, $parsedFlags['context']);
@@ -524,6 +542,7 @@ PHP,
         $this->assertTrue($parsedAst['json']);
         $this->assertTrue($parsedAst['hidden']);
         $this->assertTrue($parsedAst['showIndexOrigin']);
+        $this->assertTrue($parsedAst['tracePlan']);
         $this->assertTrue($parsedAst['strictParse']);
         $this->assertTrue($parsedAst['filesWithMatches']);
         $this->assertSame(['*.php'], $parsedAst['glob']);

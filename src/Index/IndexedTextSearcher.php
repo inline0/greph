@@ -132,6 +132,50 @@ final class IndexedTextSearcher
     }
 
     /**
+     * @param string|list<string> $paths
+     * @return array<string, mixed>
+     */
+    public function plan(string $pattern, string|array $paths, TextSearchOptions $options, ?string $indexPath = null): array
+    {
+        $paths = is_array($paths) ? $paths : [$paths];
+        $resolvedPaths = $this->resolvePaths($paths);
+        $index = $this->loadManagedIndex($resolvedPaths, $indexPath);
+
+        return $this->planForIndex($pattern, $resolvedPaths, $options, $index);
+    }
+
+    /**
+     * @param string|list<string> $paths
+     * @param list<string> $indexPaths
+     * @return array<string, mixed>
+     */
+    public function planMany(string $pattern, string|array $paths, TextSearchOptions $options, array $indexPaths): array
+    {
+        if ($indexPaths === []) {
+            throw new \RuntimeException('At least one index path is required for multi-index search.');
+        }
+
+        $paths = is_array($paths) ? $paths : [$paths];
+        $resolvedPaths = $this->resolvePaths($paths);
+        $plans = [];
+
+        foreach ($indexPaths as $indexPath) {
+            $plans[] = $this->planForIndex(
+                $pattern,
+                $resolvedPaths,
+                $options,
+                $this->loadManagedIndex($resolvedPaths, $indexPath),
+            );
+        }
+
+        return [
+            'mode' => 'text',
+            'indexes' => $plans,
+            'index_count' => count($plans),
+        ];
+    }
+
+    /**
      * @param list<string> $resolvedPaths
      * @return list<TextFileResult>
      */
@@ -245,6 +289,111 @@ final class IndexedTextSearcher
 
     /**
      * @param list<string> $resolvedPaths
+     * @return array<string, mixed>
+     */
+    private function planForIndex(string $pattern, array $resolvedPaths, TextSearchOptions $options, TextIndex $index): array
+    {
+        $selection = $this->buildSelection($resolvedPaths, $index->rootPath);
+        $selectedPaths = [];
+        $selectedPathSet = [];
+        $fallbackPaths = [];
+        $explicitSelections = [];
+
+        foreach ($resolvedPaths as $path) {
+            if ($this->isWithinRoot($path, $index->rootPath)) {
+                if (is_file($path)) {
+                    $explicitSelections[$path] = true;
+                }
+
+                continue;
+            }
+
+            $fallbackPaths[] = $path;
+        }
+
+        foreach ($index->files as $file) {
+            $absolutePath = $index->rootPath . '/' . $file['p'];
+
+            if (!$this->matchesSelection($absolutePath, $selection)) {
+                continue;
+            }
+
+            if (
+                !isset($explicitSelections[$absolutePath])
+                && !$this->matchesQueryFilters($file, $absolutePath, $index->rootPath, $options)
+            ) {
+                continue;
+            }
+
+            $selectedPaths[] = $absolutePath;
+            $selectedPathSet[$absolutePath] = true;
+        }
+
+        foreach (array_keys($explicitSelections) as $explicitPath) {
+            if (!isset($selectedPathSet[$explicitPath])) {
+                $fallbackPaths[] = $explicitPath;
+            }
+        }
+
+        $wholeWordToken = $this->indexedWholeWordToken($pattern, $options);
+        $seeds = [];
+        $candidateIds = null;
+        $candidateSource = 'full-scan';
+        $postingsTerms = 0;
+
+        if ($options->invertMatch) {
+            $candidateSource = 'invert-scan';
+        } elseif ($wholeWordToken !== null) {
+            $candidateIds = $this->candidateIdsFromWordPostings($index->indexPath, $wholeWordToken);
+            $candidateSource = 'word-postings';
+            $postingsTerms = 1;
+        } else {
+            $seeds = $this->querySeeds($pattern, $options);
+
+            if ($seeds !== []) {
+                $candidateIds = $this->candidateIds($index->indexPath, $seeds);
+                $candidateSource = 'trigram-postings';
+                foreach ($seeds as $seed) {
+                    $postingsTerms += count($this->trigramExtractor->extract($seed));
+                }
+            }
+        }
+
+        $candidateFileCount = $candidateIds === null ? count($selectedPaths) : count($candidateIds);
+        $verifiedFileCount = $options->invertMatch ? count($selectedPaths) : $candidateFileCount + count($fallbackPaths);
+
+        return [
+            'mode' => 'text',
+            'index_path' => $index->indexPath,
+            'root_path' => $index->rootPath,
+            'lifecycle' => $index->lifecycle->label(),
+            'selection' => [
+                'directories' => count($selection['directories']),
+                'files' => count($selection['files']),
+                'selected_files' => count($selectedPaths),
+                'fallback_paths' => count($fallbackPaths),
+            ],
+            'cache' => [
+                'query_cache_eligible' => $this->canUseQueryCache($pattern, $options, $selection, $explicitSelections, $fallbackPaths),
+                'query_cache_populate' => $this->canPopulateQueryCache($pattern, $options, $resolvedPaths, $explicitSelections, $fallbackPaths, $index),
+            ],
+            'plan' => [
+                'direct_summary' => $this->canUseDirectLiteralSummary($pattern, $options),
+                'direct_word_summary' => $this->canUseDirectWordSummary($wholeWordToken, $options),
+                'candidate_source' => $candidateSource,
+                'whole_word_token' => $wholeWordToken,
+                'seeds' => $seeds,
+                'postings_term_count' => $postingsTerms,
+                'candidate_file_count' => $candidateFileCount,
+                'verified_file_count' => $verifiedFileCount,
+                'selected_file_count' => count($selectedPaths),
+                'explicit_selection_count' => count($explicitSelections),
+            ],
+        ];
+    }
+
+    /**
+     * @param list<string> $resolvedPaths
      */
     private function loadManagedIndex(array $resolvedPaths, ?string $indexPath): TextIndex
     {
@@ -300,6 +449,16 @@ final class IndexedTextSearcher
     ): array {
         $resultsByPath = [];
         $canUseDirectLiteralSummary = $this->canUseDirectLiteralSummary($pattern, $options);
+        $wholeWordToken = $this->indexedWholeWordToken($pattern, $options);
+        $canUseDirectWordSummary = $this->canUseDirectWordSummary($wholeWordToken, $options);
+
+        if ($options->quiet && $canUseDirectWordSummary && $candidateIds !== null && $index !== null) {
+            $candidatePath = $this->firstCandidatePath($selectedPaths, $candidateIds, $index);
+
+            if ($candidatePath !== null) {
+                return [new TextFileResult($candidatePath, [], 1)];
+            }
+        }
 
         if ($options->quiet && $canUseDirectLiteralSummary) {
             return $this->searchLiteralQuietPaths(
@@ -334,9 +493,11 @@ final class IndexedTextSearcher
                 $candidatePaths[] = $absolutePath;
             }
 
-            $searchResults = $canUseDirectLiteralSummary
+            $searchResults = $canUseDirectWordSummary
+                ? $this->searchDirectWordSummaryResults($candidatePaths)
+                : ($canUseDirectLiteralSummary
                 ? $this->searchLiteralSummaryFiles($candidatePaths, $pattern, $options)
-                : $this->textSearcher->searchFiles(new FileList($candidatePaths), $pattern, $options);
+                : $this->textSearcher->searchFiles(new FileList($candidatePaths), $pattern, $options));
 
             foreach ($searchResults as $result) {
                 $resultsByPath[$result->file] = $result;
@@ -386,6 +547,23 @@ final class IndexedTextSearcher
         }
 
         return $options->countOnly || $options->filesWithMatches || $options->filesWithoutMatches || $options->quiet;
+    }
+
+    private function canUseDirectWordSummary(?string $wholeWordToken, TextSearchOptions $options): bool
+    {
+        if ($wholeWordToken === null) {
+            return false;
+        }
+
+        if ($options->invertMatch || $options->countOnly) {
+            return false;
+        }
+
+        if ($options->beforeContext > 0 || $options->afterContext > 0) {
+            return false;
+        }
+
+        return $options->filesWithMatches || $options->filesWithoutMatches || $options->quiet;
     }
 
     /**
@@ -510,6 +688,37 @@ final class IndexedTextSearcher
         }
 
         return $results;
+    }
+
+    /**
+     * @param list<string> $paths
+     * @return list<TextFileResult>
+     */
+    private function searchDirectWordSummaryResults(array $paths): array
+    {
+        return array_map(
+            static fn (string $path): TextFileResult => new TextFileResult($path, [], 1),
+            $paths,
+        );
+    }
+
+    /**
+     * @param list<string> $selectedPaths
+     * @param array<int, true> $candidateIds
+     */
+    private function firstCandidatePath(array $selectedPaths, array $candidateIds, TextIndex $index): ?string
+    {
+        $selectedPathSet = array_fill_keys($selectedPaths, true);
+
+        foreach ($index->files as $file) {
+            $absolutePath = $index->rootPath . '/' . $file['p'];
+
+            if (isset($selectedPathSet[$absolutePath]) && isset($candidateIds[$file['id']])) {
+                return $absolutePath;
+            }
+        }
+
+        return null;
     }
 
     /**

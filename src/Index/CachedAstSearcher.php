@@ -145,6 +145,52 @@ final class CachedAstSearcher
     }
 
     /**
+     * @param string|list<string> $paths
+     * @return array<string, mixed>
+     */
+    public function plan(string $pattern, string|array $paths, AstSearchOptions $options, ?string $indexPath = null): array
+    {
+        $paths = is_array($paths) ? $paths : [$paths];
+        $resolvedPaths = $this->resolvePaths($paths);
+        $patternObject = $this->patternParser->parse($pattern, $options->language);
+        $cache = $this->loadManagedCache($resolvedPaths, $indexPath);
+
+        return $this->planForCache($resolvedPaths, $options, $cache, $patternObject);
+    }
+
+    /**
+     * @param string|list<string> $paths
+     * @param list<string> $indexPaths
+     * @return array<string, mixed>
+     */
+    public function planMany(string $pattern, string|array $paths, AstSearchOptions $options, array $indexPaths): array
+    {
+        if ($indexPaths === []) {
+            throw new \RuntimeException('At least one AST cache path is required for multi-index search.');
+        }
+
+        $paths = is_array($paths) ? $paths : [$paths];
+        $resolvedPaths = $this->resolvePaths($paths);
+        $patternObject = $this->patternParser->parse($pattern, $options->language);
+        $plans = [];
+
+        foreach ($indexPaths as $indexPath) {
+            $plans[] = $this->planForCache(
+                $resolvedPaths,
+                $options,
+                $this->loadManagedCache($resolvedPaths, $indexPath),
+                $patternObject,
+            );
+        }
+
+        return [
+            'mode' => 'ast-cache',
+            'indexes' => $plans,
+            'index_count' => count($plans),
+        ];
+    }
+
+    /**
      * @param list<string> $resolvedPaths
      * @return list<AstMatch>
      */
@@ -232,6 +278,68 @@ final class CachedAstSearcher
         }
 
         return $matches;
+    }
+
+    /**
+     * @param list<string> $resolvedPaths
+     * @return array<string, mixed>
+     */
+    private function planForCache(
+        array $resolvedPaths,
+        AstSearchOptions $options,
+        AstCache $cache,
+        Pattern $patternObject,
+    ): array {
+        $selection = $this->buildSelection($resolvedPaths, $cache->rootPath);
+        $selectedPaths = [];
+        $selectedFileIds = [];
+
+        foreach ($cache->files as $file) {
+            $absolutePath = $cache->rootPath . '/' . $file['p'];
+
+            if (
+                !$this->matchesSelection($absolutePath, $selection)
+                || !$this->matchesQueryFilters($file, $absolutePath, $cache->rootPath, $options)
+            ) {
+                continue;
+            }
+
+            $selectedPaths[$file['id']] = $absolutePath;
+            $selectedFileIds[$file['id']] = true;
+        }
+
+        $candidateIds = $this->factQuery->candidateIds($cache->facts, $patternObject);
+        $cachedTreeCount = 0;
+
+        foreach (array_keys($selectedFileIds) as $fileId) {
+            if (($cache->facts[$fileId]['cached'] ?? false) === true) {
+                $cachedTreeCount++;
+            }
+        }
+
+        return [
+            'mode' => 'ast-cache',
+            'index_path' => $cache->indexPath,
+            'root_path' => $cache->rootPath,
+            'lifecycle' => $cache->lifecycle->label(),
+            'pattern_root' => $patternObject->root::class,
+            'selection' => [
+                'directories' => count($selection['directories']),
+                'files' => count($selection['files']),
+                'selected_files' => count($selectedPaths),
+            ],
+            'cache' => [
+                'query_cache_eligible' => $this->canUseQueryCache($resolvedPaths, $cache->rootPath, $options),
+                'query_cache_populate' => $this->canPopulateQueryCache($resolvedPaths, $cache->rootPath, $options),
+                'cached_tree_hits' => $cachedTreeCount,
+            ],
+            'plan' => [
+                'candidate_source' => $candidateIds === null ? 'full-scan' : 'fact-prune',
+                'candidate_file_count' => $candidateIds === null ? count($selectedPaths) : count($candidateIds),
+                'verified_file_count' => $candidateIds === null ? count($selectedPaths) : count($candidateIds),
+                'selected_file_count' => count($selectedPaths),
+            ],
+        ];
     }
 
     /**

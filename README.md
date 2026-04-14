@@ -205,6 +205,26 @@ Examples:
 
 `greph-index stats` reports lifecycle, stale status, change summary, query-cache usage, and optional dry-run search behavior for text, AST index, and AST cache stores.
 
+## Planner Diagnostics
+
+Warm indexed search can emit the actual planner decision to `stderr` without
+changing the user-facing result stream.
+
+```bash
+./vendor/bin/greph-index search --trace-plan -F "function" .
+./vendor/bin/greph-index ast-index search --trace-plan 'new $CLASS()' .
+./vendor/bin/greph-index set search --trace-plan --show-index-origin -F "apply_filters" .
+```
+
+The trace includes:
+
+- selected file count
+- candidate source
+- postings term count for warmed text plans
+- candidate and verified file counts
+- cache eligibility/population
+- AST pattern root and cached-tree hit counts for warmed AST paths
+
 ## Multi-Index Search
 
 Greph can search multiple warmed indexes in one request. This is intended for real layouts like WordPress core + plugin + theme, monorepos, or a static baseline plus a mutable overlay.

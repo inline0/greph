@@ -439,6 +439,7 @@ final class IndexApplication
              *   type: list<string>,
              *   typeNot: list<string>,
              *   indexDirs: list<string>,
+             *   tracePlan: bool,
              *   pattern: ?string,
              *   paths: list<string>
              * } $search */
@@ -466,6 +467,7 @@ final class IndexApplication
                 filesWithoutMatches: $search['filesWithoutMatches'],
                 jsonOutput: $search['json'],
                 collectCaptures: $search['json'],
+                tracePlan: $search['tracePlan'],
                 respectIgnore: !$search['noIgnore'],
                 includeHidden: $search['hidden'],
                 fileTypeFilter: $fileTypeFilter,
@@ -474,7 +476,14 @@ final class IndexApplication
                 showFileNames: $this->shouldDisplayFileNames($search),
             );
 
-            $results = Greph::searchTextIndexedMany($search['pattern'], $search['paths'], $indexPaths, $options);
+            $searcher = new \Greph\Index\IndexedTextSearcher();
+            $results = $searcher->searchMany($search['pattern'], $search['paths'], $options, $indexPaths);
+            if ($search['tracePlan']) {
+                $this->writeError(json_encode(
+                    $searcher->planMany($search['pattern'], $search['paths'], $options, $indexPaths),
+                    JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES,
+                ) . PHP_EOL);
+            }
             $displayResults = $this->displayTextResults(
                 $results,
                 $arguments['showIndexOrigin'] ? $entries : null,
@@ -524,6 +533,7 @@ final class IndexApplication
          *   json: bool,
          *   noIgnore: bool,
          *   hidden: bool,
+         *   tracePlan: bool,
          *   strictParse: bool,
          *   filesWithMatches: bool,
          *   glob: list<string>,
@@ -554,12 +564,29 @@ final class IndexApplication
             globPatterns: $search['glob'],
             skipParseErrors: !$search['strictParse'],
             jsonOutput: $search['json'],
+            tracePlan: $search['tracePlan'],
         );
 
         try {
-            $matches = $arguments['mode'] === IndexMode::AstIndex->value
-                ? Greph::searchAstIndexedMany($search['pattern'], $search['paths'], $indexPaths, $options)
-                : Greph::searchAstCachedMany($search['pattern'], $search['paths'], $indexPaths, $options);
+            if ($arguments['mode'] === IndexMode::AstIndex->value) {
+                $searcher = new \Greph\Index\IndexedAstSearcher();
+                $matches = $searcher->searchMany($search['pattern'], $search['paths'], $options, $indexPaths);
+                if ($search['tracePlan']) {
+                    $this->writeError(json_encode(
+                        $searcher->planMany($search['pattern'], $search['paths'], $options, $indexPaths),
+                        JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES,
+                    ) . PHP_EOL);
+                }
+            } else {
+                $searcher = new \Greph\Index\CachedAstSearcher();
+                $matches = $searcher->searchMany($search['pattern'], $search['paths'], $options, $indexPaths);
+                if ($search['tracePlan']) {
+                    $this->writeError(json_encode(
+                        $searcher->planMany($search['pattern'], $search['paths'], $options, $indexPaths),
+                        JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES,
+                    ) . PHP_EOL);
+                }
+            }
         } catch (\RuntimeException $exception) {
             $this->writeError($exception->getMessage() . PHP_EOL);
 
@@ -793,7 +820,8 @@ final class IndexApplication
      *   json: bool,
      *   noIgnore: bool,
      *   hidden: bool,
-     *   showIndexOrigin: bool,
+      *   showIndexOrigin: bool,
+     *   tracePlan: bool,
      *   glob: list<string>,
      *   showFileNames: ?bool,
      *   showLineNumbers: bool,
@@ -832,6 +860,7 @@ final class IndexApplication
             filesWithoutMatches: $arguments['filesWithoutMatches'],
             jsonOutput: $arguments['json'],
             collectCaptures: $arguments['json'],
+            tracePlan: $arguments['tracePlan'],
             respectIgnore: !$arguments['noIgnore'],
             includeHidden: $arguments['hidden'],
             fileTypeFilter: $fileTypeFilter,
@@ -840,14 +869,21 @@ final class IndexApplication
             showFileNames: $this->shouldDisplayFileNames($arguments),
         );
 
+        $searcher = new \Greph\Index\IndexedTextSearcher();
         $results = count($arguments['indexDirs']) > 1
-            ? Greph::searchTextIndexedMany($arguments['pattern'], $arguments['paths'], $arguments['indexDirs'], $options)
-            : Greph::searchTextIndexed(
+            ? $searcher->searchMany($arguments['pattern'], $arguments['paths'], $options, $arguments['indexDirs'])
+            : $searcher->search(
                 $arguments['pattern'],
                 $arguments['paths'],
                 $options,
                 $arguments['indexDirs'][0] ?? null,
             );
+        if ($arguments['tracePlan']) {
+            $plan = count($arguments['indexDirs']) > 1
+                ? $searcher->planMany($arguments['pattern'], $arguments['paths'], $options, $arguments['indexDirs'])
+                : $searcher->plan($arguments['pattern'], $arguments['paths'], $options, $arguments['indexDirs'][0] ?? null);
+            $this->writeError(json_encode($plan, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES) . PHP_EOL);
+        }
         $displayResults = $this->displayTextResults(
             $results,
             $arguments['showIndexOrigin']
@@ -901,6 +937,7 @@ final class IndexApplication
      *   noIgnore: bool,
      *   hidden: bool,
      *   showIndexOrigin: bool,
+     *   tracePlan: bool,
      *   strictParse: bool,
      *   filesWithMatches: bool,
      *   glob: list<string>,
@@ -932,21 +969,34 @@ final class IndexApplication
             globPatterns: $arguments['glob'],
             skipParseErrors: !$arguments['strictParse'],
             jsonOutput: $arguments['json'],
+            tracePlan: $arguments['tracePlan'],
         );
 
         try {
             try {
-                $matches = $mode === 'index'
-                    ? (
-                        count($arguments['indexDirs']) > 1
-                            ? Greph::searchAstIndexedMany($arguments['pattern'], $arguments['paths'], $arguments['indexDirs'], $options)
-                            : Greph::searchAstIndexed($arguments['pattern'], $arguments['paths'], $options, $arguments['indexDirs'][0] ?? null)
-                    )
-                    : (
-                        count($arguments['indexDirs']) > 1
-                            ? Greph::searchAstCachedMany($arguments['pattern'], $arguments['paths'], $arguments['indexDirs'], $options)
-                            : Greph::searchAstCached($arguments['pattern'], $arguments['paths'], $options, $arguments['indexDirs'][0] ?? null)
-                    );
+                if ($mode === 'index') {
+                    $searcher = new \Greph\Index\IndexedAstSearcher();
+                    $matches = count($arguments['indexDirs']) > 1
+                        ? $searcher->searchMany($arguments['pattern'], $arguments['paths'], $options, $arguments['indexDirs'])
+                        : $searcher->search($arguments['pattern'], $arguments['paths'], $options, $arguments['indexDirs'][0] ?? null);
+                    if ($arguments['tracePlan']) {
+                        $plan = count($arguments['indexDirs']) > 1
+                            ? $searcher->planMany($arguments['pattern'], $arguments['paths'], $options, $arguments['indexDirs'])
+                            : $searcher->plan($arguments['pattern'], $arguments['paths'], $options, $arguments['indexDirs'][0] ?? null);
+                        $this->writeError(json_encode($plan, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES) . PHP_EOL);
+                    }
+                } else {
+                    $searcher = new \Greph\Index\CachedAstSearcher();
+                    $matches = count($arguments['indexDirs']) > 1
+                        ? $searcher->searchMany($arguments['pattern'], $arguments['paths'], $options, $arguments['indexDirs'])
+                        : $searcher->search($arguments['pattern'], $arguments['paths'], $options, $arguments['indexDirs'][0] ?? null);
+                    if ($arguments['tracePlan']) {
+                        $plan = count($arguments['indexDirs']) > 1
+                            ? $searcher->planMany($arguments['pattern'], $arguments['paths'], $options, $arguments['indexDirs'])
+                            : $searcher->plan($arguments['pattern'], $arguments['paths'], $options, $arguments['indexDirs'][0] ?? null);
+                        $this->writeError(json_encode($plan, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES) . PHP_EOL);
+                    }
+                }
             } catch (\RuntimeException $exception) {
                 if (
                     $arguments['fallback'] === 'scan'
@@ -1101,7 +1151,8 @@ final class IndexApplication
      *   json: bool,
      *   noIgnore: bool,
      *   hidden: bool,
-     *   showIndexOrigin: bool,
+      *   showIndexOrigin: bool,
+     *   tracePlan: bool,
      *   glob: list<string>,
      *   showFileNames: ?bool,
      *   showLineNumbers: bool,
@@ -1130,6 +1181,7 @@ final class IndexApplication
             'noIgnore' => false,
             'hidden' => false,
             'showIndexOrigin' => false,
+            'tracePlan' => false,
             'glob' => [],
             'showFileNames' => null,
             'showLineNumbers' => true,
@@ -1199,6 +1251,9 @@ final class IndexApplication
                 case '--no-index-origin':
                     $parsed['showIndexOrigin'] = false;
                     break;
+                case '--trace-plan':
+                    $parsed['tracePlan'] = true;
+                    break;
                 case '--glob':
                     $parsed['glob'][] = $this->shiftValue($arguments, $argument);
                     break;
@@ -1259,6 +1314,7 @@ final class IndexApplication
      *   noIgnore: bool,
      *   hidden: bool,
      *   showIndexOrigin: bool,
+     *   tracePlan: bool,
      *   strictParse: bool,
      *   filesWithMatches: bool,
      *   glob: list<string>,
@@ -1279,6 +1335,7 @@ final class IndexApplication
             'noIgnore' => false,
             'hidden' => false,
             'showIndexOrigin' => false,
+            'tracePlan' => false,
             'strictParse' => false,
             'filesWithMatches' => false,
             'glob' => [],
@@ -1325,6 +1382,9 @@ final class IndexApplication
                     break;
                 case '--no-index-origin':
                     $parsed['showIndexOrigin'] = false;
+                    break;
+                case '--trace-plan':
+                    $parsed['tracePlan'] = true;
                     break;
                 case '--strict-parse':
                     $parsed['strictParse'] = true;
@@ -2064,6 +2124,7 @@ Search Options:
   --index NAME    Restrict set operations to a named manifest entry. Repeatable.
   --show-index-origin
                   Prefix set-search output paths with the matching manifest entry.
+  --trace-plan    Emit warmed planner diagnostics to stderr.
   --dry-refresh   Report what warmed search would do without mutating anything.
   --help          Show this help.
 
@@ -2081,6 +2142,8 @@ AST Search Options:
   --strict-parse          Fail on parse errors instead of skipping them.
   --fallback MODE         Missing-index behavior: fail|scan.
   --index-dir DIR         Use a non-default AST index/cache directory. Repeat for multi-index search.
+  --show-index-origin     Prefix warmed output paths with the matching index name.
+  --trace-plan            Emit warmed planner diagnostics to stderr.
   --lifecycle PROFILE     Build policy: static|manual-refresh|opportunistic-refresh|strict-stale-check.
   --auto-refresh-max-files N
                           Opportunistic refresh file-change threshold.

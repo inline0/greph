@@ -54,6 +54,10 @@ final class BenchmarkRunner
             }
 
             foreach ($this->suites() as $suite) {
+                if (isset($suite['corpora']) && is_array($suite['corpora']) && !in_array($corpusName, $suite['corpora'], true)) {
+                    continue;
+                }
+
                 if ($category !== null && $suite['category'] !== $category) {
                     continue;
                 }
@@ -195,6 +199,92 @@ final class BenchmarkRunner
                         language: (string) ($suite['lang'] ?? 'php'),
                     ),
                     $astCachePath,
+                );
+                $matchCount = count($results);
+                break;
+
+            case 'indexed-text-many':
+                [$workspacePath, $textIndexPaths] = $this->preparePartitionedTextWorkspace($corpusPath, $corpusName);
+                $runtimeFileCount = iterator_count(Greph::walk($workspacePath));
+                $memoryBefore = memory_get_usage(true);
+                $start = hrtime(true);
+                $results = Greph::searchTextIndexedMany(
+                    (string) $suite['pattern'],
+                    $workspacePath,
+                    $textIndexPaths,
+                    new TextSearchOptions(
+                        fixedString: (bool) ($suite['fixed'] ?? false),
+                        caseInsensitive: (bool) ($suite['case_insensitive'] ?? false),
+                        wholeWord: (bool) ($suite['whole_word'] ?? false),
+                        countOnly: (bool) ($suite['count_only'] ?? false),
+                        filesWithMatches: (bool) ($suite['files_with_matches'] ?? false),
+                        filesWithoutMatches: (bool) ($suite['files_without_matches'] ?? false),
+                        quiet: (bool) ($suite['quiet'] ?? false),
+                        collectCaptures: false,
+                    ),
+                );
+
+                foreach ($results as $result) {
+                    $matchCount += $result->matchCount();
+                }
+                break;
+
+            case 'indexed-set-text':
+                ['workspace' => $workspacePath, 'manifest' => $manifestPath] = $this->preparePartitionedIndexSet($corpusPath, $corpusName, includeText: true);
+                $runtimeFileCount = iterator_count(Greph::walk($workspacePath));
+                $memoryBefore = memory_get_usage(true);
+                $start = hrtime(true);
+                $results = Greph::searchTextIndexedSet(
+                    (string) $suite['pattern'],
+                    $workspacePath,
+                    new TextSearchOptions(
+                        fixedString: (bool) ($suite['fixed'] ?? false),
+                        caseInsensitive: (bool) ($suite['case_insensitive'] ?? false),
+                        wholeWord: (bool) ($suite['whole_word'] ?? false),
+                        countOnly: (bool) ($suite['count_only'] ?? false),
+                        filesWithMatches: (bool) ($suite['files_with_matches'] ?? false),
+                        filesWithoutMatches: (bool) ($suite['files_without_matches'] ?? false),
+                        quiet: (bool) ($suite['quiet'] ?? false),
+                        collectCaptures: false,
+                    ),
+                    $manifestPath,
+                );
+
+                foreach ($results as $result) {
+                    $matchCount += $result->matchCount();
+                }
+                break;
+
+            case 'ast-indexed-set':
+                ['workspace' => $workspacePath, 'manifest' => $manifestPath] = $this->preparePartitionedIndexSet($corpusPath, $corpusName, includeAstIndex: true);
+                $runtimeFileCount = iterator_count(Greph::walk($workspacePath));
+                $memoryBefore = memory_get_usage(true);
+                $start = hrtime(true);
+                $results = Greph::searchAstIndexedSet(
+                    (string) $suite['pattern'],
+                    $workspacePath,
+                    new AstSearchOptions(
+                        jobs: (int) ($suite['jobs'] ?? 1),
+                        language: (string) ($suite['lang'] ?? 'php'),
+                    ),
+                    $manifestPath,
+                );
+                $matchCount = count($results);
+                break;
+
+            case 'ast-cached-set':
+                ['workspace' => $workspacePath, 'manifest' => $manifestPath] = $this->preparePartitionedIndexSet($corpusPath, $corpusName, includeAstCache: true);
+                $runtimeFileCount = iterator_count(Greph::walk($workspacePath));
+                $memoryBefore = memory_get_usage(true);
+                $start = hrtime(true);
+                $results = Greph::searchAstCachedSet(
+                    (string) $suite['pattern'],
+                    $workspacePath,
+                    new AstSearchOptions(
+                        jobs: (int) ($suite['jobs'] ?? 1),
+                        language: (string) ($suite['lang'] ?? 'php'),
+                    ),
+                    $manifestPath,
                 );
                 $matchCount = count($results);
                 break;
@@ -422,14 +512,18 @@ final class BenchmarkRunner
             'indexed-summary' => 80,
             'indexed-text' => 90,
             'indexed-text-cold' => 100,
-            'ast-indexed' => 110,
-            'ast-cached' => 120,
-            'indexed-build' => 130,
-            'indexed-refresh' => 140,
-            'ast-indexed-build' => 150,
-            'ast-indexed-refresh' => 160,
-            'ast-cached-build' => 170,
-            'ast-cached-refresh' => 180,
+            'indexed-text-many' => 110,
+            'indexed-set-text' => 120,
+            'ast-indexed' => 130,
+            'ast-cached' => 140,
+            'ast-indexed-set' => 150,
+            'ast-cached-set' => 160,
+            'indexed-build' => 170,
+            'indexed-refresh' => 180,
+            'ast-indexed-build' => 190,
+            'ast-indexed-refresh' => 200,
+            'ast-cached-build' => 210,
+            'ast-cached-refresh' => 220,
         ];
 
         $leftPriority = $priority[(string) ($left['category'] ?? '')] ?? 999;
@@ -451,6 +545,8 @@ final class BenchmarkRunner
         $mode = match ((string) ($suite['category'] ?? '')) {
             'indexed-build' => 'build',
             'indexed-text-cold' => 'cold',
+            'indexed-text-many' => 'many',
+            'indexed-set-text' => 'set',
             'indexed-refresh' => 'refresh',
             default => 'runtime',
         };
@@ -484,6 +580,137 @@ final class BenchmarkRunner
         };
 
         return $this->rootPath . '/build/benchmarks/ast-caches/' . $mode . '/' . $corpusName;
+    }
+
+    /**
+     * @return array{0: string, 1: list<string>}
+     */
+    private function preparePartitionedTextWorkspace(string $corpusPath, string $corpusName): array
+    {
+        $workspacePath = $this->preparePartitionedWorkspace($corpusPath, $corpusName);
+        $store = new TextIndexStore();
+        $indexPaths = [
+            $store->defaultPath($workspacePath . '/part-a'),
+            $store->defaultPath($workspacePath . '/part-b'),
+        ];
+
+        if (!$store->exists($indexPaths[0])) {
+            (new TextIndexBuilder())->build($workspacePath . '/part-a', $indexPaths[0]);
+        }
+
+        if (!$store->exists($indexPaths[1])) {
+            (new TextIndexBuilder())->build($workspacePath . '/part-b', $indexPaths[1]);
+        }
+
+        return [$workspacePath, $indexPaths];
+    }
+
+    /**
+     * @return array{workspace: string, manifest: string}
+     */
+    private function preparePartitionedIndexSet(
+        string $corpusPath,
+        string $corpusName,
+        bool $includeText = false,
+        bool $includeAstIndex = false,
+        bool $includeAstCache = false,
+    ): array
+    {
+        $workspacePath = $this->preparePartitionedWorkspace($corpusPath, $corpusName);
+        $textStore = new TextIndexStore();
+        $astIndexStore = new AstIndexStore();
+        $astCacheStore = new AstCacheStore();
+
+        foreach ([$workspacePath . '/part-a', $workspacePath . '/part-b'] as $partRoot) {
+            $textIndexPath = $textStore->defaultPath($partRoot);
+            $astIndexPath = $astIndexStore->defaultPath($partRoot);
+            $astCachePath = $astCacheStore->defaultPath($partRoot);
+
+            if ($includeText && !$textStore->exists($textIndexPath)) {
+                (new TextIndexBuilder())->build($partRoot, $textIndexPath);
+            }
+
+            if ($includeAstIndex && !$astIndexStore->exists($astIndexPath)) {
+                (new AstIndexBuilder())->build($partRoot, $astIndexPath);
+            }
+
+            if ($includeAstCache && !$astCacheStore->exists($astCachePath)) {
+                (new AstCacheBuilder())->build($partRoot, $astCachePath);
+            }
+        }
+
+        return [
+            'workspace' => $workspacePath,
+            'manifest' => $this->preparePartitionedIndexSetManifest($workspacePath),
+        ];
+    }
+
+    private function preparePartitionedWorkspace(string $corpusPath, string $corpusName): string
+    {
+        $workspacePath = $this->rootPath . '/build/benchmarks/index-sets/' . $corpusName . '/workspace';
+        $readyMarker = dirname($workspacePath) . '/.ready';
+
+        if (is_file($readyMarker)) {
+            return $workspacePath;
+        }
+
+        Filesystem::remove(dirname($workspacePath));
+        Filesystem::ensureDirectory($workspacePath . '/part-a');
+        Filesystem::ensureDirectory($workspacePath . '/part-b');
+
+        $iterator = new \RecursiveIteratorIterator(
+            new \RecursiveDirectoryIterator($corpusPath, \FilesystemIterator::SKIP_DOTS),
+        );
+
+        foreach ($iterator as $entry) {
+            if (!$entry instanceof \SplFileInfo || !$entry->isFile()) {
+                continue;
+            }
+
+            $absolutePath = Filesystem::normalizePath($entry->getPathname());
+            $normalizedCorpusPath = Filesystem::normalizePath($corpusPath);
+            $relativePath = ltrim(substr($absolutePath, strlen($normalizedCorpusPath)), '/');
+            $bucket = (crc32($relativePath) % 2) === 0 ? 'part-a' : 'part-b';
+            $targetPath = $workspacePath . '/' . $bucket . '/' . $relativePath;
+            Filesystem::ensureDirectory(dirname($targetPath));
+
+            if (@copy($absolutePath, $targetPath) === false) {
+                throw new \RuntimeException(sprintf('Failed to copy benchmark file: %s', $absolutePath));
+            }
+        }
+
+        if (@file_put_contents($readyMarker, "ready\n") === false) {
+            throw new \RuntimeException(sprintf('Failed to write benchmark workspace marker: %s', $readyMarker));
+        }
+
+        return $workspacePath;
+    }
+
+    private function preparePartitionedIndexSetManifest(string $workspacePath): string
+    {
+        $manifestPath = $workspacePath . '/.greph-index-set.json';
+
+        if (is_file($manifestPath)) {
+            return $manifestPath;
+        }
+
+        $payload = [
+            'name' => 'benchmark-set',
+            'indexes' => [
+                ['name' => 'part-a-text', 'root' => 'part-a', 'mode' => 'text', 'lifecycle' => 'static', 'priority' => 20],
+                ['name' => 'part-b-text', 'root' => 'part-b', 'mode' => 'text', 'lifecycle' => 'opportunistic-refresh', 'priority' => 10],
+                ['name' => 'part-a-ast', 'root' => 'part-a', 'mode' => 'ast-index', 'lifecycle' => 'static', 'priority' => 20],
+                ['name' => 'part-b-ast', 'root' => 'part-b', 'mode' => 'ast-index', 'lifecycle' => 'opportunistic-refresh', 'priority' => 10],
+                ['name' => 'part-a-cache', 'root' => 'part-a', 'mode' => 'ast-cache', 'lifecycle' => 'static', 'priority' => 20],
+                ['name' => 'part-b-cache', 'root' => 'part-b', 'mode' => 'ast-cache', 'lifecycle' => 'opportunistic-refresh', 'priority' => 10],
+            ],
+        ];
+
+        if (@file_put_contents($manifestPath, json_encode($payload, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES)) === false) {
+            throw new \RuntimeException(sprintf('Failed to write benchmark index-set manifest: %s', $manifestPath));
+        }
+
+        return $manifestPath;
     }
 
     /**
