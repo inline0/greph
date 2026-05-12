@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.2.1] - 2026-05-12
+
+### Added
+- Explicit process-disabled support helpers for `ToolResolver` and `CommandRunner`
+
 ## [0.2.0] - 2026-04-14
 
 ### Added

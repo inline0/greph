@@ -64,4 +64,15 @@ final class CommandRunnerTest extends TestCase
 
         $runner->run([PHP_BINARY, '-v']);
     }
+
+    #[Test]
+    public function itCanDisableProcessExecution(): void
+    {
+        $runner = CommandRunner::processDisabled();
+
+        $this->expectException(\RuntimeException::class);
+        $this->expectExceptionMessage('Process execution is disabled; cannot run command: php -v');
+
+        $runner->run(['php', '-v']);
+    }
 }

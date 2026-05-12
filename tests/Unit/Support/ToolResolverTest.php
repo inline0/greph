@@ -75,6 +75,19 @@ final class ToolResolverTest extends TestCase
     }
 
     #[Test]
+    public function itCanDisableProcessBasedToolLookup(): void
+    {
+        $resolver = ToolResolver::processDisabled();
+
+        $this->assertSame([PHP_BINARY], $resolver->phpBinary());
+        $this->assertFalse($resolver->hasAstGrep());
+
+        $this->expectException(\RuntimeException::class);
+        $this->expectExceptionMessage('Process-based tool lookup is disabled; cannot resolve binary: grep');
+        $resolver->grep();
+    }
+
+    #[Test]
     public function itCanUseTheDefaultBinaryLocatorForSystemGrep(): void
     {
         $resolver = new ToolResolver();

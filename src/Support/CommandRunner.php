@@ -27,6 +27,23 @@ final class CommandRunner
         $this->processStarter = $resolvedProcessStarter;
     }
 
+    public static function processDisabled(): self
+    {
+        return new self(
+            static function (
+                array $command,
+                array $descriptors,
+                array &$pipes,
+                ?string $workingDirectory,
+                array $processEnvironment,
+            ): false {
+                throw new \RuntimeException(
+                    sprintf('Process execution is disabled; cannot run command: %s', implode(' ', $command)),
+                );
+            },
+        );
+    }
+
     /**
      * @param list<string> $command
      * @param array<string, string> $environment

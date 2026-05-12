@@ -139,6 +139,25 @@ $matches = Greph::searchAstCachedSet(
 );
 ```
 
+## Process-restricted hosts
+
+The Greph engine runs in PHP. Optional oracle/support helpers that resolve
+external binaries or run compatibility commands can be constructed with an
+explicit process-disabled policy when embedding Greph in hosts where
+`proc_open()` / `shell_exec()` are unavailable or forbidden:
+
+```php
+use Greph\Support\CommandRunner;
+use Greph\Support\ToolResolver;
+
+$toolResolver = ToolResolver::processDisabled();
+$commandRunner = CommandRunner::processDisabled();
+```
+
+These helpers fail closed with clear errors instead of attempting host process
+lookup or execution. Native `Greph::search*()` and `Greph::rewrite*()` calls do
+not require them.
+
 ## CLI
 
 Greph exposes four executables:

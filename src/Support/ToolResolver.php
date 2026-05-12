@@ -20,6 +20,15 @@ final class ToolResolver
         };
     }
 
+    public static function processDisabled(): self
+    {
+        return new self(static function (string $candidate): ?string {
+            throw new \RuntimeException(
+                sprintf('Process-based tool lookup is disabled; cannot resolve binary: %s', $candidate),
+            );
+        });
+    }
+
     /**
      * @return list<string>
      */
