@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.2.2] - 2026-05-19
+
+### Changed
+- Raised PHPStan analysis to level 10 with tightened type shapes, generics, and narrowing helpers; added `phpstan/phpstan-phpunit` to surface PHPUnit assertion narrowing in reflection-based test helpers
+
 ## [0.2.1] - 2026-05-12
 
 ### Added
