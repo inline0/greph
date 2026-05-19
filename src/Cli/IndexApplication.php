@@ -2274,6 +2274,10 @@ TEXT;
         );
 
         foreach ($iterator as $entry) {
+            if (!$entry instanceof \SplFileInfo) {
+                continue;
+            }
+
             $entrySize = $entry->getSize();
             $size += is_int($entrySize) ? $entrySize : 0;
         }

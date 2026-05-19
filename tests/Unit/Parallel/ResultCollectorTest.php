@@ -34,7 +34,7 @@ final class ResultCollectorTest extends TestCase
             $this->spawnWorker(serialize(['result' => 'first'])),
         ];
 
-        $this->assertSame(['FIRST'], $collector->collect($workers, 'strtoupper'));
+        $this->assertSame(['FIRST'], $collector->collect($workers, static fn (mixed $value): string => strtoupper(is_string($value) ? $value : '')));
     }
 
     #[Test]
@@ -104,7 +104,7 @@ final class ResultCollectorTest extends TestCase
     }
 
     /**
-     * @return array{pid: int, socket: mixed}
+     * @return array{pid: int, socket: resource}
      */
     private function spawnWorker(string $payload): array
     {

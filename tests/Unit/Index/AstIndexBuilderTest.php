@@ -36,6 +36,7 @@ final class AstIndexBuilderTest extends TestCase
         $absoluteIndexPath = $this->invokeMethod($builder, 'resolveIndexPath', $this->workspace, '/tmp/custom-ast-index');
         $relativeIndexPath = $this->invokeMethod($builder, 'resolveIndexPath', $this->workspace, '.alt-index');
         $scannedFiles = $this->invokeMethod($builder, 'scanFiles', $this->workspace, $this->workspace . '/.greph-ast-index');
+        self::assertIsArray($scannedFiles);
         $missingFacts = $this->invokeMethod($builder, 'extractFacts', $this->workspace . '/missing.php');
         $hidden = $this->invokeMethod($builder, 'isHiddenPath', '.hidden/Hidden.php');
         $visible = $this->invokeMethod($builder, 'isHiddenPath', 'src/App.php');

@@ -7,6 +7,26 @@ namespace Greph\Tests\Oracle;
 use Greph\Support\Json;
 use Greph\Support\ToolResolver;
 
+/**
+ * @phpstan-type ComplianceCategorySummary array{total: int, passing: int, failing: int}
+ * @phpstan-type ComplianceScenarioEntry array{
+ *   name: string,
+ *   category: string,
+ *   mode: string,
+ *   has_oracle: bool,
+ *   has_actual: bool,
+ *   has_report: bool,
+ *   pass: ?bool,
+ *   failures: list<string>
+ * }
+ * @phpstan-type ComplianceReport array{
+ *   generated_at: string,
+ *   tools: array{grep: bool, rg: bool, sg: bool},
+ *   summary: array{total: int, passing: int, failing: int, missing_reports: int},
+ *   categories: array<string, ComplianceCategorySummary>,
+ *   scenarios: list<ComplianceScenarioEntry>
+ * }
+ */
 final class ComplianceReporter
 {
     private ScenarioRepository $scenarioRepository;
@@ -20,50 +40,48 @@ final class ComplianceReporter
     }
 
     /**
-     * @return array<string, mixed>
+     * @return ComplianceReport
      */
     public function build(): array
     {
         $scenarios = $this->scenarioRepository->all();
-        $report = [
-            'generated_at' => date(DATE_ATOM),
-            'tools' => [
-                'grep' => true,
-                'rg' => true,
-                'sg' => $this->toolResolver->hasAstGrep(),
-            ],
-            'summary' => [
-                'total' => count($scenarios),
-                'passing' => 0,
-                'failing' => 0,
-                'missing_reports' => 0,
-            ],
-            'categories' => [],
-            'scenarios' => [],
+        $categories = [];
+        $scenarioEntries = [];
+        $summary = [
+            'total' => count($scenarios),
+            'passing' => 0,
+            'failing' => 0,
+            'missing_reports' => 0,
         ];
 
         foreach ($scenarios as $scenario) {
             $comparisonPath = $scenario->reportPath();
             $comparison = is_file($comparisonPath) ? Json::decodeFile($comparisonPath) : null;
-            $pass = (bool) ($comparison['expectation']['pass'] ?? false);
+            $expectation = is_array($comparison) && isset($comparison['expectation']) && is_array($comparison['expectation'])
+                ? $comparison['expectation']
+                : null;
+            $pass = $expectation !== null && ($expectation['pass'] ?? false) === true;
+            $failures = $expectation !== null && isset($expectation['failures']) && is_array($expectation['failures'])
+                ? array_values(array_filter($expectation['failures'], 'is_string'))
+                : [];
 
             if ($comparison === null) {
-                $report['summary']['missing_reports']++;
+                $summary['missing_reports']++;
             } elseif ($pass) {
-                $report['summary']['passing']++;
+                $summary['passing']++;
             } else {
-                $report['summary']['failing']++;
+                $summary['failing']++;
             }
 
             $category = $scenario->category();
-            $report['categories'][$category] ??= ['total' => 0, 'passing' => 0, 'failing' => 0];
-            $report['categories'][$category]['total']++;
+            $categories[$category] ??= ['total' => 0, 'passing' => 0, 'failing' => 0];
+            $categories[$category]['total']++;
 
             if ($comparison !== null) {
-                $report['categories'][$category][$pass ? 'passing' : 'failing']++;
+                $categories[$category][$pass ? 'passing' : 'failing']++;
             }
 
-            $report['scenarios'][] = [
+            $scenarioEntries[] = [
                 'name' => $scenario->name,
                 'category' => $category,
                 'mode' => $scenario->mode(),
@@ -71,17 +89,27 @@ final class ComplianceReporter
                 'has_actual' => $this->hasFiles($scenario->actualDir(), $scenario->expectedActualFiles()),
                 'has_report' => $comparison !== null,
                 'pass' => $comparison === null ? null : $pass,
-                'failures' => $comparison['expectation']['failures'] ?? [],
+                'failures' => $failures,
             ];
         }
 
-        ksort($report['categories']);
+        ksort($categories);
 
-        return $report;
+        return [
+            'generated_at' => date(DATE_ATOM),
+            'tools' => [
+                'grep' => true,
+                'rg' => true,
+                'sg' => $this->toolResolver->hasAstGrep(),
+            ],
+            'summary' => $summary,
+            'categories' => $categories,
+            'scenarios' => $scenarioEntries,
+        ];
     }
 
     /**
-     * @param array<string, mixed> $report
+     * @param ComplianceReport $report
      */
     public function renderText(array $report): string
     {

@@ -103,7 +103,7 @@ final class AstMatchCodec
     }
 
     /**
-     * @param array<string, mixed> $captures
+     * @param array<array-key, mixed> $captures
      * @return array<string, mixed>
      */
     private function decodeCaptureArray(array $captures): array

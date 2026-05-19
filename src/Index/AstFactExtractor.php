@@ -278,7 +278,13 @@ final class AstFactExtractor
 
     private function tokenId(mixed $token): ?int
     {
-        return is_array($token) ? $token[0] : null;
+        if (!is_array($token)) {
+            return null;
+        }
+
+        $id = $token[0] ?? null;
+
+        return is_int($id) ? $id : null;
     }
 
     private function blocksFunctionCallClassification(mixed $previousToken): bool

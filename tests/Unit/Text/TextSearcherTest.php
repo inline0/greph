@@ -226,54 +226,61 @@ final class TextSearcherTest extends TestCase
             }
         };
 
-        $streamResult = $this->invokeMethod(
+        $streamResult = $this->invokeInstance(
             $searcher,
             'searchFileWithoutContext',
+            TextFileResult::class,
             $this->workspace . '/count.txt',
             $matcher,
             new TextSearchOptions(countOnly: true, maxCount: 1),
         );
-        $streamListResult = $this->invokeMethod(
+        $streamListResult = $this->invokeInstance(
             $searcher,
             'searchFileWithoutContext',
+            TextFileResult::class,
             $this->workspace . '/count.txt',
             $matcher,
             new TextSearchOptions(filesWithMatches: true),
         );
-        $streamMissingResult = $this->invokeMethod(
+        $streamMissingResult = $this->invokeInstance(
             $searcher,
             'searchFileWithoutContext',
+            TextFileResult::class,
             $this->workspace . '/missing-stream.txt',
             $matcher,
             new TextSearchOptions(),
         );
 
-        $contentsResult = $this->invokeMethod(
+        $contentsResult = $this->invokeInstance(
             $searcher,
             'searchContentsWithoutContext',
+            TextFileResult::class,
             'memory.txt',
             "miss\r\nmatch\r\nfinal match",
             $matcher,
             new TextSearchOptions(countOnly: true, maxCount: 1),
         );
-        $contentsWithoutMatches = $this->invokeMethod(
+        $contentsWithoutMatches = $this->invokeInstance(
             $searcher,
             'searchContentsWithoutContext',
+            TextFileResult::class,
             'memory.txt',
             "alpha\nbeta",
             $matcher,
             new TextSearchOptions(filesWithoutMatches: true, invertMatch: true),
         );
-        $quietStreamResult = $this->invokeMethod(
+        $quietStreamResult = $this->invokeInstance(
             $searcher,
             'searchFileWithoutContext',
+            TextFileResult::class,
             $this->workspace . '/count.txt',
             $matcher,
             new TextSearchOptions(quiet: true),
         );
-        $quietContentsResult = $this->invokeMethod(
+        $quietContentsResult = $this->invokeInstance(
             $searcher,
             'searchContentsWithoutContext',
+            TextFileResult::class,
             'memory.txt',
             "miss\r\nmatch\r\nfinal match",
             $matcher,
@@ -351,33 +358,37 @@ final class TextSearcherTest extends TestCase
             new TextSearchOptions(),
         );
 
-        $regexPrefilterResult = $this->invokeMethod(
+        $regexPrefilterResult = $this->invokeInstance(
             $searcher,
             'searchContentsByRegexPrefilter',
+            TextFileResult::class,
             'memory.txt',
             '$foo = new Bar()',
             new RegexSearcher('\$foo = new [A-Za-z_][A-Za-z0-9_]*\(\)', false, false, 'new '),
             new TextSearchOptions(),
         );
-        $regexPrefilterQuietResult = $this->invokeMethod(
+        $regexPrefilterQuietResult = $this->invokeInstance(
             $searcher,
             'searchContentsByRegexPrefilter',
+            TextFileResult::class,
             'memory.txt',
             '$foo = new Bar()',
             new RegexSearcher('\$foo = new [A-Za-z_][A-Za-z0-9_]*\(\)', false, false, 'new '),
             new TextSearchOptions(quiet: true),
         );
-        $literalResult = $this->invokeMethod(
+        $literalResult = $this->invokeInstance(
             $searcher,
             'searchContentsByLiteral',
+            TextFileResult::class,
             'memory.txt',
             "needle\r\nneedle",
             new LiteralSearcher('needle'),
             new TextSearchOptions(countOnly: true, maxCount: 1, fixedString: true),
         );
-        $anchoredLiteralResult = $this->invokeMethod(
+        $anchoredLiteralResult = $this->invokeInstance(
             $searcher,
             'searchContentsByAnchoredLiteral',
+            TextFileResult::class,
             'memory.txt',
             "function demo()\ncall(); more();\n}\n",
             new AnchoredLiteralSearcher(');', AnchoredLiteralSearcher::MODE_SUFFIX),
@@ -416,32 +427,36 @@ final class TextSearcherTest extends TestCase
             }
         };
 
-        $streamResult = $this->invokeMethod(
+        $streamResult = $this->invokeInstance(
             $searcher,
             'searchFileWithStreamWithoutContext',
+            TextFileResult::class,
             $this->workspace . '/context.txt',
             $matcher,
             new TextSearchOptions(maxCount: 1),
         );
-        $contentsResult = $this->invokeMethod(
+        $contentsResult = $this->invokeInstance(
             $searcher,
             'searchContentsWithoutContext',
+            TextFileResult::class,
             'tail.txt',
             "alpha\ntail match",
             $matcher,
             new TextSearchOptions(maxCount: 1),
         );
-        $contentsCountOnly = $this->invokeMethod(
+        $contentsCountOnly = $this->invokeInstance(
             $searcher,
             'searchContentsWithoutContext',
+            TextFileResult::class,
             'count.txt',
             "match\nmatch",
             $matcher,
             new TextSearchOptions(countOnly: true),
         );
-        $streamCountOnly = $this->invokeMethod(
+        $streamCountOnly = $this->invokeInstance(
             $searcher,
             'searchFileWithStreamWithoutContext',
+            TextFileResult::class,
             $this->workspace . '/count.txt',
             $matcher,
             new TextSearchOptions(countOnly: true),
@@ -456,14 +471,24 @@ final class TextSearcherTest extends TestCase
         $this->assertSame(2, $streamCountOnly->matchCount());
     }
 
-    /**
-     * @return mixed
-     */
     private function invokeMethod(object $object, string $method, mixed ...$arguments): mixed
     {
         $reflection = new \ReflectionMethod($object, $method);
         $reflection->setAccessible(true);
 
         return $reflection->invoke($object, ...$arguments);
+    }
+
+    /**
+     * @template T of object
+     * @param class-string<T> $expectedClass
+     * @return T
+     */
+    private function invokeInstance(object $object, string $method, string $expectedClass, mixed ...$arguments): object
+    {
+        $result = $this->invokeMethod($object, $method, ...$arguments);
+        self::assertInstanceOf($expectedClass, $result);
+
+        return $result;
     }
 }

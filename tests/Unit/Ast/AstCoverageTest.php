@@ -61,7 +61,9 @@ final class AstCoverageTest extends TestCase
         $this->assertFalse($this->invokePrivateWithArgs($matcher, 'matchArray', [$variadicPattern, $variadicCandidate, &$variadicCaptures, 0, 0]));
         $this->assertSame(serialize([serialize(1), serialize('two')]), $this->invokePrivate($matcher, 'fingerprint', [1, 'two']));
         $this->assertIsString($this->invokePrivate($matcher, 'fingerprint', new Name(['App', 'Service'])));
-        $this->assertCount(2, $this->invokePrivate($matcher, 'serializeSubNodeArray', [new Expr\Variable('value'), 'literal']));
+        $serialized = $this->invokePrivate($matcher, 'serializeSubNodeArray', [new Expr\Variable('value'), 'literal']);
+        self::assertIsArray($serialized);
+        $this->assertCount(2, $serialized);
         $this->assertIsString($this->invokePrivate($matcher, 'fingerprint', new Expr\Array_([
             new ArrayItem(new Expr\Variable('value')),
         ])));
@@ -170,7 +172,9 @@ final class AstCoverageTest extends TestCase
 
         $this->assertSame('true', $match->code);
         $this->assertSame('true', $this->invokePrivate($searcher, 'renderNode', $expr));
-        $this->assertStringContainsString('echo', $this->invokePrivate($searcher, 'renderNode', $statement));
+        $rendered = $this->invokePrivate($searcher, 'renderNode', $statement);
+        self::assertIsString($rendered);
+        $this->assertStringContainsString('echo', $rendered);
     }
 
     #[Test]
@@ -262,6 +266,7 @@ final class AstCoverageTest extends TestCase
             [],
         );
 
+        self::assertIsArray($materialized);
         $this->assertSame('literal', $materialized[0]);
         $this->assertInstanceOf(Expr\Variable::class, $materialized[1]);
 

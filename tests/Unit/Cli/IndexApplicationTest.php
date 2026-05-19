@@ -486,37 +486,37 @@ PHP,
     {
         $application = $this->newApplication()['application'];
 
-        $parsedFlags = $this->invokeMethod(
+        $parsedFlags = $this->invokeArrayMethod(
             $application,
             'parseSearchArguments',
             ['-w', '-v', '-n', '--show-index-origin', '--trace-plan', '-A', '2', '-B', '1', '-C', '3', '--type', 'php', '--type-not', 'txt', 'needle'],
         );
-        $parsedTerminated = $this->invokeMethod(
+        $parsedTerminated = $this->invokeArrayMethod(
             $application,
             'parseSearchArguments',
             ['--', 'needle', 'single.txt', 'counts.txt'],
         );
-        $parsedAst = $this->invokeMethod(
+        $parsedAst = $this->invokeArrayMethod(
             $application,
             'parseAstSearchArguments',
             ['--json', '--hidden', '--show-index-origin', '--trace-plan', '--strict-parse', '-l', '--glob', '*.php', '--type', 'php', '--type-not', 'txt', '--index-dir', '.ast', '--lang', 'php', '-j', '4', '--fallback', 'scan', 'new $CLASS()', 'src/Ast.php'],
         );
-        $parsedBuild = $this->invokeMethod(
+        $parsedBuild = $this->invokeArrayMethod(
             $application,
             'parseBuildArguments',
             ['--index-dir', '.index', '--lifecycle', 'static', '--auto-refresh-max-files', '9', '--auto-refresh-max-bytes', '2048', '.'],
         );
-        $parsedStats = $this->invokeMethod(
+        $parsedStats = $this->invokeArrayMethod(
             $application,
             'parseStatsArguments',
             ['--index-dir', '.index', '--dry-refresh', '.'],
         );
-        $parsedSet = $this->invokeMethod(
+        $parsedSet = $this->invokeArrayMethod(
             $application,
             'parseSetCommandArguments',
             ['--manifest', '.greph-index-set.json', '--mode', 'ast-cache', '--index', 'plugin-cache', '--dry-refresh'],
         );
-        $parsedSetSearch = $this->invokeMethod(
+        $parsedSetSearch = $this->invokeArrayMethod(
             $application,
             'parseSetSearchArguments',
             ['--manifest', '.greph-index-set.json', '--mode', 'ast-index', '--index', 'plugin-ast', '--show-index-origin', 'new $CLASS()', 'src/Ast.php'],
@@ -568,7 +568,9 @@ PHP,
         $this->assertSame('ast-index', $parsedSetSearch['mode']);
         $this->assertSame(['plugin-ast'], $parsedSetSearch['indexes']);
         $this->assertTrue($parsedSetSearch['showIndexOrigin']);
-        $this->assertSame('new $CLASS()', $parsedSetSearch['search']['pattern']);
+        $search = $parsedSetSearch['search'];
+        self::assertIsArray($search);
+        $this->assertSame('new $CLASS()', $search['pattern']);
         $this->assertTrue($displayNames);
     }
 
@@ -605,14 +607,22 @@ PHP,
         return (string) stream_get_contents($stream);
     }
 
-    /**
-     * @return mixed
-     */
     private function invokeMethod(object $object, string $method, mixed ...$arguments): mixed
     {
         $reflection = new \ReflectionMethod($object, $method);
         $reflection->setAccessible(true);
 
         return $reflection->invoke($object, ...$arguments);
+    }
+
+    /**
+     * @return array<array-key, mixed>
+     */
+    private function invokeArrayMethod(object $object, string $method, mixed ...$arguments): array
+    {
+        $result = $this->invokeMethod($object, $method, ...$arguments);
+        self::assertIsArray($result);
+
+        return $result;
     }
 }

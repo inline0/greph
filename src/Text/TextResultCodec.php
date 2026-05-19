@@ -75,10 +75,32 @@ final class TextResultCodec
 
             $file = $entry['f'];
             $matches = [];
+            $matchEntries = $entry['m'] ?? [];
 
-            foreach ($entry['m'] ?? [] as $matchEntry) {
-                if (!is_array($matchEntry) || !isset($matchEntry['l'], $matchEntry['c'], $matchEntry['t'])) {
+            if (!is_array($matchEntries)) {
+                throw new \RuntimeException('Worker returned invalid text match payload.');
+            }
+
+            foreach ($matchEntries as $matchEntry) {
+                if (
+                    !is_array($matchEntry)
+                    || !isset($matchEntry['l'], $matchEntry['c'], $matchEntry['t'])
+                    || !is_int($matchEntry['l'])
+                    || !is_int($matchEntry['c'])
+                    || !is_string($matchEntry['t'])
+                ) {
                     throw new \RuntimeException('Worker returned invalid text match payload.');
+                }
+
+                $captureSource = $matchEntry['p'] ?? null;
+                $captures = [];
+
+                if (is_array($captureSource)) {
+                    foreach ($captureSource as $captureKey => $captureValue) {
+                        if (is_string($captureValue)) {
+                            $captures[$captureKey] = $captureValue;
+                        }
+                    }
                 }
 
                 $matches[] = new TextMatch(
@@ -87,7 +109,7 @@ final class TextResultCodec
                     column: $matchEntry['c'],
                     content: $matchEntry['t'],
                     matchedText: is_string($matchEntry['m'] ?? null) ? $matchEntry['m'] : '',
-                    captures: is_array($matchEntry['p'] ?? null) ? $matchEntry['p'] : [],
+                    captures: $captures,
                     beforeContext: $this->decodeContext($matchEntry['b'] ?? []),
                     afterContext: $this->decodeContext($matchEntry['a'] ?? []),
                 );

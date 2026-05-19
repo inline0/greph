@@ -23,9 +23,10 @@ final class Worker
 
     /**
      * @param callable(FileList): mixed $task
+     * @param resource $socket
      * @param (callable(mixed): mixed)|null $resultEncoder
      */
-    public function run(callable $task, mixed $socket, ?callable $resultEncoder = null): never
+    public function run(callable $task, $socket, ?callable $resultEncoder = null): never
     {
         $payload = [];
         $exitCode = 0;

@@ -18,26 +18,32 @@ final readonly class Scenario
 
     public function category(): string
     {
-        return (string) ($this->definition['category'] ?? '');
+        return self::asString($this->definition['category'] ?? '');
     }
 
     public function mode(): string
     {
-        return (string) ($this->definition['mode'] ?? match ($this->category()) {
+        $mode = $this->definition['mode'] ?? null;
+
+        if (is_string($mode)) {
+            return $mode;
+        }
+
+        return match ($this->category()) {
             'ast' => 'ast',
             'rewrite' => 'rewrite',
             default => 'text',
-        });
+        };
     }
 
     public function description(): string
     {
-        return (string) ($this->definition['description'] ?? '');
+        return self::asString($this->definition['description'] ?? '');
     }
 
     public function pattern(): string
     {
-        return (string) ($this->definition['pattern'] ?? '');
+        return self::asString($this->definition['pattern'] ?? '');
     }
 
     public function rewrite(): ?string
@@ -49,7 +55,9 @@ final readonly class Scenario
 
     public function language(): string
     {
-        return (string) ($this->definition['lang'] ?? 'php');
+        $lang = $this->definition['lang'] ?? 'php';
+
+        return is_string($lang) ? $lang : 'php';
     }
 
     /**
@@ -57,7 +65,21 @@ final readonly class Scenario
      */
     public function flags(): array
     {
-        return array_values(array_map('strval', (array) ($this->definition['flags'] ?? [])));
+        $flags = $this->definition['flags'] ?? [];
+
+        if (!is_array($flags)) {
+            return [];
+        }
+
+        $result = [];
+
+        foreach ($flags as $flag) {
+            if (is_scalar($flag) || $flag === null) {
+                $result[] = (string) $flag;
+            }
+        }
+
+        return $result;
     }
 
     /**
@@ -68,10 +90,20 @@ final readonly class Scenario
         $paths = $this->definition['paths'] ?? null;
 
         if (is_array($paths) && $paths !== []) {
-            return array_values(array_map('strval', $paths));
+            $result = [];
+
+            foreach ($paths as $path) {
+                if (is_scalar($path) || $path === null) {
+                    $result[] = (string) $path;
+                }
+            }
+
+            return $result;
         }
 
-        return [(string) ($this->definition['path'] ?? 'setup')];
+        $path = $this->definition['path'] ?? 'setup';
+
+        return [is_string($path) ? $path : 'setup'];
     }
 
     /**
@@ -94,7 +126,21 @@ final readonly class Scenario
      */
     public function oracleDisagreement(): array
     {
-        return (array) ($this->definition['oracle_disagreement'] ?? []);
+        $disagreement = $this->definition['oracle_disagreement'] ?? [];
+
+        if (!is_array($disagreement)) {
+            return [];
+        }
+
+        $result = [];
+
+        foreach ($disagreement as $key => $value) {
+            if (is_string($key)) {
+                $result[$key] = $value;
+            }
+        }
+
+        return $result;
     }
 
     public function scenarioDir(): string
@@ -175,5 +221,18 @@ final readonly class Scenario
             'pass' => $failures === [],
             'failures' => $failures,
         ];
+    }
+
+    private static function asString(mixed $value): string
+    {
+        if (is_string($value)) {
+            return $value;
+        }
+
+        if (is_scalar($value) || $value === null) {
+            return (string) $value;
+        }
+
+        return '';
     }
 }

@@ -170,7 +170,7 @@ final class PatternMatcher
     }
 
     /**
-     * @param array<int, mixed> $subNodeValue
+     * @param array<array-key, mixed> $subNodeValue
      * @return list<string>
      */
     private function serializeSubNodeArray(array $subNodeValue): array

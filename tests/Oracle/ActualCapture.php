@@ -43,8 +43,8 @@ final class ActualCapture
                 $path = $scenario->actualDir() . '/' . $name;
 
                 if (is_array($output)) {
-                    Json::encodeFile($path, $output);
-                } else {
+                    Json::encodeFile($path, array_values($output));
+                } elseif (is_scalar($output) || $output === null) {
                     file_put_contents($path, (string) $output);
                 }
             }

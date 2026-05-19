@@ -7,7 +7,7 @@ namespace Greph\Parallel;
 final class ResultCollector
 {
     /**
-     * @param list<array{pid: int, socket: mixed, tempPath?: string}> $workers
+     * @param list<array{pid: int, socket: resource, tempPath?: string}> $workers
      * @param (callable(mixed): mixed)|null $resultDecoder
      * @return list<mixed>
      */
@@ -23,7 +23,7 @@ final class ResultCollector
     }
 
     /**
-     * @param array{pid: int, socket: mixed, tempPath?: string} $worker
+     * @param array{pid: int, socket: resource, tempPath?: string} $worker
      * @param (callable(mixed): mixed)|null $resultDecoder
      */
     public function collectWorker(array $worker, bool $waitForExit = true, ?callable $resultDecoder = null): mixed
@@ -54,12 +54,18 @@ final class ResultCollector
                 throw new \RuntimeException(sprintf('Worker %d returned invalid output.', $worker['pid']));
             }
 
-            if (isset($payload['error'], $payload['message'])) {
+            $error = $payload['error'] ?? null;
+            $message = $payload['message'] ?? null;
+
+            if (is_string($error) && is_string($message)) {
+                $workerLabel = $payload['worker'] ?? '?';
+                $workerLabel = is_scalar($workerLabel) ? (string) $workerLabel : '?';
+
                 throw new \RuntimeException(sprintf(
                     'Worker %s failed with %s: %s',
-                    (string) ($payload['worker'] ?? '?'),
-                    $payload['error'],
-                    $payload['message'],
+                    $workerLabel,
+                    $error,
+                    $message,
                 ));
             }
 

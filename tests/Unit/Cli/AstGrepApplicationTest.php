@@ -249,8 +249,8 @@ PHP);
         $application = $this->newApplication()['application'];
 
         $missingPatternExit = $application->run(['sg', 'run']);
-        $parsedTerminated = $this->invokeMethod($application, 'parseArguments', ['--', 'src/App.php', 'notes.txt']);
-        $parsedDefaults = $this->invokeMethod(
+        $parsedTerminated = $this->invokeArrayMethod($application, 'parseArguments', ['--', 'src/App.php', 'notes.txt']);
+        $parsedDefaults = $this->invokeArrayMethod(
             $application,
             'parseArguments',
             ['--type', 'php', '--type-not', 'txt', '--rewrite', '', '--pattern', 'dispatch($EVENT)'],
@@ -322,14 +322,22 @@ PHP);
         return (string) stream_get_contents($stream);
     }
 
-    /**
-     * @return mixed
-     */
     private function invokeMethod(object $object, string $method, mixed ...$arguments): mixed
     {
         $reflection = new \ReflectionMethod($object, $method);
         $reflection->setAccessible(true);
 
         return $reflection->invoke($object, ...$arguments);
+    }
+
+    /**
+     * @return array<array-key, mixed>
+     */
+    private function invokeArrayMethod(object $object, string $method, mixed ...$arguments): array
+    {
+        $result = $this->invokeMethod($object, $method, ...$arguments);
+        self::assertIsArray($result);
+
+        return $result;
     }
 }

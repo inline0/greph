@@ -8,6 +8,31 @@ use Greph\Ast\AstSearchOptions;
 use Greph\Text\TextSearchOptions;
 use Greph\Walker\FileTypeFilter;
 
+/**
+ * @phpstan-type FlagSet array{
+ *   fixedString: bool,
+ *   caseInsensitive: bool,
+ *   wholeWord: bool,
+ *   invertMatch: bool,
+ *   countOnly: bool,
+ *   filesWithMatches: bool,
+ *   filesWithoutMatches: bool,
+ *   json: bool,
+ *   noIgnore: bool,
+ *   hidden: bool,
+ *   glob: list<string>,
+ *   dryRun: bool,
+ *   interactive: bool,
+ *   jobs: int,
+ *   maxCount: ?int,
+ *   beforeContext: int,
+ *   afterContext: int,
+ *   context: ?int,
+ *   type: list<string>,
+ *   typeNot: list<string>,
+ *   lang: string
+ * }
+ */
 final class FlagParser
 {
     /** @var array<string, list<string>> */
@@ -23,29 +48,7 @@ final class FlagParser
     ];
 
     /**
-     * @return array{
-     *   fixedString: bool,
-     *   caseInsensitive: bool,
-     *   wholeWord: bool,
-     *   invertMatch: bool,
-     *   countOnly: bool,
-     *   filesWithMatches: bool,
-     *   filesWithoutMatches: bool,
-     *   json: bool,
-     *   noIgnore: bool,
-     *   hidden: bool,
-     *   glob: list<string>,
-     *   dryRun: bool,
-     *   interactive: bool,
-     *   jobs: int,
-     *   maxCount: ?int,
-     *   beforeContext: int,
-     *   afterContext: int,
-     *   context: ?int,
-     *   type: list<string>,
-     *   typeNot: list<string>,
-     *   lang: string
-     * }
+     * @return FlagSet
      */
     public function parse(Scenario $scenario): array
     {

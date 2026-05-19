@@ -36,6 +36,7 @@ final class AstCacheBuilderTest extends TestCase
         $absoluteIndexPath = $this->invokeMethod($builder, 'resolveIndexPath', $this->workspace, '/tmp/custom-ast-cache');
         $relativeIndexPath = $this->invokeMethod($builder, 'resolveIndexPath', $this->workspace, '.alt-cache');
         $scannedFiles = $this->invokeMethod($builder, 'scanFiles', $this->workspace, $this->workspace . '/.greph-ast-cache');
+        self::assertIsArray($scannedFiles);
         $missingFacts = $this->invokeMethod($builder, 'extractFacts', $this->workspace . '/missing.php');
         $hidden = $this->invokeMethod($builder, 'isHiddenPath', '.hidden/Hidden.php');
         $visible = $this->invokeMethod($builder, 'isHiddenPath', 'src/App.php');

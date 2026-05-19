@@ -77,8 +77,10 @@ final class ScenarioRunner
             Filesystem::ensureDirectory($scenario->reportsDir());
             Json::encodeFile($scenario->reportPath(), $comparison);
 
+            $expectation = is_array($comparison['expectation'] ?? null) ? $comparison['expectation'] : [];
+
             return [
-                'pass' => (bool) ($comparison['expectation']['pass'] ?? false),
+                'pass' => ($expectation['pass'] ?? false) === true,
                 'oracle' => $oracleResult,
                 'actual' => $actualResult,
                 'comparison' => $comparison,

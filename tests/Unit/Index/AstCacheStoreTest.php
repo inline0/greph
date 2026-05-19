@@ -186,7 +186,7 @@ final class AstCacheStoreTest extends TestCase
     {
         $store = new AstCacheStore();
         $indexPath = $this->workspace . '/.greph-ast-cache';
-        $treePath = $this->invokeMethod($store, 'treePath', $indexPath, 77);
+        $treePath = $this->invokeStringMethod($store, 'treePath', $indexPath, 77);
         $writePath = $indexPath . '/custom.phpbin';
         $statements = [new Expression(new ConstFetch(new \PhpParser\Node\Name('true')))];
 
@@ -233,14 +233,19 @@ final class AstCacheStoreTest extends TestCase
         $this->assertDirectoryDoesNotExist($this->workspace . '/missing-cache/trees');
     }
 
-    /**
-     * @return mixed
-     */
     private function invokeMethod(object $object, string $method, mixed ...$arguments): mixed
     {
         $reflection = new \ReflectionMethod($object, $method);
         $reflection->setAccessible(true);
 
         return $reflection->invoke($object, ...$arguments);
+    }
+
+    private function invokeStringMethod(object $object, string $method, mixed ...$arguments): string
+    {
+        $result = $this->invokeMethod($object, $method, ...$arguments);
+        self::assertIsString($result);
+
+        return $result;
     }
 }

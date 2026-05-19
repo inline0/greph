@@ -92,10 +92,10 @@ final class GitignoreFilterTest extends TestCase
             $this->invokePrivate($filter, 'parseRuleLine', '\!literal'),
         );
 
-        $anchoredRule = $this->invokePrivate($filter, 'parseRuleLine', '/foo');
-        $directoryRule = $this->invokePrivate($filter, 'parseRuleLine', 'build/');
-        $nestedDirectoryRule = $this->invokePrivate($filter, 'parseRuleLine', 'src/build/');
-        $slashRule = $this->invokePrivate($filter, 'parseRuleLine', 'nested/file?.[!o]');
+        $anchoredRule = $this->invokePrivateArray($filter, 'parseRuleLine', '/foo');
+        $directoryRule = $this->invokePrivateArray($filter, 'parseRuleLine', 'build/');
+        $nestedDirectoryRule = $this->invokePrivateArray($filter, 'parseRuleLine', 'src/build/');
+        $slashRule = $this->invokePrivateArray($filter, 'parseRuleLine', 'nested/file?.[!o]');
 
         $this->assertTrue($anchoredRule['hasSlash']);
         $this->assertTrue($directoryRule['directoryOnly']);
@@ -108,15 +108,34 @@ final class GitignoreFilterTest extends TestCase
         $this->assertSame(['src', 'src/build'], $this->invokePrivate($filter, 'directoryPrefixes', 'src/build/output.php', false));
         $this->assertSame(['src', 'src/build'], $this->invokePrivate($filter, 'directoryPrefixes', 'src/build', true));
 
-        $doubleStarDirectoryRegex = $this->invokePrivate($filter, 'globToRegex', '**/file?.[!o]');
-        $doubleStarRegex = $this->invokePrivate($filter, 'globToRegex', 'foo**bar');
-        $escapedRegex = $this->invokePrivate($filter, 'globToRegex', '\*.txt');
-        $unclosedRegex = $this->invokePrivate($filter, 'globToRegex', 'file[');
+        $doubleStarDirectoryRegex = $this->invokePrivateString($filter, 'globToRegex', '**/file?.[!o]');
+        $doubleStarRegex = $this->invokePrivateString($filter, 'globToRegex', 'foo**bar');
+        $escapedRegex = $this->invokePrivateString($filter, 'globToRegex', '\*.txt');
+        $unclosedRegex = $this->invokePrivateString($filter, 'globToRegex', 'file[');
 
         $this->assertSame(1, preg_match($doubleStarDirectoryRegex, 'src/file1.c'));
         $this->assertSame(1, preg_match($doubleStarRegex, 'foo/bar'));
         $this->assertSame(1, preg_match($escapedRegex, '*.txt'));
         $this->assertSame(1, preg_match($unclosedRegex, 'file['));
+    }
+
+    /**
+     * @return array<array-key, mixed>
+     */
+    private function invokePrivateArray(object $object, string $method, mixed ...$arguments): array
+    {
+        $result = $this->invokePrivate($object, $method, ...$arguments);
+        self::assertIsArray($result);
+
+        return $result;
+    }
+
+    private function invokePrivateString(object $object, string $method, mixed ...$arguments): string
+    {
+        $result = $this->invokePrivate($object, $method, ...$arguments);
+        self::assertIsString($result);
+
+        return $result;
     }
 
     private function invokePrivate(object $object, string $method, mixed ...$arguments): mixed

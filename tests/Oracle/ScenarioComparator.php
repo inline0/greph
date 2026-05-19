@@ -131,7 +131,7 @@ final class ScenarioComparator
     private function sortRecursively(array $value): array
     {
         foreach ($value as $key => $item) {
-            if (is_array($item)) {
+            if (is_array($item) && (array_is_list($item) || self::hasOnlyStringKeys($item))) {
                 $value[$key] = $this->sortRecursively($item);
             }
         }
@@ -151,5 +151,20 @@ final class ScenarioComparator
         ksort($value);
 
         return $value;
+    }
+
+    /**
+     * @param array<array-key, mixed> $value
+     * @phpstan-assert-if-true array<string, mixed> $value
+     */
+    private static function hasOnlyStringKeys(array $value): bool
+    {
+        foreach (array_keys($value) as $key) {
+            if (!is_string($key)) {
+                return false;
+            }
+        }
+
+        return true;
     }
 }

@@ -14,17 +14,32 @@ final class CommandRunner
      */
     public function __construct(?\Closure $processStarter = null)
     {
-        /** @var \Closure(list<string>, array<int, array{0: string, 1: string}>, array<int, mixed>, ?string, array<string, string>): (resource|false) $resolvedProcessStarter */
-        $resolvedProcessStarter = $processStarter ?? static function (
-            array $command,
-            array $descriptors,
-            array &$pipes,
-            ?string $workingDirectory,
-            array $processEnvironment,
-        ) {
-            return proc_open(array_values($command), $descriptors, $pipes, $workingDirectory, $processEnvironment);
-        };
-        $this->processStarter = $resolvedProcessStarter;
+        $this->processStarter = $processStarter ?? self::defaultProcessStarter();
+    }
+
+    /**
+     * @return \Closure(list<string>, array<int, array{0: string, 1: string}>, array<int, mixed>, ?string, array<string, string>): (resource|false)
+     */
+    private static function defaultProcessStarter(): \Closure
+    {
+        return self::runProcess(...);
+    }
+
+    /**
+     * @param list<string> $command
+     * @param array<int, array{0: string, 1: string}> $descriptors
+     * @param array<int, mixed> $pipes
+     * @param array<string, string> $processEnvironment
+     * @return resource|false
+     */
+    private static function runProcess(
+        array $command,
+        array $descriptors,
+        array &$pipes,
+        ?string $workingDirectory,
+        array $processEnvironment,
+    ) {
+        return proc_open($command, $descriptors, $pipes, $workingDirectory, $processEnvironment);
     }
 
     public static function processDisabled(): self
