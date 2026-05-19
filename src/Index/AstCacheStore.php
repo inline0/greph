@@ -105,13 +105,17 @@ final class AstCacheStore
          *   cached: bool
          * }> $facts
          */
+        $buildDuration = $metadata['buildDurationMs'] ?? 0.0;
+        $buildDurationMs = is_int($buildDuration) || is_float($buildDuration) ? (float) $buildDuration : 0.0;
+        $stringKeyedMetadata = self::stringKeyed($metadata);
+
         return new AstCache(
             rootPath: $metadata['rootPath'],
             indexPath: Filesystem::normalizePath($indexPath),
             version: $metadata['version'],
             builtAt: $metadata['builtAt'],
-            buildDurationMs: (float) ($metadata['buildDurationMs'] ?? 0.0),
-            lifecycle: IndexLifecycle::fromMetadata($metadata),
+            buildDurationMs: $buildDurationMs,
+            lifecycle: IndexLifecycle::fromMetadata($stringKeyedMetadata),
             nextFileId: $metadata['nextFileId'],
             files: $files,
             facts: $facts,
@@ -294,5 +298,22 @@ final class AstCacheStore
 
             throw new \RuntimeException(sprintf('Failed to finalize AST cache file: %s', $path));
         }
+    }
+
+    /**
+     * @param array<array-key, mixed> $array
+     * @return array<string, mixed>
+     */
+    private static function stringKeyed(array $array): array
+    {
+        $result = [];
+
+        foreach ($array as $key => $value) {
+            if (is_string($key)) {
+                $result[$key] = $value;
+            }
+        }
+
+        return $result;
     }
 }

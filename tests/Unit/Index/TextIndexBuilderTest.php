@@ -106,7 +106,9 @@ final class TextIndexBuilderTest extends TestCase
         $absoluteIndexPath = $this->invokeMethod($builder, 'resolveIndexPath', $this->workspace, '/tmp/custom-text-index');
         $relativeIndexPath = $this->invokeMethod($builder, 'resolveIndexPath', $this->workspace, '.alt-index');
         $scannedFiles = $this->invokeMethod($builder, 'scanFiles', $this->workspace, $this->workspace . '/.greph-index');
+        self::assertIsArray($scannedFiles);
         $postings = $this->invokeMethod($builder, 'buildPostings', [3 => ['ghi', 'abc'], 1 => ['abc', 'def']]);
+        self::assertIsArray($postings);
         $missingTerms = $this->invokeMethod($builder, 'extractFileTerms', $this->workspace . '/missing.txt');
         $words = $this->invokeMethod($builder, 'extractFileWords', "<?php\nFunction function OTHER\n");
         $hidden = $this->invokeMethod($builder, 'isHiddenPath', '.hidden/Secret.php');

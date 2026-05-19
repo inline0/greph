@@ -78,23 +78,31 @@ final class IndexSetLoader
                 throw new \RuntimeException(sprintf('Index set manifest entry "%s" is missing a valid root: %s', $entryName, $resolvedManifestPath));
             }
 
-            $modeObject = IndexMode::tryFrom((string) $mode);
+            $modeString = is_string($mode) ? $mode : '';
+            $modeObject = IndexMode::tryFrom($modeString);
 
             if ($modeObject === null) {
-                throw new \RuntimeException(sprintf('Index set manifest entry "%s" has unknown mode "%s": %s', $entryName, (string) $mode, $resolvedManifestPath));
+                throw new \RuntimeException(sprintf('Index set manifest entry "%s" has unknown mode "%s": %s', $entryName, $modeString, $resolvedManifestPath));
             }
 
             $rootPath = $this->resolvePath($basePath, $root);
             $indexPath = isset($entryPayload['index_dir']) && is_string($entryPayload['index_dir']) && $entryPayload['index_dir'] !== ''
                 ? $this->resolvePath($basePath, $entryPayload['index_dir'])
                 : $this->defaultIndexPath($modeObject, $rootPath);
-            $profile = isset($entryPayload['lifecycle']) && is_string($entryPayload['lifecycle'])
-                ? IndexLifecycleProfile::tryFrom($entryPayload['lifecycle'])
+            $lifecycleValue = $entryPayload['lifecycle'] ?? null;
+            $profile = is_string($lifecycleValue)
+                ? IndexLifecycleProfile::tryFrom($lifecycleValue)
                 : null;
 
-            if (isset($entryPayload['lifecycle']) && $profile === null) {
-                throw new \RuntimeException(sprintf('Index set manifest entry "%s" has unknown lifecycle "%s": %s', $entryName, (string) $entryPayload['lifecycle'], $resolvedManifestPath));
+            if ($lifecycleValue !== null && $profile === null) {
+                $lifecycleString = is_string($lifecycleValue) ? $lifecycleValue : '';
+
+                throw new \RuntimeException(sprintf('Index set manifest entry "%s" has unknown lifecycle "%s": %s', $entryName, $lifecycleString, $resolvedManifestPath));
             }
+
+            $maxChangedFiles = $entryPayload['max_changed_files'] ?? IndexLifecycle::DEFAULT_MAX_CHANGED_FILES;
+            $maxChangedBytes = $entryPayload['max_changed_bytes'] ?? IndexLifecycle::DEFAULT_MAX_CHANGED_BYTES;
+            $priority = $entryPayload['priority'] ?? 0;
 
             $entries[] = new IndexSetEntry(
                 name: $entryName,
@@ -103,10 +111,10 @@ final class IndexSetLoader
                 mode: $modeObject,
                 lifecycle: new IndexLifecycle(
                     profile: $profile ?? IndexLifecycleProfile::ManualRefresh,
-                    maxChangedFiles: max(0, (int) ($entryPayload['max_changed_files'] ?? IndexLifecycle::DEFAULT_MAX_CHANGED_FILES)),
-                    maxChangedBytes: max(0, (int) ($entryPayload['max_changed_bytes'] ?? IndexLifecycle::DEFAULT_MAX_CHANGED_BYTES)),
+                    maxChangedFiles: max(0, is_int($maxChangedFiles) ? $maxChangedFiles : (int) (is_scalar($maxChangedFiles) ? $maxChangedFiles : 0)),
+                    maxChangedBytes: max(0, is_int($maxChangedBytes) ? $maxChangedBytes : (int) (is_scalar($maxChangedBytes) ? $maxChangedBytes : 0)),
                 ),
-                priority: (int) ($entryPayload['priority'] ?? 0),
+                priority: is_int($priority) ? $priority : (int) (is_scalar($priority) ? $priority : 0),
                 enabled: !array_key_exists('enabled', $entryPayload) || (bool) $entryPayload['enabled'],
             );
             $seenNames[$entryName] = true;

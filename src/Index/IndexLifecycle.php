@@ -22,7 +22,8 @@ final readonly class IndexLifecycle
      */
     public static function fromMetadata(array $metadata): self
     {
-        $profile = IndexLifecycleProfile::tryFrom((string) ($metadata['lifecycle'] ?? ''))
+        $lifecycleValue = $metadata['lifecycle'] ?? '';
+        $profile = IndexLifecycleProfile::tryFrom(is_string($lifecycleValue) ? $lifecycleValue : '')
             ?? IndexLifecycleProfile::ManualRefresh;
         $maxChangedFiles = is_int($metadata['maxChangedFiles'] ?? null)
             ? $metadata['maxChangedFiles']

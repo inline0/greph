@@ -25,7 +25,7 @@ final class WorkerPool
     /** @var \Closure(): (string|false) */
     private \Closure $tempFileFactory;
 
-    /** @var \Closure(string, string): mixed */
+    /** @var \Closure(string, string): (resource|false) */
     private \Closure $fileOpener;
 
     /**
@@ -34,7 +34,7 @@ final class WorkerPool
      * @param \Closure(int, FileList): Worker|null $workerFactory
      * @param \Closure(int): int|null $wait
      * @param (\Closure(): (string|false))|null $tempFileFactory
-     * @param \Closure(string, string): mixed|null $fileOpener
+     * @param (\Closure(string, string): (resource|false))|null $fileOpener
      */
     public function __construct(
         ?ResultCollector $resultCollector = null,
@@ -63,17 +63,16 @@ final class WorkerPool
         /** @var \Closure(): (string|false) $resolvedTempFileFactory */
         $resolvedTempFileFactory = $tempFileFactory ?? static fn (): string|false => tempnam(sys_get_temp_dir(), 'greph-worker-');
         $this->tempFileFactory = $resolvedTempFileFactory;
-        /** @var \Closure(string, string): mixed $resolvedFileOpener */
-        $resolvedFileOpener = $fileOpener ?? static fn (string $path, string $mode): mixed => fopen($path, $mode);
-        $this->fileOpener = $resolvedFileOpener;
+        $this->fileOpener = $fileOpener ?? static fn (string $path, string $mode) => fopen($path, $mode);
     }
 
     /**
+     * @template TResult
      * @param list<FileList> $chunks
-     * @param callable(FileList): mixed $task
-     * @param (callable(mixed): mixed)|null $resultEncoder
-     * @param (callable(mixed): mixed)|null $resultDecoder
-     * @return list<mixed>
+     * @param callable(FileList): TResult $task
+     * @param (callable(TResult): mixed)|null $resultEncoder
+     * @param (callable(mixed): TResult)|null $resultDecoder
+     * @return list<TResult>
      */
     public function map(
         array $chunks,
@@ -150,7 +149,7 @@ final class WorkerPool
     /**
      * @param callable(FileList): mixed $task
      * @param (callable(mixed): mixed)|null $resultEncoder
-     * @return array{pid: int, socket: mixed}
+     * @return array{pid: int, socket: resource}
      */
     private function startSocketWorker(int $index, FileList $chunk, callable $task, ?callable $resultEncoder = null): array
     {
@@ -179,7 +178,7 @@ final class WorkerPool
     /**
      * @param callable(FileList): mixed $task
      * @param (callable(mixed): mixed)|null $resultEncoder
-     * @return array{pid: int, socket: mixed, index: int, tempPath: string}
+     * @return array{pid: int, socket: resource, index: int, tempPath: string}
      */
     private function startFileWorker(int $index, FileList $chunk, callable $task, ?callable $resultEncoder = null): array
     {

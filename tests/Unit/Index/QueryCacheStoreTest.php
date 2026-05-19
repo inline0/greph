@@ -103,7 +103,7 @@ final class QueryCacheStoreTest extends TestCase
 
         $this->assertNotNull($path);
         $rawPayload = file_get_contents($path);
-        $legacyPath = $this->invokeMethod($store, 'legacyCachePath', $index->indexPath, 'function', $options);
+        $legacyPath = $this->invokeStringMethod($store, 'legacyCachePath', $index->indexPath, 'function', $options);
 
         $this->assertNotFalse($rawPayload);
         unlink($path);
@@ -178,7 +178,7 @@ final class QueryCacheStoreTest extends TestCase
         $this->assertNotNull($path);
 
         $rawPayload = file_get_contents($path);
-        $legacyPath = $this->invokeMethod($store, 'legacyCachePath', $indexPath, 'array($$$ITEMS)', $options);
+        $legacyPath = $this->invokeStringMethod($store, 'legacyCachePath', $indexPath, 'array($$$ITEMS)', $options);
 
         $this->assertNotFalse($rawPayload);
         unlink($path);
@@ -256,8 +256,8 @@ final class QueryCacheStoreTest extends TestCase
         $textOptions = new TextSearchOptions(fixedString: true);
         $astOptions = new AstSearchOptions();
         $astIndexPath = $this->workspace . '/.greph-ast-index';
-        $textPath = $this->invokeMethod($textStore, 'cachePath', $textIndex->indexPath, 'function', $textOptions);
-        $astPath = $this->invokeMethod($astStore, 'cachePath', $astIndexPath, 'array($$$ITEMS)', $astOptions);
+        $textPath = $this->invokeStringMethod($textStore, 'cachePath', $textIndex->indexPath, 'function', $textOptions);
+        $astPath = $this->invokeStringMethod($astStore, 'cachePath', $astIndexPath, 'array($$$ITEMS)', $astOptions);
 
         mkdir($textPath . '.tmp', 0777, true);
 
@@ -298,15 +298,20 @@ final class QueryCacheStoreTest extends TestCase
         }
     }
 
-    /**
-     * @return mixed
-     */
     private function invokeMethod(object $object, string $method, mixed ...$arguments): mixed
     {
         $reflection = new \ReflectionMethod($object, $method);
         $reflection->setAccessible(true);
 
         return $reflection->invoke($object, ...$arguments);
+    }
+
+    private function invokeStringMethod(object $object, string $method, mixed ...$arguments): string
+    {
+        $result = $this->invokeMethod($object, $method, ...$arguments);
+        self::assertIsString($result);
+
+        return $result;
     }
 
     private function textIndex(): TextIndex

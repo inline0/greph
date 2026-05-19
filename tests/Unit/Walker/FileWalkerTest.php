@@ -130,7 +130,7 @@ final class FileWalkerTest extends TestCase
             ],
         );
 
-        $this->assertSame([], $files);
+        $this->assertCount(0, $files);
 
         $visitedDirectories[$this->workspace . '/src'] = true;
         $this->invokePrivateWithArgs(
@@ -145,7 +145,7 @@ final class FileWalkerTest extends TestCase
                 &$visitedDirectories,
             ],
         );
-        $this->assertSame([], $files);
+        $this->assertCount(0, $files);
 
         symlink($this->workspace . '/src/App.php', $this->workspace . '/src/AppLink.php');
         $linkedFiles = $walker->walk($this->workspace, new WalkOptions(includeHidden: true, followSymlinks: false))->paths();

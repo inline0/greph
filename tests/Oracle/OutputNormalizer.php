@@ -143,13 +143,13 @@ final class OutputNormalizer
                 continue;
             }
 
-            /** @var array<string, mixed> $data */
-            $data = (array) ($payload['data'] ?? []);
-            $file = (string) (($data['path']['text'] ?? '') ?: ($data['path']['bytes'] ?? ''));
-            $lineNumber = (int) ($data['line_number'] ?? 0);
-            $content = rtrim((string) ($data['lines']['text'] ?? ''), "\r\n");
-            /** @var list<array<string, mixed>> $submatches */
-            $submatches = array_values(array_filter((array) ($data['submatches'] ?? []), 'is_array'));
+            $data = is_array($payload['data'] ?? null) ? $payload['data'] : [];
+            $pathField = is_array($data['path'] ?? null) ? $data['path'] : [];
+            $linesField = is_array($data['lines'] ?? null) ? $data['lines'] : [];
+            $file = self::asString($pathField['text'] ?? null) ?: self::asString($pathField['bytes'] ?? null);
+            $lineNumber = self::asInt($data['line_number'] ?? null);
+            $content = rtrim(self::asString($linesField['text'] ?? null), "\r\n");
+            $submatches = array_values(array_filter(is_array($data['submatches'] ?? null) ? $data['submatches'] : [], 'is_array'));
 
             if ($submatches === []) {
                 $matches[] = [
@@ -164,12 +164,13 @@ final class OutputNormalizer
             }
 
             foreach ($submatches as $submatch) {
+                $matchField = is_array($submatch['match'] ?? null) ? $submatch['match'] : [];
                 $matches[] = [
                     'file' => $file,
                     'line' => $lineNumber,
-                    'column' => ((int) ($submatch['start'] ?? 0)) + 1,
+                    'column' => self::asInt($submatch['start'] ?? null) + 1,
                     'content' => $content,
-                    'matched_text' => (string) (($submatch['match']['text'] ?? '') ?: ''),
+                    'matched_text' => self::asString($matchField['text'] ?? null),
                 ];
             }
         }
@@ -196,13 +197,18 @@ final class OutputNormalizer
                 continue;
             }
 
+            $range = is_array($match['range'] ?? null) ? $match['range'] : [];
+            $rangeStart = is_array($range['start'] ?? null) ? $range['start'] : [];
+            $rangeEnd = is_array($range['end'] ?? null) ? $range['end'] : [];
+            $byteOffset = is_array($range['byteOffset'] ?? null) ? $range['byteOffset'] : [];
+
             $matches[] = [
-                'file' => (string) ($match['file'] ?? ''),
-                'start_line' => ((int) (($match['range']['start']['line'] ?? 0))) + 1,
-                'end_line' => ((int) (($match['range']['end']['line'] ?? 0))) + 1,
-                'start_byte' => (int) ($match['range']['byteOffset']['start'] ?? 0),
-                'end_byte' => (int) ($match['range']['byteOffset']['end'] ?? 0),
-                'code' => (string) ($match['text'] ?? ''),
+                'file' => self::asString($match['file'] ?? null),
+                'start_line' => self::asInt($rangeStart['line'] ?? null) + 1,
+                'end_line' => self::asInt($rangeEnd['line'] ?? null) + 1,
+                'start_byte' => self::asInt($byteOffset['start'] ?? null),
+                'end_byte' => self::asInt($byteOffset['end'] ?? null),
+                'code' => self::asString($match['text'] ?? null),
             ];
         }
 
@@ -287,5 +293,31 @@ final class OutputNormalizer
     private function linesToText(array $lines): string
     {
         return $lines === [] ? '' : implode(PHP_EOL, $lines) . PHP_EOL;
+    }
+
+    private static function asString(mixed $value): string
+    {
+        if (is_string($value)) {
+            return $value;
+        }
+
+        if (is_int($value) || is_float($value) || is_bool($value) || $value === null) {
+            return (string) $value;
+        }
+
+        return '';
+    }
+
+    private static function asInt(mixed $value): int
+    {
+        if (is_int($value)) {
+            return $value;
+        }
+
+        if (is_float($value) || is_string($value) || is_bool($value)) {
+            return (int) $value;
+        }
+
+        return 0;
     }
 }

@@ -220,12 +220,12 @@ final class RipgrepApplicationTest extends TestCase
     {
         $application = $this->newApplication()['application'];
 
-        $parsedSearch = $this->invokeMethod(
+        $parsedSearch = $this->invokeArrayMethod(
             $application,
             'parseSearchArguments',
             ['-n', '--no-follow', '-B', '2', '-C', '3', '--glob', '*.php', '--type', 'php', '--type-not', 'txt', 'needle', 'single.txt', 'counts.txt'],
         );
-        $parsedFiles = $this->invokeMethod(
+        $parsedFiles = $this->invokeArrayMethod(
             $application,
             'parseFilesArguments',
             ['--files', '--no-ignore', '-L'],
@@ -336,14 +336,22 @@ final class RipgrepApplicationTest extends TestCase
         return (string) stream_get_contents($stream);
     }
 
-    /**
-     * @return mixed
-     */
     private function invokeMethod(object $object, string $method, mixed ...$arguments): mixed
     {
         $reflection = new \ReflectionMethod($object, $method);
         $reflection->setAccessible(true);
 
         return $reflection->invoke($object, ...$arguments);
+    }
+
+    /**
+     * @return array<array-key, mixed>
+     */
+    private function invokeArrayMethod(object $object, string $method, mixed ...$arguments): array
+    {
+        $result = $this->invokeMethod($object, $method, ...$arguments);
+        self::assertIsArray($result);
+
+        return $result;
     }
 }

@@ -111,7 +111,7 @@ final class IndexedAstSearcherTest extends TestCase
             ],
             $this->workspace,
         );
-        $cachedMatches = $this->invokeMethod(
+        $cachedMatches = $this->invokeArrayMethod(
             $this->searcher,
             'filterCachedMatches',
             [
@@ -120,7 +120,7 @@ final class IndexedAstSearcherTest extends TestCase
             ],
             $selection,
         );
-        $candidateIds = $this->invokeMethod($this->searcher, 'candidateIds', $index, $pattern);
+        $candidateIds = $this->invokeArrayMethod($this->searcher, 'candidateIds', $index, $pattern);
         $unsupportedCandidateIds = $this->invokeMethod($this->searcher, 'candidateIds', $index, $unsupportedPattern);
         $cacheSupported = $this->invokeMethod(
             $this->searcher,
@@ -267,14 +267,22 @@ final class IndexedAstSearcherTest extends TestCase
         return new AstMatch($file, $pattern->root, [], 1, 1, 0, 10, 'new Foo()');
     }
 
-    /**
-     * @return mixed
-     */
     private function invokeMethod(object $object, string $method, mixed ...$arguments): mixed
     {
         $reflection = new \ReflectionMethod($object, $method);
         $reflection->setAccessible(true);
 
         return $reflection->invoke($object, ...$arguments);
+    }
+
+    /**
+     * @return array<array-key, mixed>
+     */
+    private function invokeArrayMethod(object $object, string $method, mixed ...$arguments): array
+    {
+        $result = $this->invokeMethod($object, $method, ...$arguments);
+        self::assertIsArray($result);
+
+        return $result;
     }
 }

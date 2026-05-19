@@ -82,8 +82,8 @@ final class TextIndexStore
 
             if (is_file($forwardPath)) {
                 $forward = $this->decodeFile($forwardPath);
-            } else {
-                $forward = $this->forwardFromLegacyFiles($files);
+            } elseif (is_array($files)) {
+                $forward = $this->forwardFromLegacyFiles(self::filesAsLegacyShape($files));
             }
 
             if (is_file($wordForwardPath)) {
@@ -111,19 +111,25 @@ final class TextIndexStore
 
         /** @var list<array{id: int, p: string, s: int, m: int, h: bool, g: bool, t: list<string>, o: int}> $files */
         /** @var array<string, list<int>> $postings */
+        $buildDuration = $metadata['buildDurationMs'] ?? 0.0;
+        $buildDurationMs = is_int($buildDuration) || is_float($buildDuration) ? (float) $buildDuration : 0.0;
+        $stringKeyedMetadata = self::stringKeyed($metadata);
+        $forwardTyped = self::intKeyedListOfStrings($forward);
+        $wordForwardTyped = self::intKeyedListOfStrings($wordForward);
+
         return new TextIndex(
             rootPath: $metadata['rootPath'],
             indexPath: Filesystem::normalizePath($indexPath),
             version: $metadata['version'],
             builtAt: $metadata['builtAt'],
-            buildDurationMs: (float) ($metadata['buildDurationMs'] ?? 0.0),
-            lifecycle: IndexLifecycle::fromMetadata($metadata),
+            buildDurationMs: $buildDurationMs,
+            lifecycle: IndexLifecycle::fromMetadata($stringKeyedMetadata),
             nextFileId: $metadata['nextFileId'],
             files: $files,
             postings: $postings,
-            forward: $forward,
+            forward: $forwardTyped,
             wordPostings: $wordPostings,
-            wordForward: $wordForward,
+            wordForward: $wordForwardTyped,
         );
     }
 
@@ -510,5 +516,66 @@ final class TextIndexStore
 
             throw new \RuntimeException(sprintf('Failed to finalize index postings: %s', $indexPath));
         }
+    }
+
+    /**
+     * @param array<array-key, mixed> $array
+     * @return array<string, mixed>
+     */
+    private static function stringKeyed(array $array): array
+    {
+        $result = [];
+
+        foreach ($array as $key => $value) {
+            if (is_string($key)) {
+                $result[$key] = $value;
+            }
+        }
+
+        return $result;
+    }
+
+    /**
+     * @param array<array-key, mixed> $array
+     * @return array<int, list<string>>
+     */
+    private static function intKeyedListOfStrings(array $array): array
+    {
+        $result = [];
+
+        foreach ($array as $key => $value) {
+            if (!is_int($key) || !is_array($value)) {
+                continue;
+            }
+
+            $items = [];
+
+            foreach ($value as $item) {
+                if (is_string($item)) {
+                    $items[] = $item;
+                }
+            }
+
+            $result[$key] = $items;
+        }
+
+        return $result;
+    }
+
+    /**
+     * @param array<array-key, mixed> $files
+     * @return list<array<string, mixed>>
+     */
+    private static function filesAsLegacyShape(array $files): array
+    {
+        $result = [];
+
+        foreach ($files as $file) {
+            if (is_array($file)) {
+                $result[] = self::stringKeyed($file);
+            }
+        }
+
+        return $result;
     }
 }

@@ -133,7 +133,7 @@ final class AstSearcher
 
     /**
      * @param list<Node> $statements
-     * @param callable(): string|string|null $source
+     * @param (callable(): string)|string|null $source
      * @return list<AstMatch>
      */
     public function searchParsedStatements(
@@ -153,9 +153,12 @@ final class AstSearcher
             }
 
             if ($loadedSource === null) {
-                $loadedSource = is_callable($source)
-                    ? (string) $source()
-                    : (string) ($source ?? '');
+                if (is_callable($source)) {
+                    $invoked = $source();
+                    $loadedSource = is_string($invoked) ? $invoked : '';
+                } else {
+                    $loadedSource = $source ?? '';
+                }
             }
 
             $matches[] = $this->createMatch($candidate, $captures, $loadedSource, $file);

@@ -171,13 +171,13 @@ final class IndexedTextSearcherTest extends TestCase
             $this->workspace . '/.greph-index',
             ['ab'],
         );
-        $candidateIdsWithTrigrams = $this->invokeMethod(
+        $candidateIdsWithTrigrams = $this->invokeArrayMethod(
             $this->searcher,
             'candidateIds',
             $this->workspace . '/.greph-index',
             ['function'],
         );
-        $candidateIdsFromWords = $this->invokeMethod(
+        $candidateIdsFromWords = $this->invokeArrayMethod(
             $this->searcher,
             'candidateIdsFromWordPostings',
             $this->workspace . '/.greph-index',
@@ -235,7 +235,7 @@ final class IndexedTextSearcherTest extends TestCase
                 globPatterns: ['*.php'],
             ),
         );
-        $selection = $this->invokeMethod(
+        $selection = $this->invokeArrayMethod(
             $this->searcher,
             'buildSelection',
             [
@@ -420,14 +420,22 @@ final class IndexedTextSearcherTest extends TestCase
         );
     }
 
-    /**
-     * @return mixed
-     */
     private function invokeMethod(object $object, string $method, mixed ...$arguments): mixed
     {
         $reflection = new \ReflectionMethod($object, $method);
         $reflection->setAccessible(true);
 
         return $reflection->invoke($object, ...$arguments);
+    }
+
+    /**
+     * @return array<array-key, mixed>
+     */
+    private function invokeArrayMethod(object $object, string $method, mixed ...$arguments): array
+    {
+        $result = $this->invokeMethod($object, $method, ...$arguments);
+        self::assertIsArray($result);
+
+        return $result;
     }
 }

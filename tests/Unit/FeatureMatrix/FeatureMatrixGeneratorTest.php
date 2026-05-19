@@ -28,13 +28,13 @@ final class FeatureMatrixGeneratorTest extends TestCase
             toolResolver: new ToolResolver(static fn (string $candidate): ?string => null),
         );
 
-        $unavailable = $this->invokeMethod(
+        $unavailable = $this->invokeArrayMethod(
             $generator,
             'runWorkspaceProbe',
             null,
             static fn (): array => [],
         );
-        $failure = $this->invokeMethod(
+        $failure = $this->invokeArrayMethod(
             $generator,
             'runWorkspaceProbe',
             [PHP_BINARY],
@@ -67,11 +67,11 @@ final class FeatureMatrixGeneratorTest extends TestCase
             Workspace::remove($outputWorkspace);
         }
 
-        $this->assertSame('Unavailable', $unavailable['status']);
-        $this->assertSame('Provider command was not available in this environment.', $unavailable['note']);
-        $this->assertSame('Fail', $failure['status']);
-        $this->assertSame('boom', $failure['note']);
-        $this->assertSame([PHP_BINARY], $failure['command']);
+        $this->assertSame('Unavailable', $unavailable['status'] ?? null);
+        $this->assertSame('Provider command was not available in this environment.', $unavailable['note'] ?? null);
+        $this->assertSame('Fail', $failure['status'] ?? null);
+        $this->assertSame('boom', $failure['note'] ?? null);
+        $this->assertSame([PHP_BINARY], $failure['command'] ?? null);
         $this->assertSame(['php', 'tool'], $resolvedProvider);
         $this->assertNull($missingProvider);
         $this->assertArrayHasKey('generated_at', $report);
@@ -94,6 +94,7 @@ final class FeatureMatrixGeneratorTest extends TestCase
             );
             $markdown = $generator->renderMarkdown([
                 'generated_at' => '2026-04-10T00:00:00Z',
+                'root_path' => $this->rootPath,
                 'sections' => [[
                     'title' => 'Helpers',
                     'providers' => ['one', 'two'],
@@ -235,6 +236,7 @@ final class FeatureMatrixGeneratorTest extends TestCase
                 'bad-count',
             );
 
+            self::assertIsString($normalized);
             $this->assertStringContainsString('<workspace>/path <greph>', $normalized);
             $this->assertStringContainsString('...[truncated]', $normalized);
             $this->assertStringContainsString('Fail<br><sub>bad\|note wrapped</sub>', $markdown);
@@ -474,44 +476,52 @@ PHP);
         $generator = new FeatureMatrixGenerator($this->rootPath);
 
         try {
-            $refreshBuildFailure = $this->invokeMethod(
+            $refreshBuildFailure = $this->invokeArrayMethod(
                 $generator,
                 'runIndexedRefreshProbe',
                 [PHP_BINARY, $buildFailureScript],
             );
-            $searchBuildFailure = $this->invokeMethod(
+            $searchBuildFailure = $this->invokeArrayMethod(
                 $generator,
                 'runIndexedSearchProbe',
                 [PHP_BINARY, $buildFailureScript],
                 ['search', '-F', 'needle', '.'],
                 static fn (ProcessResult $result): ?string => null,
             );
-            $refreshFailure = $this->invokeMethod(
+            $refreshFailure = $this->invokeArrayMethod(
                 $generator,
                 'runIndexedRefreshProbe',
                 [PHP_BINARY, $refreshFailureScript],
             );
 
-            $this->assertSame('Fail', $refreshBuildFailure['status']);
-            $this->assertSame('Initial indexed build failed.', $refreshBuildFailure['note']);
-            $this->assertSame('Fail', $searchBuildFailure['status']);
-            $this->assertSame('Initial indexed build failed.', $searchBuildFailure['note']);
-            $this->assertSame('Fail', $refreshFailure['status']);
-            $this->assertSame('Indexed refresh failed.', $refreshFailure['note']);
+            $this->assertSame('Fail', $refreshBuildFailure['status'] ?? null);
+            $this->assertSame('Initial indexed build failed.', $refreshBuildFailure['note'] ?? null);
+            $this->assertSame('Fail', $searchBuildFailure['status'] ?? null);
+            $this->assertSame('Initial indexed build failed.', $searchBuildFailure['note'] ?? null);
+            $this->assertSame('Fail', $refreshFailure['status'] ?? null);
+            $this->assertSame('Indexed refresh failed.', $refreshFailure['note'] ?? null);
         } finally {
             Workspace::remove($workspace);
         }
     }
 
-    /**
-     * @return mixed
-     */
     private function invokeMethod(object $object, string $method, mixed ...$arguments): mixed
     {
         $reflection = new \ReflectionMethod($object, $method);
         $reflection->setAccessible(true);
 
         return $reflection->invoke($object, ...$arguments);
+    }
+
+    /**
+     * @return array<array-key, mixed>
+     */
+    private function invokeArrayMethod(object $object, string $method, mixed ...$arguments): array
+    {
+        $result = $this->invokeMethod($object, $method, ...$arguments);
+        self::assertIsArray($result);
+
+        return $result;
     }
 
     /**

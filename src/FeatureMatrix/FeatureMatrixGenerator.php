@@ -9,6 +9,31 @@ use Greph\Support\Filesystem;
 use Greph\Support\ProcessResult;
 use Greph\Support\ToolResolver;
 
+/**
+ * @phpstan-type FeatureMatrixResult array{
+ *   status: string,
+ *   command: ?list<string>,
+ *   exit_code: ?int,
+ *   stdout: string,
+ *   stderr: string,
+ *   note: string
+ * }
+ * @phpstan-type FeatureMatrixRow array{
+ *   feature: string,
+ *   notes: string,
+ *   results: array<string, FeatureMatrixResult>
+ * }
+ * @phpstan-type FeatureMatrixSection array{
+ *   title: string,
+ *   providers: list<string>,
+ *   rows: list<FeatureMatrixRow>
+ * }
+ * @phpstan-type FeatureMatrixReport array{
+ *   generated_at: string,
+ *   root_path: string,
+ *   sections: list<FeatureMatrixSection>
+ * }
+ */
 final class FeatureMatrixGenerator
 {
     private const STATUS_PASS = 'Pass';
@@ -29,26 +54,7 @@ final class FeatureMatrixGenerator
     }
 
     /**
-     * @return array{
-     *   generated_at: string,
-     *   root_path: string,
-     *   sections: list<array{
-     *     title: string,
-     *     providers: list<string>,
-     *     rows: list<array{
-     *       feature: string,
-     *       notes: string,
-     *       results: array<string, array{
-     *         status: string,
-     *         command: ?list<string>,
-     *         exit_code: ?int,
-     *         stdout: string,
-     *         stderr: string,
-     *         note: string
-     *       }>
-     *     }>
-     *   }>
-     * }
+     * @return FeatureMatrixReport
      */
     public function generate(): array
     {
@@ -1509,7 +1515,7 @@ PHP);
     }
 
     /**
-     * @param array<string, mixed> $report
+     * @param FeatureMatrixReport $report
      */
     public function renderMarkdown(array $report): string
     {
@@ -1574,7 +1580,7 @@ PHP);
     }
 
     /**
-     * @return array<string, mixed>
+     * @return FeatureMatrixReport
      */
     public function write(string $markdownPath, string $jsonPath): array
     {
@@ -1888,7 +1894,7 @@ PHP);
         }
 
         foreach ($decoded as $entry) {
-            if (($entry['file'] ?? null) === 'single.txt') {
+            if (is_array($entry) && ($entry['file'] ?? null) === 'single.txt') {
                 return null;
             }
         }

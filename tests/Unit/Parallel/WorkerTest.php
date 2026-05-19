@@ -67,7 +67,7 @@ final class WorkerTest extends TestCase
             );
 
             try {
-                $worker->run(static fn (FileList $files): int => count($files), $writer, static fn (int $result): string => 'count:' . $result);
+                $worker->run(static fn (FileList $files): int => count($files), $writer, static fn (mixed $result): string => 'count:' . (is_int($result) ? $result : 0));
             } catch (WorkerTermination $termination) {
                 $this->assertSame(0, $termination->exitCode);
             }

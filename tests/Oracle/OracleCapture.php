@@ -9,6 +9,9 @@ use Greph\Support\Filesystem;
 use Greph\Support\Json;
 use Greph\Support\ToolResolver;
 
+/**
+ * @phpstan-import-type FlagSet from FlagParser
+ */
 final class OracleCapture
 {
     private CommandRunner $commandRunner;
@@ -55,8 +58,8 @@ final class OracleCapture
                 $path = $scenario->oracleDir() . '/' . $name;
 
                 if (is_array($output)) {
-                    Json::encodeFile($path, $output);
-                } else {
+                    Json::encodeFile($path, array_values($output));
+                } elseif (is_scalar($output) || $output === null) {
                     file_put_contents($path, (string) $output);
                 }
             }
@@ -72,7 +75,7 @@ final class OracleCapture
     }
 
     /**
-     * @param array<string, mixed> $flags
+     * @param FlagSet $flags
      * @return array<string, mixed>
      */
     private function captureTextOracle(Scenario $scenario, string $workspaceRoot, array $flags): array
@@ -228,7 +231,7 @@ final class OracleCapture
     }
 
     /**
-     * @param array<string, mixed> $flags
+     * @param FlagSet $flags
      * @return array<string, mixed>
      */
     private function captureAstOracle(Scenario $scenario, string $workspaceRoot, array $flags): array
@@ -275,7 +278,7 @@ final class OracleCapture
     }
 
     /**
-     * @param array<string, mixed> $flags
+     * @param FlagSet $flags
      * @return array<string, mixed>
      */
     private function captureRewriteOracle(Scenario $scenario, string $workspaceRoot, array $flags): array

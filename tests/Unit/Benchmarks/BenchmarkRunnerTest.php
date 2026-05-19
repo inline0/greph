@@ -61,12 +61,12 @@ final class BenchmarkRunnerTest extends TestCase
     #[Test]
     public function itSeparatesRuntimeBuildAndColdStorePaths(): void
     {
-        $runtimeTextPath = $this->invokePrivate('textIndexPath', [['category' => 'indexed-text'], 'wordpress']);
-        $coldTextPath = $this->invokePrivate('textIndexPath', [['category' => 'indexed-text-cold'], 'wordpress']);
-        $manyTextPath = $this->invokePrivate('textIndexPath', [['category' => 'indexed-text-many'], 'wordpress']);
-        $setTextPath = $this->invokePrivate('textIndexPath', [['category' => 'indexed-set-text'], 'wordpress']);
-        $buildTextPath = $this->invokePrivate('textIndexPath', [['category' => 'indexed-build'], 'wordpress']);
-        $refreshTextPath = $this->invokePrivate('textIndexPath', [['category' => 'indexed-refresh'], 'wordpress']);
+        $runtimeTextPath = $this->invokePrivateString('textIndexPath', [['category' => 'indexed-text'], 'wordpress']);
+        $coldTextPath = $this->invokePrivateString('textIndexPath', [['category' => 'indexed-text-cold'], 'wordpress']);
+        $manyTextPath = $this->invokePrivateString('textIndexPath', [['category' => 'indexed-text-many'], 'wordpress']);
+        $setTextPath = $this->invokePrivateString('textIndexPath', [['category' => 'indexed-set-text'], 'wordpress']);
+        $buildTextPath = $this->invokePrivateString('textIndexPath', [['category' => 'indexed-build'], 'wordpress']);
+        $refreshTextPath = $this->invokePrivateString('textIndexPath', [['category' => 'indexed-refresh'], 'wordpress']);
 
         $this->assertStringContainsString('/build/benchmarks/indexes/runtime/wordpress', $runtimeTextPath);
         $this->assertStringContainsString('/build/benchmarks/indexes/cold/wordpress', $coldTextPath);
@@ -80,12 +80,12 @@ final class BenchmarkRunnerTest extends TestCase
         $this->assertNotSame($runtimeTextPath, $buildTextPath);
         $this->assertNotSame($runtimeTextPath, $refreshTextPath);
 
-        $runtimeAstIndexPath = $this->invokePrivate('astIndexPath', [['category' => 'ast-indexed'], 'wordpress']);
-        $buildAstIndexPath = $this->invokePrivate('astIndexPath', [['category' => 'ast-indexed-build'], 'wordpress']);
-        $refreshAstIndexPath = $this->invokePrivate('astIndexPath', [['category' => 'ast-indexed-refresh'], 'wordpress']);
-        $runtimeAstCachePath = $this->invokePrivate('astCachePath', [['category' => 'ast-cached'], 'wordpress']);
-        $buildAstCachePath = $this->invokePrivate('astCachePath', [['category' => 'ast-cached-build'], 'wordpress']);
-        $refreshAstCachePath = $this->invokePrivate('astCachePath', [['category' => 'ast-cached-refresh'], 'wordpress']);
+        $runtimeAstIndexPath = $this->invokePrivateString('astIndexPath', [['category' => 'ast-indexed'], 'wordpress']);
+        $buildAstIndexPath = $this->invokePrivateString('astIndexPath', [['category' => 'ast-indexed-build'], 'wordpress']);
+        $refreshAstIndexPath = $this->invokePrivateString('astIndexPath', [['category' => 'ast-indexed-refresh'], 'wordpress']);
+        $runtimeAstCachePath = $this->invokePrivateString('astCachePath', [['category' => 'ast-cached'], 'wordpress']);
+        $buildAstCachePath = $this->invokePrivateString('astCachePath', [['category' => 'ast-cached-build'], 'wordpress']);
+        $refreshAstCachePath = $this->invokePrivateString('astCachePath', [['category' => 'ast-cached-refresh'], 'wordpress']);
 
         $this->assertStringContainsString('/build/benchmarks/ast-indexes/runtime/wordpress', $runtimeAstIndexPath);
         $this->assertStringContainsString('/build/benchmarks/ast-indexes/build/wordpress', $buildAstIndexPath);
@@ -108,5 +108,16 @@ final class BenchmarkRunnerTest extends TestCase
         $reflectionMethod->setAccessible(true);
 
         return $reflectionMethod->invokeArgs($this->runner, $arguments);
+    }
+
+    /**
+     * @param list<mixed> $arguments
+     */
+    private function invokePrivateString(string $method, array $arguments = []): string
+    {
+        $result = $this->invokePrivate($method, $arguments);
+        self::assertIsString($result);
+
+        return $result;
     }
 }

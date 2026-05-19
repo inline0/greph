@@ -64,10 +64,13 @@ PHP);
         $this->assertSame(0, $result['exit']);
         $payload = json_decode($result['stdout'], true, 512, JSON_THROW_ON_ERROR);
 
+        self::assertIsArray($payload);
         $this->assertCount(2, $payload);
+        self::assertIsArray($payload[0]);
         $this->assertSame('src/Search.php', $payload[0]['file']);
         $this->assertSame(3, $payload[0]['start_line']);
         $this->assertSame(3, $payload[0]['end_line']);
+        self::assertIsString($payload[0]['code']);
         $this->assertSame("dispatch(\$event)", trim($payload[0]['code']));
     }
 
