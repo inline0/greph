@@ -1,6 +1,11 @@
 ---
-title: Testing
-description: Unit tests, oracle regression corpus, and verification commands.
+title: "Testing"
+description: "Unit tests, oracle regression corpus, and verification commands."
+path: "advanced/testing"
+order: 15
+section: "Advanced"
+meta_title: "Testing"
+meta_description: "Unit tests, oracle regression corpus, and verification commands."
 ---
 
 # Testing

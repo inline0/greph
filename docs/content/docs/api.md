@@ -1,6 +1,11 @@
 ---
-title: API
-description: The Greph\Greph facade and the supporting option, result, and walker classes form the public PHP API.
+title: "API"
+description: "The Greph\\Greph facade and the supporting option, result, and walker classes form the public PHP API."
+path: "api"
+order: 3
+section: "Documentation"
+meta_title: "API"
+meta_description: "The Greph\\Greph facade and the supporting option, result, and walker classes form the public PHP API."
 ---
 
 # PHP API

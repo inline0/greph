@@ -1,6 +1,11 @@
 ---
-title: Text Search
-description: Fixed-string and regex text search with grep-compatible output and ripgrep-style ergonomics.
+title: "Text Search"
+description: "Fixed-string and regex text search with grep-compatible output and ripgrep-style ergonomics."
+path: "modes/text"
+order: 4
+section: "Modes"
+meta_title: "Text Search"
+meta_description: "Fixed-string and regex text search with grep-compatible output and ripgrep-style ergonomics."
 ---
 
 # Text Search

@@ -1,6 +1,11 @@
 ---
-title: File Walker
-description: Recursive directory traversal with gitignore, .grephignore, glob, and binary detection.
+title: "File Walker"
+description: "Recursive directory traversal with gitignore, .grephignore, glob, and binary detection."
+path: "advanced/walker"
+order: 12
+section: "Advanced"
+meta_title: "File Walker"
+meta_description: "Recursive directory traversal with gitignore, .grephignore, glob, and binary detection."
 ---
 
 # File Walker

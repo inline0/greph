@@ -1,6 +1,11 @@
 ---
-title: sg Compatibility
-description: Drop-in ast-grep wrapper backed by the Greph engine.
+title: "sg Compatibility"
+description: "Drop-in ast-grep wrapper backed by the Greph engine."
+path: "compatibility/sg"
+order: 11
+section: "Compatibility"
+meta_title: "sg Compatibility"
+meta_description: "Drop-in ast-grep wrapper backed by the Greph engine."
 ---
 
 # sg Compatibility

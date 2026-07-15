@@ -1,6 +1,11 @@
 ---
-title: Getting Started
-description: Install Greph and run your first text, AST, and rewrite searches.
+title: "Getting Started"
+description: "Install Greph and run your first text, AST, and rewrite searches."
+path: "getting-started"
+order: 1
+section: "Documentation"
+meta_title: "Getting Started"
+meta_description: "Install Greph and run your first text, AST, and rewrite searches."
 ---
 
 # Getting Started

@@ -1,6 +1,11 @@
 ---
-title: rg Compatibility
-description: Drop-in ripgrep wrapper backed by the Greph engine.
+title: "rg Compatibility"
+description: "Drop-in ripgrep wrapper backed by the Greph engine."
+path: "compatibility/rg"
+order: 10
+section: "Compatibility"
+meta_title: "rg Compatibility"
+meta_description: "Drop-in ripgrep wrapper backed by the Greph engine."
 ---
 
 # rg Compatibility

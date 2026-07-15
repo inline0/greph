@@ -1,6 +1,11 @@
 ---
-title: Benchmarks
-description: Repo-local benchmark harness, real-world corpora, and CI-published numbers.
+title: "Benchmarks"
+description: "Repo-local benchmark harness, real-world corpora, and CI-published numbers."
+path: "advanced/benchmarks"
+order: 16
+section: "Advanced"
+meta_title: "Benchmarks"
+meta_description: "Repo-local benchmark harness, real-world corpora, and CI-published numbers."
 ---
 
 # Benchmarks

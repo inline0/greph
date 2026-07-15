@@ -1,6 +1,11 @@
 ---
-title: Feature Matrix
-description: Probe-driven compatibility report for the rg and sg wrappers and the native greph surface.
+title: "Feature Matrix"
+description: "Probe-driven compatibility report for the rg and sg wrappers and the native greph surface."
+path: "advanced/feature-matrix"
+order: 14
+section: "Advanced"
+meta_title: "Feature Matrix"
+meta_description: "Probe-driven compatibility report for the rg and sg wrappers and the native greph surface."
 ---
 
 # Feature Matrix
