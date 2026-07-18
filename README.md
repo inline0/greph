@@ -1,8 +1,8 @@
 <p align="center">
   <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="./docs/public/logo-dark.svg">
-    <source media="(prefers-color-scheme: light)" srcset="./docs/public/logo-light.svg">
-    <img alt="Greph" src="./docs/public/logo-light.svg" height="56">
+    <source media="(prefers-color-scheme: dark)" srcset="./.github/logo-dark.svg">
+    <source media="(prefers-color-scheme: light)" srcset="./.github/logo-light.svg">
+    <img alt="Greph" src="./.github/logo-light.svg" height="56">
   </picture>
 </p>
 
@@ -317,12 +317,10 @@ That keeps warmed baseline indexes stable while letting active overlays refresh 
 
 ## Documentation
 
-The repo includes a dedicated docs app under [`docs/`](docs) that mirrors the same release/docs structure used in sibling projects.
+Portable Markdown documentation lives under [`docs/`](docs), with `meta.json` files describing the navigation. Validate it with:
 
 ```bash
-cd docs
-npm install
-npm run dev
+node scripts/check-docs-content.mjs --root docs --expected-docs 17 --expected-nav 5
 ```
 
 Topics covered:
