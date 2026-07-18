@@ -1,15 +1,13 @@
 ---
-title: "Greph"
+title: "Introduction"
 description: "Pure PHP code search, structural search, and rewrite engine. grep, ripgrep, and ast-grep workflows in a single Composer package."
 path: "."
 order: 10
-section: "Getting Started"
-meta_title: "Greph"
+meta_title: "Introduction"
 meta_description: "Pure PHP code search, structural search, and rewrite engine. grep, ripgrep, and ast-grep workflows in a single Composer package."
 ---
 
-# Greph
-
+# Introduction
 Greph is a pure PHP search and refactoring engine for source trees. It covers three related modes:
 
 - **Text search** with grep-compatible output and ripgrep-style ergonomics.
