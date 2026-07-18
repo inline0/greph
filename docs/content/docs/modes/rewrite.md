@@ -2,7 +2,7 @@
 title: "AST Rewrite"
 description: "Format-preserving structural rewrites with dry-run, interactive, and write modes."
 path: "modes/rewrite"
-order: 6
+order: 50
 section: "Modes"
 meta_title: "AST Rewrite"
 meta_description: "Format-preserving structural rewrites with dry-run, interactive, and write modes."

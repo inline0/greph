@@ -2,8 +2,8 @@
 title: "CLI"
 description: "Complete command reference for the greph, greph-index, rg, and sg executables."
 path: "cli"
-order: 2
-section: "Documentation"
+order: 160
+section: "Reference"
 meta_title: "CLI"
 meta_description: "Complete command reference for the greph, greph-index, rg, and sg executables."
 ---

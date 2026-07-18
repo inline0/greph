@@ -2,7 +2,7 @@
 title: "Parallel Workers"
 description: "pcntl-based worker pool with single-process fallback for parallel text and AST scans."
 path: "advanced/parallel"
-order: 13
+order: 120
 section: "Advanced"
 meta_title: "Parallel Workers"
 meta_description: "pcntl-based worker pool with single-process fallback for parallel text and AST scans."

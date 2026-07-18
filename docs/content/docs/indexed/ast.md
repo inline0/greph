@@ -2,7 +2,7 @@
 title: "Indexed AST Search"
 description: "Warmed AST fact index for repeated structural queries."
 path: "indexed/ast"
-order: 8
+order: 70
 section: "Indexed Modes"
 meta_title: "Indexed AST Search"
 meta_description: "Warmed AST fact index for repeated structural queries."

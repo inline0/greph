@@ -2,7 +2,7 @@
 title: "Indexed Text Search"
 description: "Warmed trigram and identifier postings index for repeated text-search workloads."
 path: "indexed/text"
-order: 7
+order: 60
 section: "Indexed Modes"
 meta_title: "Indexed Text Search"
 meta_description: "Warmed trigram and identifier postings index for repeated text-search workloads."

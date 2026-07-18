@@ -2,7 +2,7 @@
 title: "AST Search"
 description: "Structural PHP search with metavariables, repeated captures, and variadic patterns."
 path: "modes/ast"
-order: 5
+order: 40
 section: "Modes"
 meta_title: "AST Search"
 meta_description: "Structural PHP search with metavariables, repeated captures, and variadic patterns."

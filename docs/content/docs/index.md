@@ -2,8 +2,8 @@
 title: "Greph"
 description: "Pure PHP code search, structural search, and rewrite engine. grep, ripgrep, and ast-grep workflows in a single Composer package."
 path: "."
-order: 0
-section: "Documentation"
+order: 10
+section: "Getting Started"
 meta_title: "Greph"
 meta_description: "Pure PHP code search, structural search, and rewrite engine. grep, ripgrep, and ast-grep workflows in a single Composer package."
 ---

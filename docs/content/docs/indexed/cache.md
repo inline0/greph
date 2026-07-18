@@ -2,7 +2,7 @@
 title: "Cached AST Search"
 description: "Cached parsed-tree store that skips the PHP-Parser pipeline on repeated queries."
 path: "indexed/cache"
-order: 9
+order: 80
 section: "Indexed Modes"
 meta_title: "Cached AST Search"
 meta_description: "Cached parsed-tree store that skips the PHP-Parser pipeline on repeated queries."

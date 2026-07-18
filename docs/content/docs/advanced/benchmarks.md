@@ -2,7 +2,7 @@
 title: "Benchmarks"
 description: "Repo-local benchmark harness, real-world corpora, and CI-published numbers."
 path: "advanced/benchmarks"
-order: 16
+order: 150
 section: "Advanced"
 meta_title: "Benchmarks"
 meta_description: "Repo-local benchmark harness, real-world corpora, and CI-published numbers."
