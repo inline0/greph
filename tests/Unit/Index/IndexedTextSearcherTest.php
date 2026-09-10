@@ -153,6 +153,7 @@ final class IndexedTextSearcherTest extends TestCase
     public function itCoversQueryPlanningHelpersAndFilters(): void
     {
         $store = new TextIndexStore();
+        $appFileId = $this->indexedFileId($store, 'src/App.php');
         $querySeeds = $this->invokeMethod(
             $this->searcher,
             'querySeeds',
@@ -296,8 +297,8 @@ final class IndexedTextSearcherTest extends TestCase
         $this->assertSame(['barbaz'], $querySeeds);
         $this->assertSame([], $shortFixedSeeds);
         $this->assertSame([], $candidateIdsWithoutTrigrams);
-        $this->assertArrayHasKey(1, $candidateIdsWithTrigrams);
-        $this->assertArrayHasKey(1, $candidateIdsFromWords);
+        $this->assertArrayHasKey($appFileId, $candidateIdsWithTrigrams);
+        $this->assertArrayHasKey($appFileId, $candidateIdsFromWords);
         $this->assertSame('function', $wholeWordToken);
         $this->assertNull($invalidWholeWordToken);
         $this->assertTrue($directSummaryAllowed);
@@ -437,5 +438,21 @@ final class IndexedTextSearcherTest extends TestCase
         self::assertIsArray($result);
 
         return $result;
+    }
+
+    /**
+     * Index file ids are handed out in directory scan order, which the
+     * filesystem decides. Asserting on a literal id passes on APFS and fails on
+     * ext4, so look the id up instead.
+     */
+    private function indexedFileId(TextIndexStore $store, string $relativePath): int
+    {
+        foreach ($store->load($this->workspace . '/.greph-index')->files as $indexedFile) {
+            if ($indexedFile['p'] === $relativePath) {
+                return $indexedFile['id'];
+            }
+        }
+
+        self::fail(sprintf('No indexed file found for %s.', $relativePath));
     }
 }
