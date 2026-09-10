@@ -32,10 +32,10 @@
         "nikic/php-parser": "^5.7"
     },
     "require-dev": {
-        "phpstan/phpstan": "^2.0",
+        "phpstan/phpstan": "^2.1",
         "phpstan/phpstan-phpunit": "^2.0",
         "phpunit/phpunit": "^13.1",
-        "squizlabs/php_codesniffer": "^3.10"
+        "squizlabs/php_codesniffer": "^3.13"
     },
     "suggest": {
         "ext-pcntl": "Enables parallel worker pools for text and AST scans. Greph falls back to single-process execution when missing."

@@ -2,7 +2,6 @@
 /.phpunit.cache/
 /.phpunit.result.cache
 /.phpstan/
-/.phpstan.cache/
 /build/
 /benchmarks/corpora/synthetic/1k-files/
 /benchmarks/corpora/synthetic/10k-files/
