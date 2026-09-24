@@ -42,12 +42,12 @@
     },
     "autoload": {
         "psr-4": {
-            "Greph\\": "src/",
-            "Greph\\Benchmarks\\": "benchmarks/"
+            "Greph\\": "src/"
         }
     },
     "autoload-dev": {
         "psr-4": {
+            "Greph\\Benchmarks\\": "benchmarks/",
             "Greph\\Tests\\": "tests/"
         }
     },

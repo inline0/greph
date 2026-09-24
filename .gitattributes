@@ -1,0 +1,28 @@
+# Composer installs this package from the tag's GitHub archive, which is
+# built with `git archive` and honours `export-ignore`. Everything listed here
+# is development-only, so consumers never download it.
+
+/.github              export-ignore
+/.gitattributes       export-ignore
+/.gitignore           export-ignore
+/CLAUDE.md            export-ignore
+/FEATURE_MATRIX.json  export-ignore
+/FEATURE_MATRIX.md    export-ignore
+/TODO.md              export-ignore
+/benchmarks           export-ignore
+/composer.lock        export-ignore
+/docs                 export-ignore
+/phpcs.xml            export-ignore
+/phpstan.neon.dist    export-ignore
+/phpunit.xml.dist     export-ignore
+/scenarios            export-ignore
+/scripts              export-ignore
+/tests                export-ignore
+
+# Development scripts in bin/ stay out. bin/greph and bin/greph-index and bin/rg and bin/sg are the binaries declared in
+# composer.json, so they ship.
+/bin/*                export-ignore
+/bin/greph            -export-ignore
+/bin/greph-index      -export-ignore
+/bin/rg               -export-ignore
+/bin/sg               -export-ignore
