@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.2.3] - 2026-09-24
+
+### Fixed
+- `vendor/bin/greph`, `greph-index`, `rg` and `sg` work when greph is installed as a dependency. The binaries only looked for the autoloader in their own `vendor/`
+- The Composer package no longer ships benchmarks, scenarios, tests, docs or development scripts, taking it from 416 KB to 130 KB
+
+### Changed
+- The `Greph\Benchmarks\` namespace is now dev-only (`autoload-dev`), matching the `benchmarks/` directory it maps, which is not part of the package
+- Documentation rewritten as portable Markdown in `docs/`
+- Development dependencies raised to the inline0 canonical minimums, including `squizlabs/php_codesniffer` `^3.13.6` for CVE-2026-67434. Dev only, no effect on consumers
+
 ## [0.2.2] - 2026-05-19
 
 ### Changed
