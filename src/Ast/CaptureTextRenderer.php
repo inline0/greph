@@ -45,6 +45,7 @@ final class CaptureTextRenderer
         $changes = [];
         $covered = [];
         $commasToRemove = [];
+        $constructors = [];
 
         self::visit($template->root, function (
             Node $node,
@@ -55,12 +56,14 @@ final class CaptureTextRenderer
             $captures,
             $lists,
             $source,
+            $candidate,
             $sourceOffset,
             $templateSource,
             $parenthesize,
             &$changes,
             &$covered,
-            &$commasToRemove
+            &$commasToRemove,
+            &$constructors
         ): bool {
             $variadic = MetaVariable::variadicName($node);
             $name = $variadic ?? MetaVariable::singleName($node);
@@ -110,7 +113,34 @@ final class CaptureTextRenderer
                 $from = $capture->getStartFilePos() - $sourceOffset;
                 $to = $capture->getEndFilePos() - $sourceOffset + 1;
                 $text = substr($source, $from, $to - $from);
-                $covered[] = [$from, $to];
+                if ($capture instanceof Node\Stmt\Class_ && $parent instanceof Node\Expr\New_ && $field === 'class') {
+                    $original = self::constructorForClass($candidate, $capture);
+                    if ($original === null) {
+                        throw new \RuntimeException('Cannot locate the captured anonymous class constructor.');
+                    }
+                    [$open, $close] = self::listBounds($original, 'args', $source, $sourceOffset);
+                    if ($close > $open && ($source[$open] ?? '') === '(') {
+                        $covered[] = [$from, $open];
+                        $covered[] = [$close + 1, $to];
+                        $argumentOffset = $open - $from;
+                        $argumentLength = $close - $open + 1;
+                    } else {
+                        $covered[] = [$from, $to];
+                        $argumentOffset = self::classKeywordEnd($text);
+                        $argumentLength = 0;
+                    }
+                    $constructors[] = [
+                        'start' => $parent->getStartFilePos(),
+                        'end' => $parent->getEndFilePos() + 1,
+                        'class_start' => $node->getStartFilePos(),
+                        'args_start' => $node->getEndFilePos() + 1,
+                        'text' => $text,
+                        'argument_offset' => $argumentOffset,
+                        'argument_length' => $argumentLength,
+                    ];
+                } else {
+                    $covered[] = [$from, $to];
+                }
                 if (
                     $parenthesize && $capture instanceof Node\Expr
                     && !$capture instanceof Node\Expr\Variable && !$capture instanceof Node\Scalar
@@ -128,11 +158,23 @@ final class CaptureTextRenderer
         foreach ($commasToRemove as $comma => $_) {
             $changes[] = [$comma, $comma + 1, ''];
         }
-        usort($changes, static fn (array $a, array $b): int => $b[0] <=> $a[0]);
-        $rendered = substr($templateSource, $start, $end - $start);
-        foreach ($changes as [$from, $to, $text]) {
-            $rendered = substr_replace($rendered, $text, $from - $start, $to - $from);
+        usort($constructors, static fn (array $left, array $right): int => $right['start'] <=> $left['start']);
+        foreach ($constructors as $constructor) {
+            $arguments = self::splice($templateSource, $constructor['args_start'], $constructor['end'], $changes);
+            $prefix = substr($templateSource, $constructor['start'], $constructor['class_start'] - $constructor['start']);
+            $replacement = $prefix . substr_replace(
+                $constructor['text'],
+                $arguments,
+                $constructor['argument_offset'],
+                $constructor['argument_length'],
+            );
+            $changes = array_values(array_filter(
+                $changes,
+                static fn (array $change): bool => $change[0] < $constructor['start'] || $change[1] > $constructor['end'],
+            ));
+            $changes[] = [$constructor['start'], $constructor['end'], $replacement];
         }
+        $rendered = self::splice($templateSource, $start, $end, $changes);
 
         $comments = '';
         $candidateStart = $candidate->getStartFilePos() - $sourceOffset;
@@ -155,6 +197,54 @@ final class CaptureTextRenderer
         }
 
         return $comments . $rendered;
+    }
+
+    /** @param list<array{int, int, string}> $changes */
+    private static function splice(string $source, int $start, int $end, array $changes): string
+    {
+        usort($changes, static fn (array $a, array $b): int => $b[0] <=> $a[0]);
+        $rendered = substr($source, $start, $end - $start);
+        foreach ($changes as [$from, $to, $text]) {
+            if ($from >= $start && $to <= $end) {
+                $rendered = substr_replace($rendered, $text, $from - $start, $to - $from);
+            }
+        }
+
+        return $rendered;
+    }
+
+    private static function constructorForClass(Node $root, Node\Stmt\Class_ $class): ?Node\Expr\New_
+    {
+        if ($root instanceof Node\Expr\New_ && $root->class === $class) {
+            return $root;
+        }
+        foreach ($root->getSubNodeNames() as $field) {
+            $value = $root->$field;
+            $children = $value instanceof Node ? [$value] : (is_array($value) ? $value : []);
+            foreach ($children as $child) {
+                if ($child instanceof Node && ($found = self::constructorForClass($child, $class)) !== null) {
+                    return $found;
+                }
+            }
+        }
+
+        return null;
+    }
+
+    private static function classKeywordEnd(string $source): int
+    {
+        $previous = null;
+        foreach (self::tokens($source, 0) as $token) {
+            if (in_array($token['id'], [T_WHITESPACE, T_COMMENT, T_DOC_COMMENT], true)) {
+                continue;
+            }
+            if ($token['id'] === T_CLASS && $previous !== T_DOUBLE_COLON) {
+                return $token['offset'] + strlen($token['text']);
+            }
+            $previous = $token['id'];
+        }
+
+        throw new \RuntimeException('Cannot locate the captured class keyword.');
     }
 
     public static function prefixLength(string $source): int
@@ -237,6 +327,36 @@ final class CaptureTextRenderer
         /** @var array<array-key, mixed> $items */
         $items = $parent->$field;
         $nodes = array_values(array_filter($items, static fn (mixed $item): bool => $item instanceof Node));
+        if ($field === 'args' && $items === [] && $parent instanceof Node\Expr\New_) {
+            $hasArguments = false;
+            if ($parent->class instanceof Node\Stmt\Class_) {
+                $afterClass = false;
+                $previousId = null;
+                foreach ($tokens as $token) {
+                    if (in_array($token['id'], [T_WHITESPACE, T_COMMENT, T_DOC_COMMENT], true)) {
+                        continue;
+                    }
+                    if ($afterClass) {
+                        $hasArguments = $token['text'] === '(';
+                        break;
+                    }
+                    if ($token['id'] === T_CLASS && $previousId !== T_DOUBLE_COLON) {
+                        $afterClass = true;
+                        $functionPosition = $token['offset'];
+                    }
+                    $previousId = $token['id'];
+                }
+            } else {
+                foreach ($pairs as [$kind, $open, $close]) {
+                    if ($kind === '(' && $open > $parent->class->getEndFilePos() - $sourceOffset && $close === $end) {
+                        $hasArguments = true;
+                    }
+                }
+            }
+            if (!$hasArguments) {
+                return [$end, $end, []];
+            }
+        }
         /** @var list<array{int, int}> $eligible */
         $eligible = [];
         foreach ($pairs as [$kind, $open, $close]) {

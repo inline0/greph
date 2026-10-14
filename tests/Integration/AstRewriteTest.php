@@ -237,6 +237,37 @@ PHP;
     }
 
     #[Test]
+    public function itCapturesEmptyConstructorArgumentsWithoutSourceParentheses(): void
+    {
+        $file = Workspace::writeFile($this->workspace, 'src/Constructor.php', '<?php $value = new Foo;');
+        $result = Greph::rewriteAst('new $CLASS($$$ARGS)', 'wrap(new $CLASS($$$ARGS))', $file);
+        self::assertSame('<?php $value = wrap(new Foo());', $result[0]->rewrittenContents);
+
+        $file = Workspace::writeFile($this->workspace, 'src/Anonymous.php', '<?php $value = new class {};');
+        $result = Greph::rewriteAst('new class($$$ARGS) {}', 'new class($$$ARGS) {}', $file);
+        self::assertSame('<?php $value = new class() {};', $result[0]->rewrittenContents);
+    }
+
+    #[Test]
+    public function itPlacesArgumentsBeforeCapturedAnonymousClassBodies(): void
+    {
+        $original = '<?php $value = new class(1, /* keep */ 2) { public function value() { return 0x1F; } };';
+        $file = Workspace::writeFile($this->workspace, 'src/AnonymousCapture.php', $original);
+        $result = Greph::rewriteAst('new $CLASS($$$ARGS)', 'wrap(new $CLASS($$$ARGS))', $file);
+        self::assertSame(
+            '<?php $value = wrap(new class(1, /* keep */ 2) { public function value() { return 0x1F; } });',
+            $result[0]->rewrittenContents,
+        );
+        $empty = '<?php $value = new class { public function value() { return 0x1F; } };';
+        file_put_contents($file, $empty);
+        $result = Greph::rewriteAst('new $CLASS($$$ARGS)', 'wrap(new $CLASS($$$ARGS))', $file);
+        self::assertSame(
+            '<?php $value = wrap(new class() { public function value() { return 0x1F; } });',
+            $result[0]->rewrittenContents,
+        );
+    }
+
+    #[Test]
     public function itIsIdempotentAcrossRepeatedRewriteRuns(): void
     {
         $firstPass = Greph::rewriteAst(
