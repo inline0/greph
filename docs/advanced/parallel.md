@@ -65,7 +65,7 @@ You can detect this at runtime by checking `function_exists('pcntl_fork')`.
 - Start with `-j` set to half your physical core count and raise it until you stop seeing improvements.
 - For literal-only fixed-string searches on small repositories, single-process is usually faster than any parallel configuration.
 - No published benchmark measures parallel AST search or rewrite. Measure on your own tree before settling on a job count.
-- The README's "Scan Mode: Parallel Text" rows (`1`, `2`, and `4` workers on the WordPress corpus) do not measure the pool: they search the short literal `function`, whose threshold of `jobs * 4_000` files is above the corpus size, so every row runs in-process ([#8](https://github.com/inline0/greph/issues/8)).
+- Since 0.2.4, the parallel benchmark counts a regex with a lower file threshold. On the WordPress corpus its 2- and 4-job rows use the pool when `pcntl_fork` is available. Earlier literal-search benchmark rows ran in-process and cannot be compared with the new workload.
 
 ## Limitations
 

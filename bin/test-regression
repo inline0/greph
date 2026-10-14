@@ -30,7 +30,11 @@ while ($arguments !== []) {
             $category = array_shift($arguments) ?: null;
             break;
         case '--jobs':
-            $jobs = max(1, (int) (array_shift($arguments) ?: '1'));
+            $jobs = filter_var(array_shift($arguments), FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
+            if ($jobs === false) {
+                fwrite(STDERR, "--jobs must be a positive integer.\n");
+                exit(2);
+            }
             break;
     }
 }
@@ -41,8 +45,8 @@ $runner = new ScenarioRunner();
 $passCount = 0;
 $failCount = 0;
 
-foreach ($scenarios as $scenario) {
-    $result = $runner->run($scenario, $refreshOracle);
+foreach ($runner->runAll($scenarios, $refreshOracle, $jobs) as $index => $result) {
+    $scenario = $scenarios[$index];
 
     if ($result['pass']) {
         $passCount++;

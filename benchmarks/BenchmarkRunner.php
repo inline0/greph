@@ -317,6 +317,7 @@ final class BenchmarkRunner
             case 'parallel':
                 $results = Greph::searchText((string) $suite['pattern'], $corpusPath, new TextSearchOptions(
                     fixedString: (bool) ($suite['fixed'] ?? false),
+                    countOnly: (bool) ($suite['count_only'] ?? false),
                     wholeWord: (bool) ($suite['whole_word'] ?? false),
                     quiet: (bool) ($suite['quiet'] ?? false),
                     collectCaptures: false,

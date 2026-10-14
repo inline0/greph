@@ -1,0 +1,9 @@
+{
+    "name": "outermost-nested-match",
+    "category": "rewrite",
+    "description": "Rewrite the outermost overlapping match once, matching ast-grep",
+    "mode": "rewrite",
+    "pattern": "array($$$ITEMS)",
+    "rewrite": "[$$$ITEMS]",
+    "path": "setup"
+}

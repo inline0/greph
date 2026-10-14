@@ -10,7 +10,7 @@ meta_description: "Format-preserving structural rewrites with dry-run, interacti
 
 # AST Rewrite
 
-AST rewrite is AST search with a replacement template. Greph runs the same matcher as [AST search](/docs/modes/ast), then splices the rewritten template back into the source at the matched byte ranges. Surrounding whitespace, indentation, and comments are preserved; the matched code itself is re-printed (see [Inside a match](#inside-a-match)).
+AST rewrite is AST search with a replacement template. Greph runs the same matcher as [AST search](/docs/modes/ast), then splices the rewritten template back into the source at the matched byte ranges. Surrounding whitespace, indentation, and comments are preserved. Captured nodes and lists are inserted using their original source text (see [Inside a match](#inside-a-match)).
 
 ## Quick examples
 
@@ -39,7 +39,7 @@ The replacement template uses the same metavariable syntax as the search pattern
 | `$$$ARGS` | `$$$ARGS` | Insert the captured node sequence |
 | `$NAME` (identifier) | `$NAME` | Insert the captured identifier |
 
-Metavariables that appear in the pattern but not in the template are dropped from the rewritten code. A metavariable that appears in the template but not in the pattern is not rejected today: it is printed literally, so `-r '$o->$m($$$A, $EXTRA)'` writes a `$EXTRA` variable into the code ([#4](https://github.com/inline0/greph/issues/4)). Check templates with `--dry-run` first.
+Metavariables that appear in the pattern but not in the template are dropped from the rewritten code. A metavariable in the template must be bound by the pattern. An unbound name, including the non-capturing `$_`, is rejected before any files are written; the error names the variable.
 
 ## Modes
 
@@ -65,12 +65,7 @@ This is a deliberate trade-off against full reformatting: Greph will not "tidy u
 
 ### Inside a match
 
-The matched range itself is replaced by the template rendered through PHP-Parser's pretty printer, with the captured nodes re-printed rather than copied as source text. Today that means ([#2](https://github.com/inline0/greph/issues/2)):
-
-- A comment that is not attached to a following node inside the match is dropped, for example a trailing comment after the last array item or a comment in an otherwise empty array.
-- Comments attached to captured nodes are kept but move onto their own line, which can turn a one-line expression into several lines.
-- Line breaks inside the match are not kept: a multi-line `array(...)` without such comments becomes a one-line `[...]`.
-- Literal spelling is normalized: `0x1F` becomes `0x1f`, `1_000` becomes `1000`, escape sequences such as `"\x41"` are written out as the character (`"A"`), and flexible heredocs lose their indentation.
+Captured nodes retain their original bytes, including quote style, numeric spelling, escape sequences, and heredoc indentation. A complete variadic list also retains its whitespace, trailing comma, and comments, including comments in an otherwise empty list.
 
 ```php
 // before
@@ -79,29 +74,31 @@ $d = array(
 );
 
 // after -p 'array($$$ITEMS)' -r '[$$$ITEMS]'
-$d = ["a" => 1];
+$d = [
+    "a" => 1,  // trailing comment
+];
 ```
 
-Review the `--dry-run` output for matches that contain comments or hand-formatted literals.
+The template controls newly introduced code. Comments within the match that are outside the retained captures are kept before the replacement, so a comment can move when its original syntax is removed. Greph adds parentheses when needed to preserve expression structure and checks the rewritten file before returning changes. A transformation that cannot preserve the template's AST in context is rejected.
 
 ## Multi-line and nested matches
 
-Multi-line patterns work the same as single-line ones. The replacement is rendered by the pretty printer with the metavariables substituted in, so the layout of the replaced code comes from the printer, not from the original match.
+Multi-line patterns work the same as single-line ones. Captured layout comes from the source; new syntax comes from the template.
 
-Greph rewrites each file in one pass and never applies two overlapping matches. It walks the matches from the end of the file backwards and skips any match that overlaps one it has already rewritten. For nested matches that start at different offsets, the inner match is rewritten and the outer one is left as it was:
+Greph rewrites each file in one pass and selects the outermost of overlapping matches, matching ast-grep. Nested matches inside a selected capture are left for a later run:
 
 ```php
 // before
 $b = array(1, array(2));
 
 // after one run of -p 'array($$$ITEMS)' -r '[$$$ITEMS]'
-$b = array(1, [2]);
+$b = [1, array(2)];
 
 // after a second run
 $b = [1, [2]];
 ```
 
-When two matches start at the same offset (a method chain matched by `$obj->$method($$$ARGS)`, for example), the outer match is rewritten instead. When a pattern can nest, run the rewrite again until `--dry-run` prints nothing ([#3](https://github.com/inline0/greph/issues/3)). ast-grep rewrites the outer of two nested matches, so `vendor/bin/sg` and the upstream `sg` produce different results here.
+The outermost match also wins when matches start at the same offset, such as a method chain. The rewriter does not repeat the pattern until convergence; run it again if you want to transform remaining nested constructs.
 
 ## Programmatic use
 

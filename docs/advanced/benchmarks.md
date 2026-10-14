@@ -75,7 +75,9 @@ File walking only, no search. Measures the cost of the gitignore-aware walker on
 
 ### Scan Mode: Parallel Text
 
-A fixed-string search for `function` with `1`, `2`, and `4` jobs. For that pattern the worker pool only starts above `jobs * 4_000` files (see [Parallel Workers](/docs/advanced/parallel)), more than the WordPress corpus has, so all three published rows run in a single process and do not show pool scaling ([#8](https://github.com/inline0/greph/issues/8)).
+Since 0.2.4, `parallel-count-scaling` counts lines matching `function\s+[A-Za-z_]` with `1`, `2`, and `4` jobs. Count mode uses the `jobs * 750` file threshold, so the 2- and 4-job rows start workers on a WordPress corpus with more than 3,000 files when `pcntl_fork` is available. Smaller corpora can still run in-process; see [Parallel Workers](/docs/advanced/parallel).
+
+The earlier `parallel-scaling` suite searched the short fixed string `function`. Its threshold exceeded the WordPress corpus size, so the old published rows measured single-process searches. The new suite has a separate identity: the comparison report does not calculate ratios between these different workloads.
 
 ### Scan Mode: AST
 

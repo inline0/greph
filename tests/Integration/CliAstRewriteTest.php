@@ -104,6 +104,19 @@ PHP);
         $this->assertStringContainsString('Syntax error', $result['stderr']);
     }
 
+    #[Test]
+    public function itRejectsUnboundVariablesWithoutWritingFiles(): void
+    {
+        $file = $this->workspace . '/src/Legacy.php';
+        $before = file_get_contents($file);
+        $result = $this->runCli(['-p', 'array($$$ITEMS)', '-r', '[$$$ITEMS, $EXTRA]', 'src/Legacy.php']);
+
+        self::assertSame(2, $result['exit']);
+        self::assertSame('', $result['stdout']);
+        self::assertStringContainsString('EXTRA', $result['stderr']);
+        self::assertSame($before, file_get_contents($file));
+    }
+
     /**
      * @param list<string> $arguments
      * @return array{exit: int, stdout: string, stderr: string}

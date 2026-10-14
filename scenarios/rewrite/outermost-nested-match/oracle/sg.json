@@ -1,0 +1,6 @@
+[
+    {
+        "file": "setup/source.php",
+        "content": "<?php\n\n$values = [1, array(2)];\n"
+    }
+]

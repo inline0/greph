@@ -7,6 +7,8 @@ namespace Greph\Tests\Oracle;
 use Greph\Support\Filesystem;
 use Greph\Support\Json;
 use Greph\Tests\Support\Workspace;
+use Greph\Parallel\WorkerPool;
+use Greph\Walker\FileList;
 
 final class ScenarioRunner
 {
@@ -89,6 +91,34 @@ final class ScenarioRunner
             Workspace::remove($oracleWorkspace);
             Workspace::remove($actualWorkspace);
         }
+    }
+
+    /**
+     * @param list<Scenario> $scenarios
+     * @return list<array{
+     *   pass: bool,
+     *   oracle: array{success: bool, outputs: array<string, mixed>, errors: list<string>},
+     *   actual: array{success: bool, outputs: array<string, mixed>, errors: list<string>},
+     *   comparison: array<string, mixed>
+     * }>
+     */
+    public function runAll(array $scenarios, bool $refreshOracle = false, int $jobs = 1): array
+    {
+        if ($jobs < 1) {
+            throw new \InvalidArgumentException('Scenario jobs must be a positive integer.');
+        }
+        $byName = [];
+        $chunks = [];
+        foreach ($scenarios as $scenario) {
+            $byName[$scenario->name] = $scenario;
+            $chunks[] = new FileList([$scenario->name]);
+        }
+
+        return (new WorkerPool())->map(
+            $chunks,
+            fn (FileList $chunk): array => $this->run($byName[$chunk->paths()[0]], $refreshOracle),
+            $jobs,
+        );
     }
 
     private function hasOracleOutputs(Scenario $scenario): bool

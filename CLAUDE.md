@@ -1,6 +1,6 @@
 # greph
 
-Pure PHP code search and structural refactoring tool. Two modes: fast text search (like ripgrep) and AST-aware structural search with rewrite (like ast-grep). No extensions, no FFI, no shelling out. Oracle-tested against grep, ripgrep, and ast-grep.
+Pure PHP code search and structural refactoring tool. Two modes: fast text search (like ripgrep) and AST-aware structural search with rewrite (like ast-grep). Uses PHP's ctype, JSON, tokenizer, and zlib extensions. No FFI or runtime shelling out. Oracle-tested against grep, ripgrep, and ast-grep.
 
 ## Quick Reference
 
@@ -286,7 +286,7 @@ greph -p 'pattern' -r 'rewrite' --interactive src/     # Confirm each change
 
 ## Key Rules
 
-1. Pure PHP. No extensions beyond what ships with every PHP install. No FFI. No `exec()`. No shelling out to grep, ripgrep, or ast-grep at runtime. Those tools are oracles for testing, not runtime dependencies.
+1. Pure PHP. Require ctype, JSON, tokenizer, and zlib through Composer; pcntl is optional. No FFI. No `exec()`. No shelling out to grep, ripgrep, or ast-grep at runtime. Those tools are oracles for testing, not runtime dependencies.
 2. Three oracles, not one. Text search is tested against both `grep` and `ripgrep`. AST search is tested against `ast-grep --lang php`. All three are captured in oracle output. If greph disagrees with all oracles, greph is wrong. If oracles disagree with each other, investigate and document.
 3. Text mode grep-compatible output. The default output format must match `grep -rn` exactly: `file:line:content`. This means existing scripts and tools that parse grep output work unchanged with greph.
 4. AST mode uses nikic/PHP-Parser. This is the only Composer dependency. It is pure PHP, actively maintained, and handles PHP 7/8+ syntax completely. No tree-sitter, no C bindings. PHP files only for v1. Other languages are a future concern.
@@ -546,6 +546,7 @@ Build bottom-up. Each phase unlocks new scenario categories and benchmarks.
 | Dependency | Purpose | Required? |
 |---|---|---|
 | `nikic/php-parser` | PHP AST parsing for structural search/rewrite | Yes (for AST mode) |
+| `ctype`, `json`, `tokenizer`, `zlib` extensions | Text options, parsing, and compressed caches | Yes |
 | `pcntl` extension | Parallel worker forking | Optional (graceful fallback to single-process) |
 
 No other dependencies. Text search mode has zero Composer dependencies.

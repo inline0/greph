@@ -1,0 +1,9 @@
+{
+    "name": "captured-literal-spelling",
+    "category": "rewrite",
+    "description": "Splice captured literals without changing their original spelling",
+    "mode": "rewrite",
+    "pattern": "array($$$ITEMS)",
+    "rewrite": "[$$$ITEMS]",
+    "path": "setup"
+}

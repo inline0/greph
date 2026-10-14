@@ -1,0 +1,6 @@
+[
+    {
+        "file": "setup/source.php",
+        "content": "<?php\n\n$values = [0x1F, 1_000, \"x\\x41\"];\n"
+    }
+]

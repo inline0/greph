@@ -5,9 +5,9 @@ declare(strict_types=1);
 namespace Greph\Ast;
 
 use Greph\Ast\Parsers\ParserFactory;
+use Greph\Ast\Parsers\ParserInterface;
 use Greph\Exceptions\ParseException;
 use PhpParser\Node;
-use PhpParser\PrettyPrinter\Standard;
 use Greph\Walker\FileList;
 
 final class AstRewriter
@@ -22,7 +22,7 @@ final class AstRewriter
 
     private ParserFactory $parserFactory;
 
-    private Standard $printer;
+    private CaptureTextRenderer $renderer;
 
     public function __construct(
         ?PatternParser $patternParser = null,
@@ -40,7 +40,7 @@ final class AstRewriter
         $this->candidateFinder = $candidateFinder ?? new AstCandidateFinder();
         $this->rootMatcher = $rootMatcher ?? new AstRootMatcher();
         $this->parserFactory = $parserFactory ?? new ParserFactory();
-        $this->printer = new Standard();
+        $this->renderer = new CaptureTextRenderer();
     }
 
     /**
@@ -54,6 +54,15 @@ final class AstRewriter
     ): array {
         $search = $this->patternParser->parse($searchPattern, $options->language);
         $rewrite = $this->patternParser->parse($rewritePattern, $options->language);
+        $bound = array_filter(
+            CaptureTextRenderer::captureNames($search->root),
+            static fn (string $name): bool => !MetaVariable::isNonCapturing($name),
+        );
+        $unbound = array_diff(CaptureTextRenderer::captureNames($rewrite->root), $bound);
+        if ($unbound !== []) {
+            throw new ParseException('Rewrite metavariable is not bound by the pattern: ' . implode(', ', $unbound));
+        }
+        $templateCode = MetaVariable::preprocess($rewritePattern);
         $parser = $this->parserFactory->forLanguage($options->language);
         $results = [];
 
@@ -75,18 +84,22 @@ final class AstRewriter
             }
 
             $matches = [];
+            $sourceOffset = CaptureTextRenderer::prefixLength($source);
 
             foreach ($this->candidateFinder->iterate($statements, $search, $this->rootMatcher) as $candidate) {
-                $captures = $this->patternMatcher->match($search->root, $candidate);
+                $lists = [];
+                $captures = $this->patternMatcher->match($search->root, $candidate, $lists);
 
                 if ($captures === null) {
                     continue;
                 }
 
                 $matches[] = [
-                    'start' => $candidate->getStartFilePos(),
-                    'end' => $candidate->getEndFilePos(),
+                    'start' => $candidate->getStartFilePos() - $sourceOffset,
+                    'end' => $candidate->getEndFilePos() - $sourceOffset,
                     'captures' => $captures,
+                    'lists' => $lists,
+                    'node' => $candidate,
                 ];
             }
 
@@ -97,32 +110,59 @@ final class AstRewriter
 
             usort(
                 $matches,
-                static fn (array $left, array $right): int => $right['start'] <=> $left['start']
+                static fn (array $left, array $right): int => ($left['start'] <=> $right['start'])
+                    ?: ($right['end'] <=> $left['end'])
             );
+
+            $selected = [];
+            $lastEnd = -1;
+            foreach ($matches as $match) {
+                if ($match['start'] > $lastEnd) {
+                    $selected[] = $match;
+                    $lastEnd = $match['end'];
+                }
+            }
 
             $rewritten = $source;
             $replacementCount = 0;
-            $lastRangeStart = PHP_INT_MAX;
+            $renderedMatches = [];
+            $replacementNodes = [];
 
-            foreach ($matches as $match) {
-                if ($match['end'] >= $lastRangeStart) {
-                    continue;
-                }
-
+            foreach (array_reverse($selected) as $match) {
                 /** @var Node $template */
                 $template = $rewrite->root;
                 /** @var array<string, mixed> $captures */
                 $captures = $match['captures'];
                 $replacementNode = $this->materializeNode($template, $captures);
-
-                if ($rewrite->isExpression) {
-                    if (!$replacementNode instanceof Node\Expr) {
-                        throw new \RuntimeException('Expression rewrite produced a non-expression node.');
+                if ($rewrite->isExpression && !$replacementNode instanceof Node\Expr) {
+                    throw new \RuntimeException('Expression rewrite produced a non-expression node.');
+                }
+                $replacement = '';
+                $valid = false;
+                foreach ([false, true] as $parenthesize) {
+                    $replacement = $this->renderer->render(
+                        $rewrite,
+                        $templateCode,
+                        $captures,
+                        $match['lists'] ?? [],
+                        $source,
+                        $match['node'],
+                        $parenthesize,
+                    );
+                    try {
+                        $parsed = $rewrite->isExpression
+                            ? $parser->parseExpression($replacement)
+                            : ($parser->parseStatements($replacement)[0] ?? null);
+                    } catch (ParseException) {
+                        continue;
                     }
-
-                    $replacement = $this->printer->prettyPrintExpr($replacementNode);
-                } else {
-                    $replacement = $this->printer->prettyPrint([$replacementNode]);
+                    if (self::shape($parsed) === self::shape($replacementNode)) {
+                        $valid = true;
+                        break;
+                    }
+                }
+                if (!$valid) {
+                    throw new ParseException('Cannot render the rewrite without changing its expression structure.');
                 }
 
                 $rewritten = substr_replace(
@@ -131,9 +171,28 @@ final class AstRewriter
                     $match['start'],
                     ($match['end'] - $match['start']) + 1,
                 );
+                $renderedMatches[] = ['start' => $match['start'], 'end' => $match['end'], 'text' => $replacement];
+                $replacementNodes[spl_object_id($match['node'])] = $replacementNode;
 
                 $replacementCount++;
-                $lastRangeStart = $match['start'];
+            }
+
+            $expected = self::shape($statements, $replacementNodes);
+            $validShape = $this->hasShape($parser, $rewritten, $expected);
+            if (!$validShape && $rewrite->isExpression) {
+                $rewritten = $source;
+                foreach ($renderedMatches as $match) {
+                    $rewritten = substr_replace(
+                        $rewritten,
+                        '(' . $match['text'] . ')',
+                        $match['start'],
+                        $match['end'] - $match['start'] + 1,
+                    );
+                }
+                $validShape = $this->hasShape($parser, $rewritten, $expected);
+            }
+            if (!$validShape) {
+                throw new ParseException('Cannot preserve the rewrite structure in its surrounding source.');
             }
 
             $results[] = new RewriteResult($file, $source, $rewritten, $replacementCount);
@@ -156,7 +215,7 @@ final class AstRewriter
         }
 
         $clone = clone $template;
-        $this->clearAttributes($clone);
+        $clone->setAttributes([]);
 
         foreach ($clone->getSubNodeNames() as $subNodeName) {
             /** @var mixed $subNode */
@@ -199,23 +258,32 @@ final class AstRewriter
         return $value;
     }
 
-    private function clearAttributes(Node $node): void
+    private function hasShape(ParserInterface $parser, string $source, mixed $expected): bool
     {
-        $node->setAttributes([]);
-
-        foreach ($node->getSubNodeNames() as $subNodeName) {
-            /** @var mixed $subNode */
-            $subNode = $node->$subNodeName;
-
-            if ($subNode instanceof Node) {
-                $this->clearAttributes($subNode);
-            } elseif (is_array($subNode)) {
-                foreach ($subNode as $childNode) {
-                    if ($childNode instanceof Node) {
-                        $this->clearAttributes($childNode);
-                    }
-                }
-            }
+        try {
+            return self::shape($parser->parseStatements($source)) === $expected;
+        } catch (ParseException) {
+            return false;
         }
+    }
+
+    /** @param array<int, Node> $replacements */
+    private static function shape(mixed $value, array $replacements = []): mixed
+    {
+        if ($value instanceof Node) {
+            if (isset($replacements[spl_object_id($value)])) {
+                return self::shape($replacements[spl_object_id($value)]);
+            }
+            $fields = [$value::class];
+            foreach ($value->getSubNodeNames() as $name) {
+                /** @var mixed $child */
+                $child = $value->$name;
+                $fields[$name] = self::shape($child, $replacements);
+            }
+            return $fields;
+        }
+        return is_array($value)
+            ? array_map(static fn (mixed $item): mixed => self::shape($item, $replacements), $value)
+            : $value;
     }
 }

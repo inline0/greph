@@ -12,14 +12,18 @@ final class PatternMatcher
     private array $fingerprints = [];
 
     /**
+     * @param array<string, array{parent: Node, field: string, offset: int, length: int}>|null $lists
      * @return array<string, mixed>|null
      */
-    public function match(Node $pattern, Node $candidate): ?array
+    public function match(Node $pattern, Node $candidate, ?array &$lists = null): ?array
     {
         $this->fingerprints = [];
         $captures = [];
+        if ($lists !== null) {
+            $lists = [];
+        }
 
-        if (!$this->matchValue($pattern, $candidate, $captures)) {
+        if (!$this->matchValue($pattern, $candidate, $captures, $lists)) {
             return null;
         }
 
@@ -28,9 +32,16 @@ final class PatternMatcher
 
     /**
      * @param array<string, mixed> $captures
+     * @param array<string, array{parent: Node, field: string, offset: int, length: int}>|null $lists
      */
-    private function matchValue(mixed $pattern, mixed $candidate, array &$captures): bool
-    {
+    private function matchValue(
+        mixed $pattern,
+        mixed $candidate,
+        array &$captures,
+        ?array &$lists,
+        ?Node $parent = null,
+        ?string $field = null,
+    ): bool {
         if ($pattern instanceof Node && $candidate instanceof Node) {
             $metaName = MetaVariable::singleName($pattern);
 
@@ -48,7 +59,7 @@ final class PatternMatcher
                 /** @var mixed $candidateSubNode */
                 $candidateSubNode = $candidate->$subNodeName;
 
-                if (!$this->matchValue($patternSubNode, $candidateSubNode, $captures)) {
+                if (!$this->matchValue($patternSubNode, $candidateSubNode, $captures, $lists, $candidate, $subNodeName)) {
                     return false;
                 }
             }
@@ -57,7 +68,7 @@ final class PatternMatcher
         }
 
         if (is_array($pattern) && is_array($candidate)) {
-            return $this->matchArray(array_values($pattern), array_values($candidate), $captures);
+            return $this->matchArray(array_values($pattern), array_values($candidate), $captures, $lists, $parent, $field);
         }
 
         return $pattern === $candidate;
@@ -67,23 +78,46 @@ final class PatternMatcher
      * @param list<mixed> $pattern
      * @param list<mixed> $candidate
      * @param array<string, mixed> $captures
+     * @param array<string, array{parent: Node, field: string, offset: int, length: int}>|null $lists
      */
-    private function matchArray(array $pattern, array $candidate, array &$captures, int $patternOffset = 0, int $candidateOffset = 0): bool
-    {
+    private function matchArray(
+        array $pattern,
+        array $candidate,
+        array &$captures,
+        ?array &$lists,
+        ?Node $parent,
+        ?string $field,
+        int $patternOffset = 0,
+        int $candidateOffset = 0,
+    ): bool {
         while ($patternOffset < count($pattern)) {
             $variadicName = MetaVariable::variadicName($pattern[$patternOffset]);
 
             if ($variadicName !== null) {
                 for ($take = $candidateOffset; $take <= count($candidate); $take++) {
                     $trialCaptures = $captures;
+                    $trialLists = $lists;
                     $slice = array_slice($candidate, $candidateOffset, $take - $candidateOffset);
 
                     if (!$this->bindCapture($variadicName, $slice, $trialCaptures)) {
                         continue;
                     }
 
-                    if ($this->matchArray($pattern, $candidate, $trialCaptures, $patternOffset + 1, $take)) {
+                    if (
+                        $trialLists !== null && $parent !== null && $field !== null
+                        && !MetaVariable::isNonCapturing($variadicName) && !isset($trialLists[$variadicName])
+                    ) {
+                        $trialLists[$variadicName] = [
+                            'parent' => $parent,
+                            'field' => $field,
+                            'offset' => $candidateOffset,
+                            'length' => $take - $candidateOffset,
+                        ];
+                    }
+
+                    if ($this->matchArray($pattern, $candidate, $trialCaptures, $trialLists, $parent, $field, $patternOffset + 1, $take)) {
                         $captures = $trialCaptures;
+                        $lists = $trialLists;
 
                         return true;
                     }
@@ -96,7 +130,7 @@ final class PatternMatcher
                 return false;
             }
 
-            if (!$this->matchValue($pattern[$patternOffset], $candidate[$candidateOffset], $captures)) {
+            if (!$this->matchValue($pattern[$patternOffset], $candidate[$candidateOffset], $captures, $lists)) {
                 return false;
             }
 

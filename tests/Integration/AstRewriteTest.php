@@ -116,6 +116,127 @@ PHP);
     }
 
     #[Test]
+    public function itPreservesCommentsLayoutAndLiteralSpellingInsideCaptures(): void
+    {
+        $original = <<<'PHP'
+<?php
+$d = array(
+    "a" => 1,  // trailing on last item
+);
+$e = array(1, /* inline */ 2);
+$f = array(
+    // only comment
+);
+$n = array(0x1F, 1_000, "x\x41");
+PHP;
+        $expected = <<<'PHP'
+<?php
+$d = [
+    "a" => 1,  // trailing on last item
+];
+$e = [1, /* inline */ 2];
+$f = [
+    // only comment
+];
+$n = [0x1F, 1_000, "x\x41"];
+PHP;
+        $file = Workspace::writeFile($this->workspace, 'src/Preserved.php', $original);
+        $result = Greph::rewriteAst('array($$$ITEMS)', '[$$$ITEMS]', $file, new AstSearchOptions(dryRun: true));
+        self::assertSame($expected, $result[0]->rewrittenContents);
+        self::assertSame(4, $result[0]->replacementCount);
+    }
+
+    #[Test]
+    public function itChoosesTheOutermostNestedMatch(): void
+    {
+        $file = Workspace::writeFile($this->workspace, 'src/Nested.php', '<?php $b = array(1, array(2));');
+        $result = Greph::rewriteAst('array($$$ITEMS)', '[$$$ITEMS]', $file, new AstSearchOptions(dryRun: true));
+        self::assertSame('<?php $b = [1, array(2)];', $result[0]->rewrittenContents);
+        self::assertSame(1, $result[0]->replacementCount);
+    }
+
+    #[Test]
+    public function itRejectsUnboundTemplateVariablesBeforeReturningAnyChanges(): void
+    {
+        $file = $this->workspace . '/src/Legacy.php';
+        $original = file_get_contents($file);
+        try {
+            Greph::rewriteAst('array($$$ITEMS)', '[$$$ITEMS, $EXTRA]', $file, new AstSearchOptions());
+            self::fail('An unbound template variable must be rejected.');
+        } catch (\Greph\Exceptions\ParseException $error) {
+            self::assertStringContainsString('EXTRA', $error->getMessage());
+        }
+        self::assertSame($original, file_get_contents($file));
+    }
+
+    #[Test]
+    public function itPreservesExpressionPrecedenceWhenSplicingCaptures(): void
+    {
+        $file = Workspace::writeFile($this->workspace, 'src/Precedence.php', '<?php $n = (1 + 2) * 3;');
+        $result = Greph::rewriteAst('$A * $B', '$B - $A', $file, new AstSearchOptions(dryRun: true));
+        self::assertSame('<?php $n = 3 - (1 + 2);', $result[0]->rewrittenContents);
+    }
+
+    #[Test]
+    public function itPreservesPrecedenceOfTheReplacementWithinItsSurroundingSource(): void
+    {
+        $file = Workspace::writeFile($this->workspace, 'src/Context.php', '<?php $n = 10 * foo(2);');
+        $result = Greph::rewriteAst('foo($X)', '$X + 1', $file, new AstSearchOptions(dryRun: true));
+        self::assertSame('<?php $n = 10 * (2 + 1);', $result[0]->rewrittenContents);
+    }
+
+    #[Test]
+    public function itHandlesEmptyAndTrailingVariadicCaptures(): void
+    {
+        $file = Workspace::writeFile($this->workspace, 'src/Variadic.php', '<?php foo(1); foo(1, 2,);');
+        $results = Greph::rewriteAst('foo($X, $$$TAIL)', 'bar($$$TAIL, $X)', $file, new AstSearchOptions(dryRun: true));
+        self::assertStringContainsString('bar( 1);', $results[0]->rewrittenContents);
+        self::assertStringContainsString('bar( 2, 1);', $results[0]->rewrittenContents);
+    }
+
+    #[Test]
+    public function itPreservesHeredocIndentationAndInterpolation(): void
+    {
+        $original = <<<'PHP'
+<?php
+$values = array(
+    <<<TEXT
+    Hello $name
+    TEXT,
+);
+PHP;
+        $expected = str_replace(['array(', "\n);"], ['[', "\n];"], $original);
+        $file = Workspace::writeFile($this->workspace, 'src/Heredoc.php', $original);
+        $result = Greph::rewriteAst('array($$$ITEMS)', '[$$$ITEMS]', $file, new AstSearchOptions(dryRun: true));
+        self::assertSame($expected, $result[0]->rewrittenContents);
+    }
+
+    #[Test]
+    public function itRetainsCommentsOutsideCapturedNodesAndSupportsSourcesWithoutAnOpenTag(): void
+    {
+        $file = Workspace::writeFile($this->workspace, 'src/NoTag.php', 'foo(/* keep */ 0x1F);');
+        $result = Greph::rewriteAst('foo($X)', 'bar($X)', $file, new AstSearchOptions(dryRun: true));
+        self::assertSame('/* keep */ bar(0x1F);', $result[0]->rewrittenContents);
+    }
+
+    #[Test]
+    public function itPreservesAttributesInPartialParameterCaptures(): void
+    {
+        $original = '<?php function demo($first, #[Flag(1, 2)] $second) {}';
+        $file = Workspace::writeFile($this->workspace, 'src/Parameters.php', $original);
+        $result = Greph::rewriteAst(
+            'function $NAME($FIRST, $$$PARAMS) {}',
+            'function $NAME($FIRST,$$$PARAMS) { return 1; }',
+            $file,
+            new AstSearchOptions(dryRun: true),
+        );
+        self::assertSame(
+            '<?php function demo($first, #[Flag(1, 2)] $second) { return 1; }',
+            $result[0]->rewrittenContents,
+        );
+    }
+
+    #[Test]
     public function itIsIdempotentAcrossRepeatedRewriteRuns(): void
     {
         $firstPass = Greph::rewriteAst(

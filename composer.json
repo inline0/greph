@@ -28,7 +28,10 @@
     ],
     "require": {
         "php": "^8.2",
+        "ext-ctype": "*",
         "ext-json": "*",
+        "ext-tokenizer": "*",
+        "ext-zlib": "*",
         "nikic/php-parser": "^5.7"
     },
     "require-dev": {
