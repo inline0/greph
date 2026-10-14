@@ -39,6 +39,8 @@ Greph is a pure PHP search and refactoring engine for source trees. It covers th
 composer require greph/greph
 ```
 
+The `vendor/bin` executables need Greph 0.2.3 or later when Greph is installed as a dependency.
+
 ```bash
 # Text search
 vendor/bin/greph -F "function" src
@@ -156,7 +158,9 @@ $commandRunner = CommandRunner::processDisabled();
 
 These helpers fail closed with clear errors instead of attempting host process
 lookup or execution. Native `Greph::search*()` and `Greph::rewrite*()` calls do
-not require them.
+not require them. See
+[docs/advanced/process-restricted-hosts.md](docs/advanced/process-restricted-hosts.md)
+for what starts processes and how parallel scans fall back.
 
 ## CLI
 
@@ -320,7 +324,7 @@ That keeps warmed baseline indexes stable while letting active overlays refresh 
 Portable Markdown documentation lives under [`docs/`](docs), with `meta.json` files describing the navigation. Validate it with:
 
 ```bash
-node scripts/check-docs-content.mjs --root docs --expected-docs 17 --expected-nav 5
+node scripts/check-docs-content.mjs --root docs --expected-docs 18 --expected-nav 5
 ```
 
 Topics covered:
@@ -329,7 +333,7 @@ Topics covered:
 - Text mode, AST mode, and rewrite mode
 - Indexed text, indexed AST, and cached AST
 - `rg` and `sg` compatibility wrappers
-- File walker, parallel workers, feature matrix, testing, and benchmarks
+- File walker, parallel workers, process-restricted hosts, feature matrix, testing, and benchmarks
 
 ## Testing
 
@@ -357,11 +361,12 @@ php bin/feature-matrix
 
 The oracle harness diffs Greph output against the canonical `grep`, `ripgrep`, and `ast-grep` binaries on a fixed scenario set. Scenarios live under [`scenarios/`](scenarios), the runner lives under [`tests/Oracle/`](tests/Oracle), and the verified compatibility surface lives in [FEATURE_MATRIX.md](FEATURE_MATRIX.md).
 
-Current local verification baseline:
+Verification baseline at 0.2.3 (PHP 8.4 with pcntl):
 
-- `252` PHPUnit tests
-- `1366` assertions
-- oracle regression summary `39/39`
+- `269` PHPUnit tests, `1591` assertions (unit and integration suites)
+- oracle regression corpus of `39` scenarios; in a fresh clone `37` pass, because the fixtures of `text/no-ignore` and `text/explicit-file-input` are not committed ([#6](https://github.com/inline0/greph/issues/6))
+
+CI (`.github/workflows/ci.yml`) runs `composer cs`, `composer analyse`, `composer test` and `composer audit` on every push to `main` and every pull request. The oracle corpus and the feature matrix are run by hand; they need a clone of the repository, since the Composer package ships only `src/` and the runtime executables.
 
 ## Performance
 
@@ -400,7 +405,7 @@ Traversal isolates walker and ignore-rule overhead without the text matcher domi
 
 ### Scan Mode: Parallel Text
 
-Parallel text shows whether worker fan-out helps on real one-shot scan workloads after traversal and matcher costs are included.
+Parallel text runs the literal `function` search with 1, 2 and 4 jobs. For that short literal the worker pool starts only above `jobs * 4_000` files, more than this corpus has, so all three rows ran in a single process and do not show worker scaling ([#8](https://github.com/inline0/greph/issues/8)).
 
 | Operation | greph | rg | grep |
 | --- | ---: | ---: | ---: |
@@ -465,7 +470,8 @@ Build costs measure the upfront price of preparing warmed indexes and caches tha
 ## Requirements
 
 - PHP 8.2+
-- `ext-json` (built-in on virtually every PHP install)
+- `ext-json`, `ext-ctype` and `ext-tokenizer` (enabled in almost every PHP build)
+- `ext-zlib` for the cached AST store (`greph-index ast-cache`)
 - `nikic/php-parser` ^5.7 (the only Composer dependency)
 
 Optional:

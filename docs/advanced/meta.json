@@ -1,4 +1,4 @@
 {
   "title": "Advanced",
-  "pages": ["walker", "parallel", "feature-matrix", "testing", "benchmarks"]
+  "pages": ["walker", "parallel", "process-restricted-hosts", "feature-matrix", "testing", "benchmarks"]
 }

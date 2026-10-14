@@ -19,7 +19,7 @@ Greph ships four executables. All four share the same engine; the difference is 
 | `rg` | ripgrep-style compatibility wrapper |
 | `sg` | ast-grep-style compatibility wrapper |
 
-All paths in the examples use `./vendor/bin/<binary>`. Substitute `./bin/<binary>` if you are working from a clone of the repository.
+All paths in the examples use `./vendor/bin/<binary>`, which works with Greph 0.2.3 or later installed as a dependency. Substitute `./bin/<binary>` if you are working from a clone of the repository.
 
 ---
 

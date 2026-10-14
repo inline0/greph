@@ -53,20 +53,23 @@ A bare invocation searches `.` recursively:
 `--json` emits the same event-shaped payload that ripgrep produces:
 
 ```bash
-./vendor/bin/rg --json -F "function" src
+./vendor/bin/rg --json -F "function walk" src/Greph.php
 ```
 
 ```json
 {"type":"begin","data":{"path":{"text":"src/Greph.php"}}}
-{"type":"match","data":{"path":{"text":"src/Greph.php"},"lines":{"text":"final class Greph"},"line_number":31,"absolute_offset":1234,"submatches":[{"match":{"text":"function"},"start":0,"end":8}]}}
-{"type":"end","data":{"path":{"text":"src/Greph.php"}}}
+{"type":"match","data":{"path":{"text":"src/Greph.php"},"lines":{"text":"    public static function walk(string|array $paths, ?WalkOptions $options = null): FileList\n"},"line_number":41,"absolute_offset":1034,"submatches":[{"match":{"text":"function walk"},"start":18,"end":31}]}}
+{"type":"end","data":{"path":{"text":"src/Greph.php"},"binary_offset":null,"stats":{"elapsed":{"secs":0,"nanos":0,"human":"0.000000s"},"searches":1,"searches_with_match":1,"bytes_searched":13383,"bytes_printed":282,"matched_lines":1,"matches":1}}}
+{"type":"summary","data":{"elapsed_total":{"human":"0.000000s","nanos":0,"secs":0},"stats":{"bytes_printed":282,"bytes_searched":13383,"matched_lines":1,"matches":1,"searches":1,"searches_with_match":1,"elapsed":{"human":"0.000000s","nanos":0,"secs":0}}}}
 ```
+
+Timings in the `stats` objects are always reported as zero.
 
 This is the schema that downstream tools expect when they enable ripgrep's structured output. If you want a simpler shape, use `vendor/bin/greph --json` instead.
 
 ## Verified surface
 
-The following flags are verified against `rg` itself in the [feature matrix](/docs/advanced/feature-matrix). Both the upstream binary and the wrapper produce equivalent output for each probe.
+The following flags are verified against `rg` itself in the [feature matrix](/docs/advanced/feature-matrix). Both the upstream binary and the wrapper produce equivalent output for each probe. Where a flag has a short and a long spelling, the probe uses one of them and the wrapper parses both as the same option.
 
 ### Search flags
 
@@ -102,9 +105,13 @@ The following flags are verified against `rg` itself in the [feature matrix](/do
 
 - `--json`
 
-### Worker flags
+### Accepted without a probe
 
-- `-j N`, `--threads N`
+The wrapper also accepts these flags, but no feature matrix probe covers them yet:
+
+- `-j N`, `--threads N` (worker count, see [Parallel Workers](/docs/advanced/parallel))
+- `-q`, `--quiet`
+- `--no-follow`
 
 ## Limitations
 

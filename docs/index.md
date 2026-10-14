@@ -1,10 +1,10 @@
 ---
 title: "Introduction"
-description: "Pure PHP code search, structural search, and rewrite engine. grep, ripgrep, and ast-grep workflows in a single Composer package."
+description: "Greph searches and refactors PHP source trees in pure PHP: grep-compatible text search, AST search with metavariables and format-preserving rewrites."
 path: "."
 order: 10
 meta_title: "Introduction"
-meta_description: "Pure PHP code search, structural search, and rewrite engine. grep, ripgrep, and ast-grep workflows in a single Composer package."
+meta_description: "Greph searches and refactors PHP source trees in pure PHP: grep-compatible text search, AST search with metavariables and format-preserving rewrites."
 ---
 
 # Introduction
@@ -39,12 +39,15 @@ Greph eliminates that gap. Your PHP code can run text searches, structural match
 ## What it requires
 
 - PHP 8.2 or later
-- `ext-json` (built-in on virtually every PHP install)
+- `ext-json`, `ext-ctype` and `ext-tokenizer`, which are enabled in almost every PHP build
+- `ext-zlib` for the cached AST store (`greph-index ast-cache`)
 - `nikic/php-parser` (the only Composer dependency)
 
-Core text and AST features run in pure PHP. Optional benchmark comparisons depend on external tools like `rg`, `grep`, and `sg`, but Greph itself does not require them to operate. Parallel scans use `ext-pcntl` when available and gracefully fall back to single-process execution otherwise.
+Core text and AST features run in pure PHP. Optional benchmark comparisons depend on external tools like `rg`, `grep`, and `sg`, but Greph itself does not require them to operate. Parallel scans use `ext-pcntl` when available and gracefully fall back to single-process execution otherwise. Hosts that forbid `proc_open()` and `shell_exec()` are covered in [Process-Restricted Hosts](/docs/advanced/process-restricted-hosts).
 
 ## Quick example
+
+The `vendor/bin` executables need Greph 0.2.3 or later when Greph is installed as a dependency of your project.
 
 ```bash
 # Text search

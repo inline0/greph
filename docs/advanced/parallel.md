@@ -50,7 +50,7 @@ These numbers are heuristics, not promises. They are tuned against the WordPress
 
 ## How the pool works
 
-`Greph\Parallel\WorkSplitter` distributes the file list across N chunks. `Greph\Parallel\WorkerPool` forks one worker process per chunk, each worker runs the same closure on its slice, and `Greph\Parallel\ResultCollector` reads the serialized results back through pipes. The parent process waits for every worker, then merges and re-sorts the combined result set so the output ordering is stable regardless of how the work was split.
+`Greph\Parallel\WorkSplitter` distributes the file list across N chunks. `Greph\Parallel\WorkerPool` forks one worker process per chunk, each worker runs the same closure on its slice, and `Greph\Parallel\ResultCollector` reads the serialized results back through a Unix socket pair per worker. The parent process waits for every worker, then merges and re-sorts the combined result set so the output ordering is stable regardless of how the work was split.
 
 For text mode the worker pool uses a custom on-the-wire codec (`Greph\Text\TextResultCodec`) to keep the serialized payload compact. AST mode uses PHP's standard `serialize()`.
 
@@ -64,8 +64,8 @@ You can detect this at runtime by checking `function_exists('pcntl_fork')`.
 
 - Start with `-j` set to half your physical core count and raise it until you stop seeing improvements.
 - For literal-only fixed-string searches on small repositories, single-process is usually faster than any parallel configuration.
-- For AST scans on large repositories, parallel scaling is usually close to linear up to the available core count.
-- The published benchmark numbers in the [README](https://github.com/inline0/greph#performance) include `1`, `2`, and `4` worker scaling on the WordPress corpus.
+- No published benchmark measures parallel AST search or rewrite. Measure on your own tree before settling on a job count.
+- The README's "Scan Mode: Parallel Text" rows (`1`, `2`, and `4` workers on the WordPress corpus) do not measure the pool: they search the short literal `function`, whose threshold of `jobs * 4_000` files is above the corpus size, so every row runs in-process ([#8](https://github.com/inline0/greph/issues/8)).
 
 ## Limitations
 

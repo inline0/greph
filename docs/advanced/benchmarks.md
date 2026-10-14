@@ -10,17 +10,23 @@ meta_description: "Repo-local benchmark harness, real-world corpora, and CI-publ
 
 # Benchmarks
 
-Greph ships a benchmark harness under `bin/` and `benchmarks/`. The harness measures every search mode against real corpora (WordPress, Laravel) and synthetic datasets, captures structured reports, and lets you diff two reports against each other.
+The repository has a benchmark harness under `bin/` and `benchmarks/`. It measures every search mode against real corpora (WordPress, Laravel) and generated synthetic datasets, captures structured reports, and lets you diff two report series against each other.
+
+The harness is part of the repository, not of the Composer package: since 0.2.3, `benchmarks/` and the `bin/bench*` scripts are left out of the package, so run them from a clone (`git clone https://github.com/inline0/greph && cd greph && composer install`).
 
 The published numbers in the [README](https://github.com/inline0/greph#performance) are sourced from GitHub Actions runs, never from local machines. Local runs are useful for iteration; CI runs are the source of truth.
+
+## Corpora
+
+The synthetic corpora (`synthetic-1k`, `synthetic-10k`, `synthetic-100k-single`) are generated under `benchmarks/corpora/synthetic/` on the first run. The real corpora are not included: put a checkout at `benchmarks/corpora/wordpress` or `benchmarks/corpora/laravel` (the CI workflow clones `WordPress/WordPress` with `--depth=1`). A corpus whose directory is missing is skipped.
 
 ## Running benchmarks
 
 ```bash
-# Full benchmark suite
+# Full benchmark suite, every corpus that is present
 ./bin/bench
 
-# Specific category
+# Specific category (the category names used in benchmarks/suites/)
 ./bin/bench --category text
 ./bin/bench --category ast
 
@@ -31,18 +37,23 @@ The published numbers in the [README](https://github.com/inline0/greph#performan
 # Choose a corpus
 ./bin/bench --corpus wordpress
 ./bin/bench --corpus laravel
-./bin/bench --corpus synthetic
+./bin/bench --corpus synthetic-1k
 
-# Aggregate multiple runs
-./bin/bench-series 5 1   # 5 measured runs, 1 warmup
-./bin/bench-aggregate reports/run-*.json
+# Write the run as JSON
+./bin/bench --corpus wordpress --output build/run-1.json
+
+# Measured series: 5 runs after 1 warmup run
+./bin/bench-series --repeat 5 --warmup 1 --corpus wordpress --output build/head-series.json
+
+# Aggregate separate runs into one series
+./bin/bench-aggregate --output build/head-series.json build/run-*.json
 ```
 
-The harness writes JSON reports per run. `bin/bench-compare` diffs two reports and prints a summary, useful when iterating on a hot path.
+`bin/bench-compare base-series.json head-series.json` diffs two series files (the output of `bench-series` or `bench-aggregate`) and prints a Markdown summary, useful when iterating on a hot path. `bin/bench-ci` triggers the Benchmark workflow on GitHub Actions through the `gh` CLI.
 
 ## Categories
 
-The harness covers six benchmark categories, each measuring a specific layer of the engine.
+The README publishes eight groups of results, each measuring a specific layer of the engine. Each group collects one or more of the harness categories defined in `benchmarks/suites/`.
 
 ### Scan Mode: Text
 
@@ -64,7 +75,7 @@ File walking only, no search. Measures the cost of the gitignore-aware walker on
 
 ### Scan Mode: Parallel Text
 
-Same text-search workloads with `1`, `2`, and `4` workers, to measure pcntl scaling overhead.
+A fixed-string search for `function` with `1`, `2`, and `4` jobs. For that pattern the worker pool only starts above `jobs * 4_000` files (see [Parallel Workers](/docs/advanced/parallel)), more than the WordPress corpus has, so all three published rows run in a single process and do not show pool scaling ([#8](https://github.com/inline0/greph/issues/8)).
 
 ### Scan Mode: AST
 
@@ -100,16 +111,16 @@ The comparison columns (`rg`, `grep`, `sg`) are gathered in the same job, on the
 1. Add a benchmark definition under `benchmarks/`.
 2. Add a corresponding scenario to the regression suite if there is no equivalent yet (so the behavior under measurement is also verified).
 3. Run `./bin/bench --category <yours>` to validate the new benchmark.
-4. Capture a baseline with `./bin/bench-series 5 1` and commit the report under `benchmarks/baselines/`.
+4. Compare against `main` with the Benchmark workflow, which runs on pull requests that touch `src/`, `benchmarks/` or `bin/` and posts a head-versus-base comparison in the run summary.
 5. Update the README table once the CI run that includes the new benchmark has landed on `main`.
 
 ## Performance philosophy
 
-Greph is not trying to outrun ripgrep. Ripgrep is implemented in Rust with hand-tuned SIMD literal scanning, and a pure-PHP implementation cannot beat that. The goal is different:
+Greph is not trying to outrun ripgrep or grep on cold scans. Ripgrep is implemented in Rust with hand-tuned SIMD literal scanning, and in the published numbers both `rg` and GNU `grep` are faster than Greph on every cold text scan. The goals are different:
 
 - Be fast enough that interactive use and agent loops feel native.
-- Beat `grep` on the workloads users care about.
-- Beat `ast-grep` on indexed and cached AST workloads (where Greph's warm caches outperform ast-grep's cold parser).
+- Answer repeated queries from warmed indexes: indexed regex and indexed count and file-list queries are faster than both `rg` and `grep` scanning the same tree.
+- Beat `ast-grep` on indexed and cached AST workloads, where Greph's warm caches avoid reparsing the tree. Cold AST search is mixed: `new $CLASS()` is faster than `sg`, `array($$$ITEMS)` is slower.
 - Make every performance improvement measurable and reproducible.
 
 Performance claims that are not backed by a benchmark report are not landed.

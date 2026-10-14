@@ -24,16 +24,29 @@ This installs the library plus four executables in `vendor/bin/`:
 - `rg`: ripgrep-style compatibility wrapper
 - `sg`: ast-grep-style compatibility wrapper
 
+These executables work from your project's `vendor/bin/` since Greph 0.2.3. Earlier releases only found the Composer autoloader inside a clone of the Greph repository, so require at least that version:
+
+```bash
+composer require greph/greph:^0.2.3
+```
+
 ## Requirements
 
 - **PHP 8.2+** for readonly classes, enums, first-class callable syntax, and constructor promotion
 - **ext-json** for JSON output and on-disk index payloads
+- **ext-ctype** for pattern and option parsing
+- **ext-tokenizer** for PHP-Parser and the AST prefilters
+- **ext-zlib** for the cached AST store (`greph-index ast-cache`)
 - **nikic/php-parser** (installed automatically as a Composer dependency)
+
+`ext-json`, `ext-ctype` and `ext-tokenizer` are enabled in almost every PHP build. `composer.json` declares only `ext-json` at the moment ([#5](https://github.com/inline0/greph/issues/5)), so Composer does not warn when one of the others is missing.
 
 Optional:
 
 - **ext-pcntl** for parallel scans. Greph degrades gracefully to single-process execution when it is missing.
 - External `rg`, `grep`, and `sg` binaries for benchmark comparisons. They are never required at runtime.
+
+Searching, rewriting and indexing never call `proc_open()` or `shell_exec()`; only parallel scans fork, and they fall back to a single process without `pcntl_fork()`. See [Process-Restricted Hosts](/docs/advanced/process-restricted-hosts) for hosts that disable `proc_open()`, `shell_exec()` or `pcntl_fork()`.
 
 ## Your first text search
 
@@ -46,9 +59,9 @@ vendor/bin/greph -F "function" src
 The output uses the canonical `file:line:content` format that grep, ripgrep, and most editor integrations expect.
 
 ```text
-src/Greph.php:31:final class Greph
-src/Greph.php:36:    public static function walk(string|array $paths, ?WalkOptions $options = null): FileList
-src/Text/TextSearcher.php:14:final class TextSearcher
+src/Greph.php:41:    public static function walk(string|array $paths, ?WalkOptions $options = null): FileList
+src/Greph.php:50:    public static function searchText(string $pattern, string|array $paths, ?TextSearchOptions $options = null): array
+src/Greph.php:81:    public static function buildTextIndex(
 ```
 
 Add `-i` for case-insensitive matching, `-w` for whole-word matching, `-c` for counts, `-l` for file paths only, `-C 2` for two lines of context, and so on. The full list lives in the [CLI reference](/docs/cli).
@@ -61,12 +74,14 @@ Pass `-p` and a PHP-shaped pattern to switch to structural search:
 vendor/bin/greph -p 'new $CLASS()' src
 ```
 
-`$CLASS` is a metavariable that captures any class name. The pattern `new $CLASS()` matches every constructor call regardless of class, formatting, or comments.
+`$CLASS` is a metavariable that captures any class name. The pattern `new $CLASS()` matches every `new` expression without arguments, regardless of class, formatting, or comments. Use `new $CLASS($$$ARGS)` to match calls with any arguments.
+
+Each AST match is printed as the file, the start line, and the matched code:
 
 ```text
-src/Greph.php:38:return (new FileWalker())->walk($paths, $options);
-src/Greph.php:49:$searcher = new TextSearcher();
-src/Greph.php:50:$codec = new TextResultCodec();
+src/Greph.php:43:new FileWalker()
+src/Greph.php:52:new TextSearchOptions()
+src/Greph.php:54:new TextSearcher()
 ```
 
 Other useful patterns:
@@ -99,7 +114,7 @@ vendor/bin/greph -p 'array($$$ITEMS)' -r '[$$$ITEMS]' src
 vendor/bin/greph -p 'array($$$ITEMS)' -r '[$$$ITEMS]' --interactive src
 ```
 
-Rewrites are format-preserving: only the matched node is replaced, and the surrounding whitespace, indentation, and comments stay intact. See [Modes / Rewrite](/docs/modes/rewrite) for details.
+Rewrites are format-preserving outside the match: only the matched node is replaced, and the surrounding whitespace, indentation, and comments stay intact. The matched node itself is printed fresh from the template, so its own layout is normalized and a comment inside it can be lost. See [Modes / Rewrite](/docs/modes/rewrite) for details.
 
 ## PHP API
 

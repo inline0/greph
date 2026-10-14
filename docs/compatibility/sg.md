@@ -86,7 +86,7 @@ The wrapper supports the same dry-run / interactive / write workflow as native r
 
 ## Verified surface
 
-The following flags are verified against the upstream `sg` binary in the [feature matrix](/docs/advanced/feature-matrix).
+The following flags are verified against the upstream `sg` binary in the [feature matrix](/docs/advanced/feature-matrix). Where a flag has two spellings (`-p` and `--pattern`, `--glob` and `--globs`), the probe uses one of them and the wrapper parses both as the same option.
 
 ### Pattern flags
 
@@ -104,14 +104,19 @@ The following flags are verified against the upstream `sg` binary in the [featur
 
 ### Walker flags
 
-- `--no-ignore`
 - `--no-ignore hidden` (combined form)
 - `--glob GLOB`, `--globs GLOB`
-- `--type NAME`, `--type-not NAME`
 
 ### Worker flags
 
 - `-j N`, `--threads N`
+
+### Accepted without a probe
+
+The wrapper also accepts these flags, but no feature matrix probe covers them yet:
+
+- `--no-ignore` on its own, or with a value other than `hidden`
+- `--type NAME`, `--type-not NAME`
 
 ### Wrapper-only extras
 

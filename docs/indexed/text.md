@@ -200,7 +200,7 @@ Native scanning is still the right tool when:
 - You search a one-off path that you will not query again.
 - You need every match in a single ad-hoc invocation and do not want to maintain an index.
 
-The published benchmark numbers in the [README](https://github.com/inline0/greph#performance) show the warmed indexed mode outperforming both `rg` and `grep` on literal queries against the WordPress corpus.
+The published benchmark numbers in the [README](https://github.com/inline0/greph#performance) show the warmed indexed mode ahead of both `rg` and `grep` on regex queries and on count, files-with-matches and files-without-matches queries against the WordPress corpus. On plain literal queries it beats `grep` but stays slightly behind `rg`.
 
 ## Programmatic use
 
