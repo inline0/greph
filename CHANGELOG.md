@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.2.4] - 2026-10-14
+
+### Fixed
+- AST rewrites splice original captured source text, preserving comments, layout, literal spelling, and heredoc indentation. Replacements are checked for syntax and expression structure, with parentheses added when needed
+- Nested and equal-start rewrite matches consistently select the outermost match, matching ast-grep
+- Unbound rewrite metavariables are rejected before files are written, with the missing name in the error
+- Composer declares the ctype, tokenizer, and zlib extensions used at runtime
+- Ignored vendor fixtures are committed and count-mode oracle inputs have deterministic order, so the corpus passes in fresh clones on different filesystems
+- `test-regression --jobs N` runs scenarios concurrently when pcntl is available, preserves result order, and rejects invalid job counts
+- Parallel benchmarks count a regex that starts workers on the WordPress corpus. The new workload uses a separate suite identity to avoid comparing it with old literal-search timings
+
+### Changed
+- CI runs the oracle corpus alongside PHPUnit, including regressions for captured literal spelling and outermost nested rewrites
+
 ## [0.2.3] - 2026-09-24
 
 ### Fixed

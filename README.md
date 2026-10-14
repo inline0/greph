@@ -370,7 +370,7 @@ CI (`.github/workflows/ci.yml`) runs `composer cs`, `composer analyse`, `compose
 
 ## Performance
 
-Benchmark tables below are sourced from GitHub Actions CI, never from local runs. The current published baseline comes from GitHub Actions run `24342599916`, against the WordPress corpus on `ubuntu-latest` with PHP `8.4`, five measured runs, and one warmup run.
+Benchmark tables below are sourced from GitHub Actions CI, never from local runs. The current published baseline comes from GitHub Actions run `24342599916`, against the WordPress corpus on `ubuntu-latest` with PHP `8.4`, five measured runs, and one warmup run. The parallel-count section identifies its newer baseline.
 
 Comparison tools:
 - `rg`: ripgrep
@@ -405,13 +405,15 @@ Traversal isolates walker and ignore-rule overhead without the text matcher domi
 
 ### Scan Mode: Parallel Text
 
-These historical rows ran the literal `function` search with 1, 2 and 4 jobs. Its threshold exceeded the corpus size, so they measured single-process scans. Since 0.2.4, the `parallel-count-scaling` suite counts `function\s+[A-Za-z_]` instead, crossing the pool threshold for 2 and 4 jobs on WordPress with `pcntl_fork`. The two workloads have separate suite identities and are not compared.
+Counts `function\s+[A-Za-z_]` across 5,045 WordPress files. This workload crosses the worker-pool threshold for 2 and 4 jobs when pcntl is available. These results come from [GitHub Actions run `38578135681`](https://github.com/inline0/greph/actions/runs/38578135681), on `ubuntu-latest` with PHP `8.4`, five measured runs, and one warmup. Worker overhead makes the multi-job rows slower than one job on this runner.
+
+The earlier literal-search suite ran in-process on this corpus. The new count workload has a separate suite identity; its timings are not compared with those older rows.
 
 | Operation | greph | rg | grep |
 | --- | ---: | ---: | ---: |
-| `1 worker` | `439.83ms` | `81.72ms` | `180.08ms` |
-| `2 workers` | `426.52ms` | `83.31ms` | `179.49ms` |
-| `4 workers` | `441.82ms` | `83.23ms` | `182.74ms` |
+| `1 worker` | `268.61ms` | `34.05ms` | `162.67ms` |
+| `2 workers` | `412.84ms` | `33.70ms` | `162.42ms` |
+| `4 workers` | `394.14ms` | `34.03ms` | `161.89ms` |
 
 ### Scan Mode: AST
 
