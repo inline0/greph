@@ -44,14 +44,13 @@ final class AstCoverageTest extends TestCase
     {
         $matcher = new PatternMatcher();
         $captures = [];
-        $lists = null;
 
-        $this->assertTrue($this->invokePrivateWithArgs($matcher, 'matchValue', [1, 1, &$captures, &$lists]));
-        $this->assertFalse($this->invokePrivateWithArgs($matcher, 'matchValue', [1, 2, &$captures, &$lists]));
-        $this->assertFalse($this->invokePrivateWithArgs($matcher, 'matchValue', [new Expr\ConstFetch(new Name('true')), new Expr\Variable('left'), &$captures, &$lists]));
+        $this->assertTrue($this->invokePrivateWithArgs($matcher, 'matchValue', [1, 1, &$captures]));
+        $this->assertFalse($this->invokePrivateWithArgs($matcher, 'matchValue', [1, 2, &$captures]));
+        $this->assertFalse($this->invokePrivateWithArgs($matcher, 'matchValue', [new Expr\ConstFetch(new Name('true')), new Expr\Variable('left'), &$captures]));
         $this->assertTrue($this->invokePrivateWithArgs($matcher, 'bindCapture', ['_', new Expr\Variable('ignored'), &$captures]));
-        $this->assertFalse($this->invokePrivateWithArgs($matcher, 'matchArray', [[1], [], &$captures, &$lists, null, null]));
-        $this->assertFalse($this->invokePrivateWithArgs($matcher, 'matchArray', [[1], [2], &$captures, &$lists, null, null]));
+        $this->assertFalse($this->invokePrivateWithArgs($matcher, 'matchArray', [[1], [], &$captures, 0, 0]));
+        $this->assertFalse($this->invokePrivateWithArgs($matcher, 'matchArray', [[1], [2], &$captures, 0, 0]));
 
         $variadicCaptures = [
             'ARGS' => [new Arg(new Expr\Variable('original'))],
@@ -59,7 +58,7 @@ final class AstCoverageTest extends TestCase
         $variadicPattern = [new Arg(new Expr\Variable(MetaVariable::VARIADIC_PREFIX . 'ARGS'), unpack: true)];
         $variadicCandidate = [new Arg(new Expr\Variable('different'))];
 
-        $this->assertFalse($this->invokePrivateWithArgs($matcher, 'matchArray', [$variadicPattern, $variadicCandidate, &$variadicCaptures, &$lists, null, null]));
+        $this->assertFalse($this->invokePrivateWithArgs($matcher, 'matchArray', [$variadicPattern, $variadicCandidate, &$variadicCaptures, 0, 0]));
         $this->assertSame(serialize([serialize(1), serialize('two')]), $this->invokePrivate($matcher, 'fingerprint', [1, 'two']));
         $this->assertIsString($this->invokePrivate($matcher, 'fingerprint', new Name(['App', 'Service'])));
         $serialized = $this->invokePrivate($matcher, 'serializeSubNodeArray', [new Expr\Variable('value'), 'literal']);

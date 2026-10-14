@@ -12,18 +12,14 @@ final class PatternMatcher
     private array $fingerprints = [];
 
     /**
-     * @param array<string, array{parent: Node, field: string, offset: int, length: int}>|null $lists
      * @return array<string, mixed>|null
      */
-    public function match(Node $pattern, Node $candidate, ?array &$lists = null): ?array
+    public function match(Node $pattern, Node $candidate): ?array
     {
         $this->fingerprints = [];
         $captures = [];
-        if ($lists !== null) {
-            $lists = [];
-        }
 
-        if (!$this->matchValue($pattern, $candidate, $captures, $lists)) {
+        if (!$this->matchValue($pattern, $candidate, $captures)) {
             return null;
         }
 
@@ -32,13 +28,107 @@ final class PatternMatcher
 
     /**
      * @param array<string, mixed> $captures
-     * @param array<string, array{parent: Node, field: string, offset: int, length: int}>|null $lists
      */
-    private function matchValue(
+    private function matchValue(mixed $pattern, mixed $candidate, array &$captures): bool
+    {
+        if ($pattern instanceof Node && $candidate instanceof Node) {
+            $metaName = MetaVariable::singleName($pattern);
+
+            if ($metaName !== null) {
+                return $this->bindCapture($metaName, $candidate, $captures);
+            }
+
+            if ($pattern::class !== $candidate::class) {
+                return false;
+            }
+
+            foreach ($pattern->getSubNodeNames() as $subNodeName) {
+                /** @var mixed $patternSubNode */
+                $patternSubNode = $pattern->$subNodeName;
+                /** @var mixed $candidateSubNode */
+                $candidateSubNode = $candidate->$subNodeName;
+
+                if (!$this->matchValue($patternSubNode, $candidateSubNode, $captures)) {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        if (is_array($pattern) && is_array($candidate)) {
+            return $this->matchArray(array_values($pattern), array_values($candidate), $captures);
+        }
+
+        return $pattern === $candidate;
+    }
+
+    /**
+     * @param list<mixed> $pattern
+     * @param list<mixed> $candidate
+     * @param array<string, mixed> $captures
+     */
+    private function matchArray(array $pattern, array $candidate, array &$captures, int $patternOffset = 0, int $candidateOffset = 0): bool
+    {
+        while ($patternOffset < count($pattern)) {
+            $variadicName = MetaVariable::variadicName($pattern[$patternOffset]);
+
+            if ($variadicName !== null) {
+                for ($take = $candidateOffset; $take <= count($candidate); $take++) {
+                    $trialCaptures = $captures;
+                    $slice = array_slice($candidate, $candidateOffset, $take - $candidateOffset);
+
+                    if (!$this->bindCapture($variadicName, $slice, $trialCaptures)) {
+                        continue;
+                    }
+
+                    if ($this->matchArray($pattern, $candidate, $trialCaptures, $patternOffset + 1, $take)) {
+                        $captures = $trialCaptures;
+
+                        return true;
+                    }
+                }
+
+                return false;
+            }
+
+            if (!array_key_exists($candidateOffset, $candidate)) {
+                return false;
+            }
+
+            if (!$this->matchValue($pattern[$patternOffset], $candidate[$candidateOffset], $captures)) {
+                return false;
+            }
+
+            $patternOffset++;
+            $candidateOffset++;
+        }
+
+        return $candidateOffset === count($candidate);
+    }
+
+    /**
+     * @param array<string, array{parent: Node, field: string, offset: int, length: int}> $lists
+     * @return array<string, mixed>|null
+     */
+    public function matchWithSourceRanges(Node $pattern, Node $candidate, array &$lists): ?array
+    {
+        $this->fingerprints = [];
+        $captures = [];
+        $lists = [];
+
+        return $this->matchValueWithSourceRanges($pattern, $candidate, $captures, $lists) ? $captures : null;
+    }
+
+    /**
+     * @param array<string, mixed> $captures
+     * @param array<string, array{parent: Node, field: string, offset: int, length: int}> $lists
+     */
+    private function matchValueWithSourceRanges(
         mixed $pattern,
         mixed $candidate,
         array &$captures,
-        ?array &$lists,
+        array &$lists,
         ?Node $parent = null,
         ?string $field = null,
     ): bool {
@@ -59,7 +149,7 @@ final class PatternMatcher
                 /** @var mixed $candidateSubNode */
                 $candidateSubNode = $candidate->$subNodeName;
 
-                if (!$this->matchValue($patternSubNode, $candidateSubNode, $captures, $lists, $candidate, $subNodeName)) {
+                if (!$this->matchValueWithSourceRanges($patternSubNode, $candidateSubNode, $captures, $lists, $candidate, $subNodeName)) {
                     return false;
                 }
             }
@@ -68,7 +158,7 @@ final class PatternMatcher
         }
 
         if (is_array($pattern) && is_array($candidate)) {
-            return $this->matchArray(array_values($pattern), array_values($candidate), $captures, $lists, $parent, $field);
+            return $this->matchArrayWithSourceRanges(array_values($pattern), array_values($candidate), $captures, $lists, $parent, $field);
         }
 
         return $pattern === $candidate;
@@ -78,13 +168,13 @@ final class PatternMatcher
      * @param list<mixed> $pattern
      * @param list<mixed> $candidate
      * @param array<string, mixed> $captures
-     * @param array<string, array{parent: Node, field: string, offset: int, length: int}>|null $lists
+     * @param array<string, array{parent: Node, field: string, offset: int, length: int}> $lists
      */
-    private function matchArray(
+    private function matchArrayWithSourceRanges(
         array $pattern,
         array $candidate,
         array &$captures,
-        ?array &$lists,
+        array &$lists,
         ?Node $parent,
         ?string $field,
         int $patternOffset = 0,
@@ -104,7 +194,7 @@ final class PatternMatcher
                     }
 
                     if (
-                        $trialLists !== null && $parent !== null && $field !== null
+                        $parent !== null && $field !== null
                         && !MetaVariable::isNonCapturing($variadicName) && !isset($trialLists[$variadicName])
                     ) {
                         $trialLists[$variadicName] = [
@@ -115,7 +205,7 @@ final class PatternMatcher
                         ];
                     }
 
-                    if ($this->matchArray($pattern, $candidate, $trialCaptures, $trialLists, $parent, $field, $patternOffset + 1, $take)) {
+                    if ($this->matchArrayWithSourceRanges($pattern, $candidate, $trialCaptures, $trialLists, $parent, $field, $patternOffset + 1, $take)) {
                         $captures = $trialCaptures;
                         $lists = $trialLists;
 
@@ -130,7 +220,7 @@ final class PatternMatcher
                 return false;
             }
 
-            if (!$this->matchValue($pattern[$patternOffset], $candidate[$candidateOffset], $captures, $lists)) {
+            if (!$this->matchValueWithSourceRanges($pattern[$patternOffset], $candidate[$candidateOffset], $captures, $lists)) {
                 return false;
             }
 
