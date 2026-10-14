@@ -1,13 +1,12 @@
 {
     "name": "count-only",
     "category": "text",
-    "description": "Count matches per file",
+    "description": "Count matches per file in explicit input order",
     "pattern": "needle",
     "flags": [
         "-F",
         "-c"
     ],
-    "path": "setup",
     "expectations": {
         "grep": "exact",
         "rg": "skip",
@@ -16,6 +15,10 @@
     "oracle_disagreement": {
         "grep_vs_rg": "grep preserves directory entry order while ripgrep prints files in lexical order here",
         "greph_follows": "grep",
-        "reason": "Count mode still uses grep-compatible file ordering in text output"
-    }
+        "reason": "Explicit input paths keep grep-compatible count ordering independent of filesystem directory entry order"
+    },
+    "paths": [
+        "setup/b.txt",
+        "setup/a.txt"
+    ]
 }
