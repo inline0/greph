@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.2.5] - 2026-10-14
+
+### Fixed
+- Rewrites support empty constructor arguments when the source omits parentheses, and place arguments before captured anonymous-class bodies while preserving their original source text
+
 ## [0.2.4] - 2026-10-14
 
 ### Fixed
