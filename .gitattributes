@@ -28,4 +28,4 @@
 /bin/sg               -export-ignore
 
 # Preserve the oracle fixture byte offsets across fresh clones.
-/tests/fixtures/outline/unicode.phtml -text
+/tests/fixtures/outline/unicode.phtml -text whitespace=cr-at-eol
