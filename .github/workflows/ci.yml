@@ -45,6 +45,15 @@ jobs:
           php-version: '8.4'
           tools: composer
       - run: composer install --no-interaction --prefer-dist
+      - name: Install ripgrep 15.2.0 oracle
+        run: |
+          curl --fail --location --retry 3 https://github.com/BurntSushi/ripgrep/releases/download/15.2.0/ripgrep-15.2.0-x86_64-unknown-linux-musl.tar.gz -o "$RUNNER_TEMP/ripgrep.tar.gz"
+          tar -xzf "$RUNNER_TEMP/ripgrep.tar.gz" -C "$RUNNER_TEMP"
+          echo "$RUNNER_TEMP/ripgrep-15.2.0-x86_64-unknown-linux-musl" >> "$GITHUB_PATH"
+      - name: Install ast-grep 0.51.0 oracle
+        run: |
+          npm install --prefix "$RUNNER_TEMP/greph-oracles" @ast-grep/cli@0.51.0 --no-audit --no-fund
+          echo "$RUNNER_TEMP/greph-oracles/node_modules/.bin" >> "$GITHUB_PATH"
       - run: composer test
       - run: composer test:oracle
 

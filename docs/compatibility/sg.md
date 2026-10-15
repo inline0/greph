@@ -31,6 +31,7 @@ Use native `vendor/bin/greph -p` when:
 sg run --pattern PATTERN [options] [path...]
 sg scan -p PATTERN [options] [path...]
 sg rewrite -p PATTERN -r TEMPLATE [options] [path...]
+sg outline [options] [path...]
 ```
 
 `run` is the canonical ast-grep verb. `scan` and `rewrite` are wrapper-only aliases that mirror common usage. A bare invocation works as a one-shot search:
@@ -38,6 +39,34 @@ sg rewrite -p PATTERN -r TEMPLATE [options] [path...]
 ```bash
 ./vendor/bin/sg --pattern 'array($$$ITEMS)' src
 ```
+
+## PHP outlines
+
+```bash
+sg outline src/
+sg outline src/Service.php --view expanded
+sg outline --json=compact --items all --type class,enum src/
+sg outline --match '^Service$' --pub-members src/Service.php
+cat src/Service.php | sg outline --stdin --lang php --json=stream
+```
+
+The PHP outline command follows ast-grep 0.51's built-in rules. It emits classes,
+interfaces, traits, enums, functions and imports, with direct methods, properties,
+and enum cases. File inputs default to a signature-and-member digest; directory
+inputs default to grouped exported names.
+
+- `--view`: `names`, `signatures`, `digest`, or `expanded`.
+- `--items`: `structure`, `exports`, `imports`, or `all`.
+- `--type`: comma-separated top-level symbol types such as `class,enum`.
+- `--match`: a regex applied to top-level names and signatures.
+- `--pub-members`: include public members only.
+- `--json`, `--json=compact`, `--json=stream`: structured output.
+- `--stdin --lang php`: outline standard input.
+
+Explicit template files such as `.phtml` work with PHP language selection.
+Directory scanning uses ast-grep's `.php` language glob. Plain-text presentation
+and JSON data are checked against upstream; source columns count Unicode
+characters, with byte offsets provided separately.
 
 ## Patterns
 
@@ -131,7 +160,7 @@ The wrapper exposes a few helpers that ast-grep itself does not have:
 
 Greph's `sg` wrapper covers the structural search and rewrite surface that most tools and agents use. It does not currently expose the following ast-grep features:
 
-- YAML rule files (`--rule`, `--config`)
+- YAML rule files (`--rule`, `--config`) and custom outline extractors (`--outline-rules`)
 - Multi-language scanning beyond PHP
 - Non-pattern transformers (`--debug-query`, `--inspect`)
 - LSP integration

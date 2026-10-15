@@ -1,0 +1,20 @@
+<?php
+namespace Demo;
+use Foo\Bar;
+use function Foo\run;
+use const Foo\KEY;
+use Foo\{Baz, Qux};
+interface Face { public function go(int $x): string; }
+trait Mix { protected $x = 1; public function go() {} }
+#[Attr]
+final class Example extends Base implements Face {
+ public const X = 1;
+ public $a, $b;
+ private int $secret = 2;
+ var $legacy;
+ public function __construct(public string $name) {}
+ function go(int $x): string { return "hi"; }
+ protected function hidden() {}
+}
+enum State: string { case A = 'a'; public function test() {} }
+function hello(int $x): int { return $x; }

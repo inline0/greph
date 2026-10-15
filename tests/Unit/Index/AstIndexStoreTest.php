@@ -176,7 +176,6 @@ final class AstIndexStoreTest extends TestCase
     private function invokeMethod(object $object, string $method, mixed ...$arguments): mixed
     {
         $reflection = new \ReflectionMethod($object, $method);
-        $reflection->setAccessible(true);
 
         return $reflection->invoke($object, ...$arguments);
     }

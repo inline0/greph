@@ -1,5 +1,30 @@
 # Changelog
 
+## [0.3.0] - 2026-10-15
+
+### Added
+- PHP outlines through `Greph::outline()` and `sg outline`, following ast-grep
+  0.51.0: classes, interfaces, traits, enums, functions, imports, and members.
+- Outline JSON/stream output, names/signatures/digest/expanded views, symbol and
+  regex filters, public-member filtering, and standard input with `--stdin`.
+- ripgrep 15.2 global ignore discovery through `GIT_CONFIG_GLOBAL` and
+  `GIT_CONFIG_SYSTEM`, plus parent ignore rules for multiple search roots.
+- Reproducible upstream outline fixtures and live differential ignore checks.
+
+### Fixed
+- Rewrites replace source atomically after the full replacement is written,
+  preserve permissions and symlinks, and report failed writes without truncation.
+- Explicitly named ignored directories remain searchable while file-level
+  ignore rules still apply; repository excludes have lower priority than local rules.
+- Linked worktrees resolve their common `info/exclude` file.
+- Removed obsolete reflection calls in the test harness for PHP 8.5.
+
+### Changed
+- Oracle tooling prefers the current `ast-grep` executable over deprecated `sg`,
+  with the npm fallback pinned to 0.51.0; CI pins ripgrep 15.2.0 and ast-grep 0.51.0.
+- Added `upstream-versions.json` recording the GNU grep 3.12, ripgrep 15.2.0,
+  and ast-grep 0.51.0 verification baseline.
+
 ## [0.2.5] - 2026-10-14
 
 ### Fixed

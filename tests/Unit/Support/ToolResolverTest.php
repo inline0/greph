@@ -18,6 +18,7 @@ final class ToolResolverTest extends TestCase
                 'grep' => '/mock/grep',
                 'rg' => '/mock/rg',
                 'gh' => '/mock/gh',
+                'ast-grep' => '/mock/ast-grep',
                 'sg' => '/mock/sg',
                 default => null,
             },
@@ -28,7 +29,7 @@ final class ToolResolverTest extends TestCase
         $this->assertSame(['/mock/gh'], $resolver->githubCli());
         $this->assertSame([PHP_BINARY], $resolver->phpBinary());
         $this->assertSame([PHP_BINARY, '/tmp/project/bin/greph'], $resolver->greph('/tmp/project'));
-        $this->assertSame(['/mock/sg'], $resolver->astGrep());
+        $this->assertSame(['/mock/ast-grep'], $resolver->astGrep());
         $this->assertTrue($resolver->hasAstGrep());
     }
 
@@ -56,11 +57,11 @@ final class ToolResolverTest extends TestCase
                 default => null,
             },
         ))->githubCli());
-        $this->assertSame(['/mock/npm', 'exec', '--yes', '--package=@ast-grep/cli', 'sg', '--'], $npmFallback->astGrep());
+        $this->assertSame(['/mock/npm', 'exec', '--yes', '--package=@ast-grep/cli@0.51.0', 'ast-grep', '--'], $npmFallback->astGrep());
         $this->assertFalse($missing->hasAstGrep());
 
         $this->expectException(\RuntimeException::class);
-        $this->expectExceptionMessage('Unable to find ast-grep. Install sg or npm.');
+        $this->expectExceptionMessage('Unable to find ast-grep. Install ast-grep or npm.');
         $missing->astGrep();
     }
 
@@ -101,7 +102,6 @@ final class ToolResolverTest extends TestCase
     public function itNormalizesShellLookupResults(): void
     {
         $reflection = new \ReflectionMethod(ToolResolver::class, 'normalizeLocatedPath');
-        $reflection->setAccessible(true);
 
         $this->assertNull($reflection->invoke(null, null));
         $this->assertNull($reflection->invoke(null, " \n"));

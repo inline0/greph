@@ -26,3 +26,6 @@
 /bin/greph-index      -export-ignore
 /bin/rg               -export-ignore
 /bin/sg               -export-ignore
+
+# Preserve the oracle fixture byte offsets across fresh clones.
+/tests/fixtures/outline/unicode.phtml -text

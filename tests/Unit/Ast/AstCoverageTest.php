@@ -274,7 +274,6 @@ final class AstCoverageTest extends TestCase
         $this->assertCount(2, $parser->parseStatements("  \n<?php echo 1;"));
         $this->assertNotSame([], $parser->parseStatements('echo 1;'));
         $reflection = new \ReflectionProperty($parser, 'parser');
-        $reflection->setAccessible(true);
         $reflection->setValue($parser, new class implements \PhpParser\Parser {
             public function parse(string $code, ?ErrorHandler $errorHandler = null): ?array
             {
@@ -295,7 +294,6 @@ final class AstCoverageTest extends TestCase
     private function invokePrivate(object $object, string $method, mixed ...$arguments): mixed
     {
         $reflection = new \ReflectionMethod($object, $method);
-        $reflection->setAccessible(true);
 
         return $reflection->invoke($object, ...$arguments);
     }
@@ -306,7 +304,6 @@ final class AstCoverageTest extends TestCase
     private function invokePrivateWithArgs(object $object, string $method, array $arguments): mixed
     {
         $reflection = new \ReflectionMethod($object, $method);
-        $reflection->setAccessible(true);
 
         return $reflection->invokeArgs($object, $arguments);
     }

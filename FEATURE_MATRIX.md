@@ -2,7 +2,7 @@
 
 Generated from live command probes, not hand-maintained guesses.
 
-Generated at `2026-04-10T17:01:41+00:00` from real fixture workspaces. Raw evidence is stored in [FEATURE_MATRIX.json](FEATURE_MATRIX.json).
+Generated at `2026-10-15T19:07:37+00:00` from real fixture workspaces. Raw evidence is stored in [FEATURE_MATRIX.json](FEATURE_MATRIX.json).
 
 Status legend:
 - `Pass`: the command probe succeeded.
@@ -43,6 +43,8 @@ Status legend:
 
 | Feature | sg | bin/sg | Notes |
 | --- | --- | --- | --- |
+| PHP outline JSON | Pass | Pass | Probe: `outline --lang php --json=compact src/App.php` |
+| PHP outline text views | Pass | Pass | Probe: `outline --view expanded --color never src/App.php` |
 | Pattern search with `run --pattern` | Pass | Pass | Probe: `run --pattern array($$$ITEMS) src/App.php` |
 | Default one-shot search | Pass | Pass | Probe: `--pattern array($$$ITEMS) src/App.php` |
 | Rewrite via `run --rewrite` | Pass | Pass | Probe: `run --pattern array($$$ITEMS) --rewrite [$$$ITEMS] src/App.php` |

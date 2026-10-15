@@ -8,6 +8,7 @@ use Greph\Ast\AstMatch;
 use Greph\Ast\AstSearchOptions;
 use Greph\Ast\RewriteResult;
 use Greph\Greph;
+use Greph\Support\SourceWriter;
 use Greph\Support\Filesystem;
 use Greph\Walker\FileTypeFilter;
 
@@ -51,6 +52,10 @@ final class AstGrepApplication
     public function run(array $argv): int
     {
         $arguments = array_slice($argv, 1);
+
+        if (($arguments[0] ?? null) === 'outline') {
+            return (new OutlineApplication($this->output, $this->input))->run(array_slice($arguments, 1));
+        }
 
         if ($arguments === []) {
             $this->writeError("Missing AST pattern.\n");
@@ -175,7 +180,7 @@ final class AstGrepApplication
                     continue;
                 }
 
-                file_put_contents($result->file, $result->rewrittenContents);
+                SourceWriter::replace($result->file, $result->rewrittenContents);
                 $this->writeOutput($this->displayPath($result->file) . PHP_EOL);
             }
 
@@ -184,7 +189,7 @@ final class AstGrepApplication
 
         if ($arguments['updateAll']) {
             foreach ($changed as $result) {
-                file_put_contents($result->file, $result->rewrittenContents);
+                SourceWriter::replace($result->file, $result->rewrittenContents);
                 $this->writeOutput($this->displayPath($result->file) . PHP_EOL);
             }
 
@@ -549,6 +554,7 @@ Usage:
   sg run --pattern PATTERN [options] [path...]
   sg scan -p PATTERN [options] [path...]
   sg rewrite -p PATTERN -r TEMPLATE [options] [path...]
+  sg outline [options] [path...]
 
 Supported Options:
   -p, --pattern PATTERN      AST pattern.

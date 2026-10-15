@@ -35,7 +35,7 @@ final class FileWalker
 
             $resolvedPath = $this->normalizePath($resolvedPath);
             $ignoreFilter = $options->respectIgnore && is_dir($resolvedPath)
-                ? new GitignoreFilter($resolvedPath)
+                ? new GitignoreFilter($resolvedPath, $options->includeHidden)
                 : null;
 
             if (is_file($resolvedPath)) {

@@ -129,7 +129,6 @@ final class GrephTest extends TestCase
     private function invokeStaticMethod(string $class, string $method, mixed ...$arguments): mixed
     {
         $reflection = new \ReflectionMethod($class, $method);
-        $reflection->setAccessible(true);
 
         return $reflection->invoke(null, ...$arguments);
     }

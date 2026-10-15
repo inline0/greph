@@ -141,7 +141,6 @@ final class GitignoreFilterTest extends TestCase
     private function invokePrivate(object $object, string $method, mixed ...$arguments): mixed
     {
         $reflection = new \ReflectionMethod($object, $method);
-        $reflection->setAccessible(true);
 
         return $reflection->invoke($object, ...$arguments);
     }
@@ -149,7 +148,6 @@ final class GitignoreFilterTest extends TestCase
     private function readPrivateProperty(object $object, string $property): mixed
     {
         $reflection = new \ReflectionProperty($object, $property);
-        $reflection->setAccessible(true);
 
         return $reflection->getValue($object);
     }

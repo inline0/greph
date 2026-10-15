@@ -7,6 +7,7 @@ namespace Greph\Cli;
 use Greph\Ast\AstSearchOptions;
 use Greph\Output\GrepFormatter;
 use Greph\Greph;
+use Greph\Support\SourceWriter;
 use Greph\Support\Filesystem;
 use Greph\Text\TextFileResult;
 use Greph\Text\TextMatch;
@@ -267,7 +268,7 @@ final class Application
                     }
                 }
 
-                file_put_contents($result->file, $result->rewrittenContents);
+                SourceWriter::replace($result->file, $result->rewrittenContents);
                 $this->writeOutput($this->displayPath($result->file) . PHP_EOL);
             }
 

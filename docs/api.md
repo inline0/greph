@@ -550,3 +550,21 @@ Greph throws three typed exceptions, all in `Greph\Exceptions`:
 | `ParseException` | PHP source could not be parsed (only when `skipParseErrors: false`) |
 
 Indexed search methods raise `\RuntimeException` when no index is present at the requested location. The `greph-index` CLI exposes a `--fallback scan` option that catches these and falls back to a non-indexed scan instead.
+
+## PHP outlines
+
+```php
+$files = Greph::outline(['src/', 'app/']);
+$expanded = Greph::outline('src/Service.php', includeMemberSignatures: true);
+```
+
+`outline(string|array $paths, ?AstSearchOptions $options = null,
+bool $includeMemberSignatures = false): array` returns one array per PHP source
+file, with `path`, `language` (`Php`), and `items`. Items carry `symbolType`,
+`name`, `signature`, `astKind`, `isImport`, `isExported`, and a source `range`.
+Class-like items can include direct `members` with `isPublic` and their own range.
+Positions use zero-based lines and Unicode character columns; byte offsets are
+also included. Expanded member signatures are optional.
+
+The extractor follows ast-grep 0.51's bundled PHP outline rules, including its
+classification of traits as interfaces and enum cases as `enumMember`.

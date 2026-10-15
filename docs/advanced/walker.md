@@ -18,6 +18,12 @@ Out of the box the walker:
 
 - Recurses into every directory below the requested paths.
 - Respects `.gitignore` and `.grephignore` rules at every level, including nested overrides and negations.
+- Searches inside a Git repository inherit parent ignore files, even with multiple roots.
+- Reads global excludes from `GIT_CONFIG_GLOBAL`, the home/XDG Git config files,
+  and `GIT_CONFIG_SYSTEM` (or `/etc/gitconfig`), following ripgrep 15.2 precedence.
+- Resolves linked-worktree `info/exclude` through the common Git directory.
+- Explicitly named directories bypass ignores on that directory itself; inherited
+  file patterns still filter their contents.
 - Skips the `.git` directory.
 - Skips hidden files and directories (anything starting with `.`).
 - Skips binary files (detected by null bytes in the first 512 bytes of the file).

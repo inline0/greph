@@ -1,0 +1,46 @@
+#!/usr/bin/env php
+<?php
+
+declare(strict_types=1);
+
+require dirname(__DIR__) . '/vendor/autoload.php';
+
+use Greph\Support\CommandRunner;
+use Greph\Support\ToolResolver;
+
+$directory = dirname(__DIR__) . '/tests/fixtures/outline';
+$runner = new CommandRunner();
+$reference = (new ToolResolver())->astGrep();
+$version = trim($runner->run([...$reference, '--version'])->stdout);
+$cases = [];
+$options = [[], ['--items', 'all'], ['--items', 'imports'], ['--items', 'exports'],
+    ['--view', 'names'], ['--view', 'signatures'], ['--view', 'expanded'],
+    ['--pub-members'], ['--type', 'class,enum'], ['--match', 'Example'], ['--match', '^Example$'], ['--match', '^#\\[Attr'],
+    ['--no-default-outline-rules']];
+foreach (['sample.phtml', 'unicode.phtml', 'plain.phtml', 'empty.phtml', '.', '../../Support'] as $file) {
+    foreach ($options as $extra) {
+        foreach ([[], ['--json=compact']] as $format) {
+            $arguments = ['--lang', 'php', '--color', 'never', ...$extra, ...$format, $file];
+            $result = $runner->run([...$reference, 'outline', ...$arguments], $directory);
+            if ($result->exitCode !== 0) {
+                throw new RuntimeException($result->stderr);
+            }
+            $cases[] = ['arguments' => $arguments, 'output' => $result->stdout];
+        }
+    }
+}
+$input = (string) file_get_contents($directory . '/sample.phtml');
+foreach (['names', 'signatures', 'digest', 'expanded'] as $view) {
+    foreach ([[], ['--json=compact'], ['--json=stream']] as $format) {
+        $arguments = ['--lang', 'php', '--stdin', '--color', 'never', '--view', $view, ...$format];
+        $result = $runner->run([...$reference, 'outline', ...$arguments], $directory, [], $input);
+        if ($result->exitCode !== 0) {
+            throw new RuntimeException($result->stderr);
+        }
+        $cases[] = ['arguments' => $arguments, 'input' => $input, 'output' => $result->stdout];
+    }
+}
+file_put_contents($directory . '/expected.json', json_encode([
+    'upstream' => $version, 'cases' => $cases,
+], JSON_THROW_ON_ERROR | JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) . "\n");
+echo 'Captured ' . count($cases) . ' outline cases from ' . $version . ".\n";

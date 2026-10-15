@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Greph;
 
 use Greph\Ast\AstMatch;
+use Greph\Ast\OutlineExtractor;
 use Greph\Ast\AstRewriter;
 use Greph\Ast\AstSearchOptions;
 use Greph\Ast\AstSearcher;
@@ -33,6 +34,7 @@ use Greph\Walker\FileList;
 use Greph\Walker\FileWalker;
 use Greph\Walker\WalkOptions;
 
+/** @phpstan-import-type Item from OutlineExtractor */
 final class Greph
 {
     /**
@@ -76,6 +78,29 @@ final class Greph
         }
 
         return $searcher->sortResults($flattened, $files->paths());
+    }
+
+    /**
+     * @param string|list<string> $paths
+     * @return list<array{path: string, language: string, items: list<Item>}>
+     */
+    public static function outline(string|array $paths, ?AstSearchOptions $options = null, bool $includeMemberSignatures = false): array
+    {
+        $options ??= new AstSearchOptions();
+        if (strtolower($options->language) !== 'php') {
+            throw new \InvalidArgumentException('Outline supports PHP.');
+        }
+        $extractor = new OutlineExtractor();
+        $files = [];
+        foreach (self::walk($paths, $options->walkOptions()) as $path) {
+            $code = file_get_contents($path);
+            if ($code === false) {
+                throw new \RuntimeException('Cannot read ' . $path);
+            }
+            $files[] = ['path' => $path, 'language' => 'Php', 'items' => $extractor->extract($code, $includeMemberSignatures)];
+        }
+
+        return $files;
     }
 
     public static function buildTextIndex(

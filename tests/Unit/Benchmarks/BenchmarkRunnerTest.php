@@ -105,7 +105,6 @@ final class BenchmarkRunnerTest extends TestCase
     private function invokePrivate(string $method, array $arguments = []): mixed
     {
         $reflectionMethod = new \ReflectionMethod($this->runner, $method);
-        $reflectionMethod->setAccessible(true);
 
         return $reflectionMethod->invokeArgs($this->runner, $arguments);
     }

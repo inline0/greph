@@ -10,20 +10,68 @@ final class GitignoreFilter
 
     private string $rootPath;
 
+    private readonly string $searchRoot;
+
+    private bool $hasRepository = false;
+
+    private ?string $gitDirectory = null;
+
     /** @var array<string, list<array{negated: bool, directoryOnly: bool, hasSlash: bool, regex: string}>> */
     private array $rulesByDirectory = [];
 
     /** @var array<string, true> */
     private array $loadedDirectories = [];
 
-    public function __construct(string $rootPath)
+    /** @var array<string, list<array{rule: array{negated: bool, directoryOnly: bool, hasSlash: bool, regex: string}, directory: string}>> */
+    private array $effectiveRules = [];
+
+    /** @var array<string, array{path: string, literal: bool}> */
+    private array $rulePrefixes = [];
+
+    /** @var array<string, true> */
+    private array $hiddenBasenameRules = [];
+
+    /** @var array<string, true> */
+    private array $ignoreFreeDirectories = [];
+
+    public function __construct(string $rootPath, private readonly bool $includeHidden = true)
     {
         $this->rootPath = self::normalizePath($rootPath);
+        $this->searchRoot = $this->rootPath;
+        $directory = $this->rootPath;
+        while (true) {
+            $git = $directory . '/.git';
+            if (is_dir($git) || is_file($git)) {
+                $this->rootPath = $directory;
+                $this->hasRepository = true;
+                $this->gitDirectory = $git;
+                if (is_file($git)) {
+                    $link = @file_get_contents($git);
+                    if ($link !== false && preg_match('/^gitdir:\s*(.+)/', $link, $match) === 1) {
+                        $target = trim($match[1]);
+                        $this->gitDirectory = realpath($directory . '/' . $target) ?: (realpath($target) ?: null);
+                    }
+                }
+                if ($this->gitDirectory !== null && is_file($this->gitDirectory . '/commondir')) {
+                    $common = trim((string) file_get_contents($this->gitDirectory . '/commondir'));
+                    $this->gitDirectory = realpath($this->gitDirectory . '/' . $common) ?: $this->gitDirectory;
+                }
+                break;
+            }
+            $parent = dirname($directory);
+            if ($parent === $directory) {
+                break;
+            }
+            $directory = $parent;
+        }
     }
 
     public function shouldIgnore(string $absolutePath, bool $isDirectory): bool
     {
         $absolutePath = self::normalizePath($absolutePath);
+        if (isset($this->ignoreFreeDirectories[dirname($absolutePath)])) {
+            return false;
+        }
 
         if (!$this->isWithinRoot($absolutePath)) {
             return false;
@@ -37,13 +85,27 @@ final class GitignoreFilter
 
         $ignored = false;
 
-        foreach ($this->directoriesForEvaluation($relativePath) as $directory) {
-            $this->loadRulesForDirectory($directory);
-
-            foreach ($this->rulesByDirectory[$directory] ?? [] as $rule) {
-                if ($this->matchesRule($rule, $relativePath, $isDirectory, $directory)) {
-                    $ignored = !$rule['negated'];
+        $parent = dirname($relativePath);
+        if (!isset($this->effectiveRules[$parent])) {
+            $this->effectiveRules[$parent] = [];
+            foreach ($this->directoriesForEvaluation($relativePath) as $directory) {
+                $this->loadRulesForDirectory($directory);
+                foreach ($this->rulesByDirectory[$directory] ?? [] as $rule) {
+                    if (!$this->ruleCanReachSearchRoot($rule, $directory)) {
+                        continue;
+                    }
+                    $this->effectiveRules[$parent][] = ['rule' => $rule, 'directory' => $directory];
                 }
+            }
+        }
+        if ($this->effectiveRules[$parent] === []) {
+            $this->ignoreFreeDirectories[dirname($absolutePath)] = true;
+            return false;
+        }
+        foreach ($this->effectiveRules[$parent] as $entry) {
+            $rule = $entry['rule'];
+            if ($this->matchesRule($rule, $relativePath, $isDirectory, $entry['directory'])) {
+                $ignored = !$rule['negated'];
             }
         }
 
@@ -95,19 +157,24 @@ final class GitignoreFilter
 
         $directoryPath = $directory === '' ? $this->rootPath : $this->rootPath . '/' . $directory;
 
+        if ($directory === '') {
+            if ($this->hasRepository) {
+                $global = GitExcludeConfig::path();
+                if ($global !== null && is_file($global)) {
+                    $this->loadRulesFromFile($global, '');
+                }
+            }
+            $excludePath = ($this->gitDirectory ?? $this->rootPath . '/.git') . '/info/exclude';
+            if (is_file($excludePath)) {
+                $this->loadRulesFromFile($excludePath, '');
+            }
+        }
+
         foreach (self::IGNORE_FILES as $ignoreFile) {
             $path = $directoryPath . '/' . $ignoreFile;
 
             if (is_file($path)) {
                 $this->loadRulesFromFile($path, $directory);
-            }
-        }
-
-        if ($directory === '') {
-            $excludePath = $this->rootPath . '/.git/info/exclude';
-
-            if (is_file($excludePath)) {
-                $this->loadRulesFromFile($excludePath, '');
             }
         }
 
@@ -180,12 +247,50 @@ final class GitignoreFilter
 
         $hasSlash = $anchored || str_contains($line, '/');
 
+        $regex = $this->globToRegex($line);
+        if (!$hasSlash && str_starts_with($line, '.')) {
+            $this->hiddenBasenameRules[$regex] = true;
+        }
+        if ($hasSlash) {
+            $special = strcspn($line, '*?[\\');
+            $literal = $special === strlen($line);
+            $prefix = substr($line, 0, $special);
+            if (!$literal) {
+                $slash = strrpos($prefix, '/');
+                $prefix = $slash === false ? '' : substr($prefix, 0, $slash);
+            }
+            if ($prefix !== '') {
+                $this->rulePrefixes[$regex] = ['path' => $prefix, 'literal' => $literal];
+            }
+        }
+
         return [
             'negated' => $negated,
             'directoryOnly' => $directoryOnly,
             'hasSlash' => $hasSlash,
-            'regex' => $this->globToRegex($line),
+            'regex' => $regex,
         ];
+    }
+
+    /** @param array{negated: bool, directoryOnly: bool, hasSlash: bool, regex: string} $rule */
+    private function ruleCanReachSearchRoot(array $rule, string $directory): bool
+    {
+        if (!$this->includeHidden && isset($this->hiddenBasenameRules[$rule['regex']])) {
+            return false;
+        }
+        $prefix = $this->rulePrefixes[$rule['regex']] ?? null;
+        if ($prefix === null) {
+            return true;
+        }
+        $absolute = $this->rootPath . ($directory !== '' ? '/' . $directory : '') . '/' . $prefix['path'];
+        if (str_starts_with($absolute, $this->searchRoot . '/')) {
+            return true;
+        }
+        if ($absolute === $this->searchRoot || str_starts_with($this->searchRoot, $absolute . '/')) {
+            return !$prefix['literal'];
+        }
+
+        return false;
     }
 
     /**
@@ -207,12 +312,22 @@ final class GitignoreFilter
             return false;
         }
 
+        $ruleDirectory = $baseDirectory === '' ? $this->rootPath : $this->rootPath . '/' . $baseDirectory;
+        $searchPrefix = str_starts_with($this->searchRoot, $ruleDirectory . '/')
+            ? substr($this->searchRoot, strlen($ruleDirectory) + 1)
+            : '';
+
+
         if ($rule['hasSlash']) {
             $candidates = $rule['directoryOnly']
                 ? $this->directoryPrefixes($relativeToRuleDirectory, $isDirectory)
                 : [$relativeToRuleDirectory];
 
             foreach ($candidates as $candidate) {
+                // Explicit search roots bypass ignores on that root and its ancestors.
+                if ($rule['directoryOnly'] && ($candidate === $searchPrefix || str_starts_with($searchPrefix, $candidate . '/'))) {
+                    continue;
+                }
                 if (preg_match($rule['regex'], $candidate) === 1) {
                     return true;
                 }
@@ -222,6 +337,9 @@ final class GitignoreFilter
         }
 
         $components = explode('/', $relativeToRuleDirectory);
+        if ($searchPrefix !== '') {
+            $components = array_slice($components, count(explode('/', $searchPrefix)));
+        }
 
         if ($rule['directoryOnly']) {
             $components = $isDirectory ? $components : array_slice($components, 0, -1);

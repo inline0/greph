@@ -189,7 +189,6 @@ final class FileWalkerTest extends TestCase
     private function invokePrivate(object $object, string $method, mixed ...$arguments): mixed
     {
         $reflection = new \ReflectionMethod($object, $method);
-        $reflection->setAccessible(true);
 
         return $reflection->invoke($object, ...$arguments);
     }
@@ -200,7 +199,6 @@ final class FileWalkerTest extends TestCase
     private function invokePrivateWithArgs(object $object, string $method, array $arguments): mixed
     {
         $reflection = new \ReflectionMethod($object, $method);
-        $reflection->setAccessible(true);
 
         return $reflection->invokeArgs($object, $arguments);
     }

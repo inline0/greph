@@ -1,0 +1,2071 @@
+{
+    "upstream": "ast-grep 0.51.0",
+    "cases": [
+        {
+            "arguments": [
+                "--lang",
+                "php",
+                "--color",
+                "never",
+                "sample.phtml"
+            ],
+            "output": "sample.phtml\n 7: interface Face { public function go(int $x): string; }\n      method: go\n 8: trait Mix { protected $x = 1; public function go() {} }\n      method: go\n      property: $x\n 9: final class Example extends Base implements Face {\n      method: __construct, go, hidden\n      property: $a, $secret, $legacy\n19: enum State: string { case A = 'a'; public function test() {} }\n      enumMember: A\n20: function hello(int $x): int { return $x; }\n"
+        },
+        {
+            "arguments": [
+                "--lang",
+                "php",
+                "--color",
+                "never",
+                "--json=compact",
+                "sample.phtml"
+            ],
+            "output": "[{\"path\":\"sample.phtml\",\"language\":\"Php\",\"items\":[{\"role\":\"item\",\"symbolType\":\"interface\",\"name\":\"Face\",\"range\":{\"byteOffset\":{\"start\":96,\"end\":150},\"start\":{\"line\":6,\"column\":0},\"end\":{\"line\":6,\"column\":54}},\"signature\":\"interface Face { public function go(int $x): string; }\",\"astKind\":\"interface_declaration\",\"isImport\":false,\"isExported\":true,\"members\":[{\"role\":\"member\",\"symbolType\":\"method\",\"name\":\"go\",\"range\":{\"byteOffset\":{\"start\":113,\"end\":148},\"start\":{\"line\":6,\"column\":17},\"end\":{\"line\":6,\"column\":52}},\"signature\":\"\",\"astKind\":\"method_declaration\",\"isPublic\":true}]},{\"role\":\"item\",\"symbolType\":\"interface\",\"name\":\"Mix\",\"range\":{\"byteOffset\":{\"start\":151,\"end\":206},\"start\":{\"line\":7,\"column\":0},\"end\":{\"line\":7,\"column\":55}},\"signature\":\"trait Mix { protected $x = 1; public function go() {} }\",\"astKind\":\"trait_declaration\",\"isImport\":false,\"isExported\":true,\"members\":[{\"role\":\"member\",\"symbolType\":\"property\",\"name\":\"$x\",\"range\":{\"byteOffset\":{\"start\":163,\"end\":180},\"start\":{\"line\":7,\"column\":12},\"end\":{\"line\":7,\"column\":29}},\"signature\":\"\",\"astKind\":\"property_declaration\",\"isPublic\":false},{\"role\":\"member\",\"symbolType\":\"method\",\"name\":\"go\",\"range\":{\"byteOffset\":{\"start\":181,\"end\":204},\"start\":{\"line\":7,\"column\":30},\"end\":{\"line\":7,\"column\":53}},\"signature\":\"\",\"astKind\":\"method_declaration\",\"isPublic\":true}]},{\"role\":\"item\",\"symbolType\":\"class\",\"name\":\"Example\",\"range\":{\"byteOffset\":{\"start\":207,\"end\":475},\"start\":{\"line\":8,\"column\":0},\"end\":{\"line\":17,\"column\":1}},\"signature\":\"final class Example extends Base implements Face {\",\"astKind\":\"class_declaration\",\"isImport\":false,\"isExported\":true,\"members\":[{\"role\":\"member\",\"symbolType\":\"property\",\"name\":\"$a\",\"range\":{\"byteOffset\":{\"start\":288,\"end\":302},\"start\":{\"line\":11,\"column\":1},\"end\":{\"line\":11,\"column\":15}},\"signature\":\"\",\"astKind\":\"property_declaration\",\"isPublic\":true},{\"role\":\"member\",\"symbolType\":\"property\",\"name\":\"$secret\",\"range\":{\"byteOffset\":{\"start\":304,\"end\":328},\"start\":{\"line\":12,\"column\":1},\"end\":{\"line\":12,\"column\":25}},\"signature\":\"\",\"astKind\":\"property_declaration\",\"isPublic\":false},{\"role\":\"member\",\"symbolType\":\"property\",\"name\":\"$legacy\",\"range\":{\"byteOffset\":{\"start\":330,\"end\":342},\"start\":{\"line\":13,\"column\":1},\"end\":{\"line\":13,\"column\":13}},\"signature\":\"\",\"astKind\":\"property_declaration\",\"isPublic\":false},{\"role\":\"member\",\"symbolType\":\"method\",\"name\":\"__construct\",\"range\":{\"byteOffset\":{\"start\":344,\"end\":395},\"start\":{\"line\":14,\"column\":1},\"end\":{\"line\":14,\"column\":52}},\"signature\":\"\",\"astKind\":\"method_declaration\",\"isPublic\":true},{\"role\":\"member\",\"symbolType\":\"method\",\"name\":\"go\",\"range\":{\"byteOffset\":{\"start\":397,\"end\":441},\"start\":{\"line\":15,\"column\":1},\"end\":{\"line\":15,\"column\":45}},\"signature\":\"\",\"astKind\":\"method_declaration\",\"isPublic\":false},{\"role\":\"member\",\"symbolType\":\"method\",\"name\":\"hidden\",\"range\":{\"byteOffset\":{\"start\":443,\"end\":473},\"start\":{\"line\":16,\"column\":1},\"end\":{\"line\":16,\"column\":31}},\"signature\":\"\",\"astKind\":\"method_declaration\",\"isPublic\":false}]},{\"role\":\"item\",\"symbolType\":\"enum\",\"name\":\"State\",\"range\":{\"byteOffset\":{\"start\":476,\"end\":538},\"start\":{\"line\":18,\"column\":0},\"end\":{\"line\":18,\"column\":62}},\"signature\":\"enum State: string { case A = 'a'; public function test() {} }\",\"astKind\":\"enum_declaration\",\"isImport\":false,\"isExported\":true,\"members\":[{\"role\":\"member\",\"symbolType\":\"enumMember\",\"name\":\"A\",\"range\":{\"byteOffset\":{\"start\":497,\"end\":510},\"start\":{\"line\":18,\"column\":21},\"end\":{\"line\":18,\"column\":34}},\"signature\":\"\",\"astKind\":\"enum_case\",\"isPublic\":true}]},{\"role\":\"item\",\"symbolType\":\"function\",\"name\":\"hello\",\"range\":{\"byteOffset\":{\"start\":539,\"end\":581},\"start\":{\"line\":19,\"column\":0},\"end\":{\"line\":19,\"column\":42}},\"signature\":\"function hello(int $x): int { return $x; }\",\"astKind\":\"function_definition\",\"isImport\":false,\"isExported\":true}]}]\n"
+        },
+        {
+            "arguments": [
+                "--lang",
+                "php",
+                "--color",
+                "never",
+                "--items",
+                "all",
+                "sample.phtml"
+            ],
+            "output": "sample.phtml\n 3: use Foo\\Bar;\n 4: use function Foo\\run;\n 5: use const Foo\\KEY;\n 7: interface Face { public function go(int $x): string; }\n      method: go\n 8: trait Mix { protected $x = 1; public function go() {} }\n      method: go\n      property: $x\n 9: final class Example extends Base implements Face {\n      method: __construct, go, hidden\n      property: $a, $secret, $legacy\n19: enum State: string { case A = 'a'; public function test() {} }\n      enumMember: A\n20: function hello(int $x): int { return $x; }\n"
+        },
+        {
+            "arguments": [
+                "--lang",
+                "php",
+                "--color",
+                "never",
+                "--items",
+                "all",
+                "--json=compact",
+                "sample.phtml"
+            ],
+            "output": "[{\"path\":\"sample.phtml\",\"language\":\"Php\",\"items\":[{\"role\":\"item\",\"symbolType\":\"module\",\"name\":\"Foo\\\\Bar\",\"range\":{\"byteOffset\":{\"start\":22,\"end\":34},\"start\":{\"line\":2,\"column\":0},\"end\":{\"line\":2,\"column\":12}},\"signature\":\"use Foo\\\\Bar;\",\"astKind\":\"namespace_use_declaration\",\"isImport\":true,\"isExported\":false},{\"role\":\"item\",\"symbolType\":\"module\",\"name\":\"Foo\\\\run\",\"range\":{\"byteOffset\":{\"start\":35,\"end\":56},\"start\":{\"line\":3,\"column\":0},\"end\":{\"line\":3,\"column\":21}},\"signature\":\"use function Foo\\\\run;\",\"astKind\":\"namespace_use_declaration\",\"isImport\":true,\"isExported\":false},{\"role\":\"item\",\"symbolType\":\"module\",\"name\":\"Foo\\\\KEY\",\"range\":{\"byteOffset\":{\"start\":57,\"end\":75},\"start\":{\"line\":4,\"column\":0},\"end\":{\"line\":4,\"column\":18}},\"signature\":\"use const Foo\\\\KEY;\",\"astKind\":\"namespace_use_declaration\",\"isImport\":true,\"isExported\":false},{\"role\":\"item\",\"symbolType\":\"interface\",\"name\":\"Face\",\"range\":{\"byteOffset\":{\"start\":96,\"end\":150},\"start\":{\"line\":6,\"column\":0},\"end\":{\"line\":6,\"column\":54}},\"signature\":\"interface Face { public function go(int $x): string; }\",\"astKind\":\"interface_declaration\",\"isImport\":false,\"isExported\":true,\"members\":[{\"role\":\"member\",\"symbolType\":\"method\",\"name\":\"go\",\"range\":{\"byteOffset\":{\"start\":113,\"end\":148},\"start\":{\"line\":6,\"column\":17},\"end\":{\"line\":6,\"column\":52}},\"signature\":\"\",\"astKind\":\"method_declaration\",\"isPublic\":true}]},{\"role\":\"item\",\"symbolType\":\"interface\",\"name\":\"Mix\",\"range\":{\"byteOffset\":{\"start\":151,\"end\":206},\"start\":{\"line\":7,\"column\":0},\"end\":{\"line\":7,\"column\":55}},\"signature\":\"trait Mix { protected $x = 1; public function go() {} }\",\"astKind\":\"trait_declaration\",\"isImport\":false,\"isExported\":true,\"members\":[{\"role\":\"member\",\"symbolType\":\"property\",\"name\":\"$x\",\"range\":{\"byteOffset\":{\"start\":163,\"end\":180},\"start\":{\"line\":7,\"column\":12},\"end\":{\"line\":7,\"column\":29}},\"signature\":\"\",\"astKind\":\"property_declaration\",\"isPublic\":false},{\"role\":\"member\",\"symbolType\":\"method\",\"name\":\"go\",\"range\":{\"byteOffset\":{\"start\":181,\"end\":204},\"start\":{\"line\":7,\"column\":30},\"end\":{\"line\":7,\"column\":53}},\"signature\":\"\",\"astKind\":\"method_declaration\",\"isPublic\":true}]},{\"role\":\"item\",\"symbolType\":\"class\",\"name\":\"Example\",\"range\":{\"byteOffset\":{\"start\":207,\"end\":475},\"start\":{\"line\":8,\"column\":0},\"end\":{\"line\":17,\"column\":1}},\"signature\":\"final class Example extends Base implements Face {\",\"astKind\":\"class_declaration\",\"isImport\":false,\"isExported\":true,\"members\":[{\"role\":\"member\",\"symbolType\":\"property\",\"name\":\"$a\",\"range\":{\"byteOffset\":{\"start\":288,\"end\":302},\"start\":{\"line\":11,\"column\":1},\"end\":{\"line\":11,\"column\":15}},\"signature\":\"\",\"astKind\":\"property_declaration\",\"isPublic\":true},{\"role\":\"member\",\"symbolType\":\"property\",\"name\":\"$secret\",\"range\":{\"byteOffset\":{\"start\":304,\"end\":328},\"start\":{\"line\":12,\"column\":1},\"end\":{\"line\":12,\"column\":25}},\"signature\":\"\",\"astKind\":\"property_declaration\",\"isPublic\":false},{\"role\":\"member\",\"symbolType\":\"property\",\"name\":\"$legacy\",\"range\":{\"byteOffset\":{\"start\":330,\"end\":342},\"start\":{\"line\":13,\"column\":1},\"end\":{\"line\":13,\"column\":13}},\"signature\":\"\",\"astKind\":\"property_declaration\",\"isPublic\":false},{\"role\":\"member\",\"symbolType\":\"method\",\"name\":\"__construct\",\"range\":{\"byteOffset\":{\"start\":344,\"end\":395},\"start\":{\"line\":14,\"column\":1},\"end\":{\"line\":14,\"column\":52}},\"signature\":\"\",\"astKind\":\"method_declaration\",\"isPublic\":true},{\"role\":\"member\",\"symbolType\":\"method\",\"name\":\"go\",\"range\":{\"byteOffset\":{\"start\":397,\"end\":441},\"start\":{\"line\":15,\"column\":1},\"end\":{\"line\":15,\"column\":45}},\"signature\":\"\",\"astKind\":\"method_declaration\",\"isPublic\":false},{\"role\":\"member\",\"symbolType\":\"method\",\"name\":\"hidden\",\"range\":{\"byteOffset\":{\"start\":443,\"end\":473},\"start\":{\"line\":16,\"column\":1},\"end\":{\"line\":16,\"column\":31}},\"signature\":\"\",\"astKind\":\"method_declaration\",\"isPublic\":false}]},{\"role\":\"item\",\"symbolType\":\"enum\",\"name\":\"State\",\"range\":{\"byteOffset\":{\"start\":476,\"end\":538},\"start\":{\"line\":18,\"column\":0},\"end\":{\"line\":18,\"column\":62}},\"signature\":\"enum State: string { case A = 'a'; public function test() {} }\",\"astKind\":\"enum_declaration\",\"isImport\":false,\"isExported\":true,\"members\":[{\"role\":\"member\",\"symbolType\":\"enumMember\",\"name\":\"A\",\"range\":{\"byteOffset\":{\"start\":497,\"end\":510},\"start\":{\"line\":18,\"column\":21},\"end\":{\"line\":18,\"column\":34}},\"signature\":\"\",\"astKind\":\"enum_case\",\"isPublic\":true}]},{\"role\":\"item\",\"symbolType\":\"function\",\"name\":\"hello\",\"range\":{\"byteOffset\":{\"start\":539,\"end\":581},\"start\":{\"line\":19,\"column\":0},\"end\":{\"line\":19,\"column\":42}},\"signature\":\"function hello(int $x): int { return $x; }\",\"astKind\":\"function_definition\",\"isImport\":false,\"isExported\":true}]}]\n"
+        },
+        {
+            "arguments": [
+                "--lang",
+                "php",
+                "--color",
+                "never",
+                "--items",
+                "imports",
+                "sample.phtml"
+            ],
+            "output": "sample.phtml\n3: use Foo\\Bar;\n4: use function Foo\\run;\n5: use const Foo\\KEY;\n"
+        },
+        {
+            "arguments": [
+                "--lang",
+                "php",
+                "--color",
+                "never",
+                "--items",
+                "imports",
+                "--json=compact",
+                "sample.phtml"
+            ],
+            "output": "[{\"path\":\"sample.phtml\",\"language\":\"Php\",\"items\":[{\"role\":\"item\",\"symbolType\":\"module\",\"name\":\"Foo\\\\Bar\",\"range\":{\"byteOffset\":{\"start\":22,\"end\":34},\"start\":{\"line\":2,\"column\":0},\"end\":{\"line\":2,\"column\":12}},\"signature\":\"use Foo\\\\Bar;\",\"astKind\":\"namespace_use_declaration\",\"isImport\":true,\"isExported\":false},{\"role\":\"item\",\"symbolType\":\"module\",\"name\":\"Foo\\\\run\",\"range\":{\"byteOffset\":{\"start\":35,\"end\":56},\"start\":{\"line\":3,\"column\":0},\"end\":{\"line\":3,\"column\":21}},\"signature\":\"use function Foo\\\\run;\",\"astKind\":\"namespace_use_declaration\",\"isImport\":true,\"isExported\":false},{\"role\":\"item\",\"symbolType\":\"module\",\"name\":\"Foo\\\\KEY\",\"range\":{\"byteOffset\":{\"start\":57,\"end\":75},\"start\":{\"line\":4,\"column\":0},\"end\":{\"line\":4,\"column\":18}},\"signature\":\"use const Foo\\\\KEY;\",\"astKind\":\"namespace_use_declaration\",\"isImport\":true,\"isExported\":false}]}]\n"
+        },
+        {
+            "arguments": [
+                "--lang",
+                "php",
+                "--color",
+                "never",
+                "--items",
+                "exports",
+                "sample.phtml"
+            ],
+            "output": "sample.phtml\n 7: interface Face { public function go(int $x): string; }\n      method: go\n 8: trait Mix { protected $x = 1; public function go() {} }\n      method: go\n      property: $x\n 9: final class Example extends Base implements Face {\n      method: __construct, go, hidden\n      property: $a, $secret, $legacy\n19: enum State: string { case A = 'a'; public function test() {} }\n      enumMember: A\n20: function hello(int $x): int { return $x; }\n"
+        },
+        {
+            "arguments": [
+                "--lang",
+                "php",
+                "--color",
+                "never",
+                "--items",
+                "exports",
+                "--json=compact",
+                "sample.phtml"
+            ],
+            "output": "[{\"path\":\"sample.phtml\",\"language\":\"Php\",\"items\":[{\"role\":\"item\",\"symbolType\":\"interface\",\"name\":\"Face\",\"range\":{\"byteOffset\":{\"start\":96,\"end\":150},\"start\":{\"line\":6,\"column\":0},\"end\":{\"line\":6,\"column\":54}},\"signature\":\"interface Face { public function go(int $x): string; }\",\"astKind\":\"interface_declaration\",\"isImport\":false,\"isExported\":true,\"members\":[{\"role\":\"member\",\"symbolType\":\"method\",\"name\":\"go\",\"range\":{\"byteOffset\":{\"start\":113,\"end\":148},\"start\":{\"line\":6,\"column\":17},\"end\":{\"line\":6,\"column\":52}},\"signature\":\"\",\"astKind\":\"method_declaration\",\"isPublic\":true}]},{\"role\":\"item\",\"symbolType\":\"interface\",\"name\":\"Mix\",\"range\":{\"byteOffset\":{\"start\":151,\"end\":206},\"start\":{\"line\":7,\"column\":0},\"end\":{\"line\":7,\"column\":55}},\"signature\":\"trait Mix { protected $x = 1; public function go() {} }\",\"astKind\":\"trait_declaration\",\"isImport\":false,\"isExported\":true,\"members\":[{\"role\":\"member\",\"symbolType\":\"property\",\"name\":\"$x\",\"range\":{\"byteOffset\":{\"start\":163,\"end\":180},\"start\":{\"line\":7,\"column\":12},\"end\":{\"line\":7,\"column\":29}},\"signature\":\"\",\"astKind\":\"property_declaration\",\"isPublic\":false},{\"role\":\"member\",\"symbolType\":\"method\",\"name\":\"go\",\"range\":{\"byteOffset\":{\"start\":181,\"end\":204},\"start\":{\"line\":7,\"column\":30},\"end\":{\"line\":7,\"column\":53}},\"signature\":\"\",\"astKind\":\"method_declaration\",\"isPublic\":true}]},{\"role\":\"item\",\"symbolType\":\"class\",\"name\":\"Example\",\"range\":{\"byteOffset\":{\"start\":207,\"end\":475},\"start\":{\"line\":8,\"column\":0},\"end\":{\"line\":17,\"column\":1}},\"signature\":\"final class Example extends Base implements Face {\",\"astKind\":\"class_declaration\",\"isImport\":false,\"isExported\":true,\"members\":[{\"role\":\"member\",\"symbolType\":\"property\",\"name\":\"$a\",\"range\":{\"byteOffset\":{\"start\":288,\"end\":302},\"start\":{\"line\":11,\"column\":1},\"end\":{\"line\":11,\"column\":15}},\"signature\":\"\",\"astKind\":\"property_declaration\",\"isPublic\":true},{\"role\":\"member\",\"symbolType\":\"property\",\"name\":\"$secret\",\"range\":{\"byteOffset\":{\"start\":304,\"end\":328},\"start\":{\"line\":12,\"column\":1},\"end\":{\"line\":12,\"column\":25}},\"signature\":\"\",\"astKind\":\"property_declaration\",\"isPublic\":false},{\"role\":\"member\",\"symbolType\":\"property\",\"name\":\"$legacy\",\"range\":{\"byteOffset\":{\"start\":330,\"end\":342},\"start\":{\"line\":13,\"column\":1},\"end\":{\"line\":13,\"column\":13}},\"signature\":\"\",\"astKind\":\"property_declaration\",\"isPublic\":false},{\"role\":\"member\",\"symbolType\":\"method\",\"name\":\"__construct\",\"range\":{\"byteOffset\":{\"start\":344,\"end\":395},\"start\":{\"line\":14,\"column\":1},\"end\":{\"line\":14,\"column\":52}},\"signature\":\"\",\"astKind\":\"method_declaration\",\"isPublic\":true},{\"role\":\"member\",\"symbolType\":\"method\",\"name\":\"go\",\"range\":{\"byteOffset\":{\"start\":397,\"end\":441},\"start\":{\"line\":15,\"column\":1},\"end\":{\"line\":15,\"column\":45}},\"signature\":\"\",\"astKind\":\"method_declaration\",\"isPublic\":false},{\"role\":\"member\",\"symbolType\":\"method\",\"name\":\"hidden\",\"range\":{\"byteOffset\":{\"start\":443,\"end\":473},\"start\":{\"line\":16,\"column\":1},\"end\":{\"line\":16,\"column\":31}},\"signature\":\"\",\"astKind\":\"method_declaration\",\"isPublic\":false}]},{\"role\":\"item\",\"symbolType\":\"enum\",\"name\":\"State\",\"range\":{\"byteOffset\":{\"start\":476,\"end\":538},\"start\":{\"line\":18,\"column\":0},\"end\":{\"line\":18,\"column\":62}},\"signature\":\"enum State: string { case A = 'a'; public function test() {} }\",\"astKind\":\"enum_declaration\",\"isImport\":false,\"isExported\":true,\"members\":[{\"role\":\"member\",\"symbolType\":\"enumMember\",\"name\":\"A\",\"range\":{\"byteOffset\":{\"start\":497,\"end\":510},\"start\":{\"line\":18,\"column\":21},\"end\":{\"line\":18,\"column\":34}},\"signature\":\"\",\"astKind\":\"enum_case\",\"isPublic\":true}]},{\"role\":\"item\",\"symbolType\":\"function\",\"name\":\"hello\",\"range\":{\"byteOffset\":{\"start\":539,\"end\":581},\"start\":{\"line\":19,\"column\":0},\"end\":{\"line\":19,\"column\":42}},\"signature\":\"function hello(int $x): int { return $x; }\",\"astKind\":\"function_definition\",\"isImport\":false,\"isExported\":true}]}]\n"
+        },
+        {
+            "arguments": [
+                "--lang",
+                "php",
+                "--color",
+                "never",
+                "--view",
+                "names",
+                "sample.phtml"
+            ],
+            "output": "sample.phtml\nclass: Example\nenum: State\ninterface: Face, Mix\nfunction: hello\n"
+        },
+        {
+            "arguments": [
+                "--lang",
+                "php",
+                "--color",
+                "never",
+                "--view",
+                "names",
+                "--json=compact",
+                "sample.phtml"
+            ],
+            "output": "[{\"path\":\"sample.phtml\",\"language\":\"Php\",\"items\":[{\"role\":\"item\",\"symbolType\":\"interface\",\"name\":\"Face\",\"range\":{\"byteOffset\":{\"start\":96,\"end\":150},\"start\":{\"line\":6,\"column\":0},\"end\":{\"line\":6,\"column\":54}},\"signature\":\"\",\"astKind\":\"interface_declaration\",\"isImport\":false,\"isExported\":true},{\"role\":\"item\",\"symbolType\":\"interface\",\"name\":\"Mix\",\"range\":{\"byteOffset\":{\"start\":151,\"end\":206},\"start\":{\"line\":7,\"column\":0},\"end\":{\"line\":7,\"column\":55}},\"signature\":\"\",\"astKind\":\"trait_declaration\",\"isImport\":false,\"isExported\":true},{\"role\":\"item\",\"symbolType\":\"class\",\"name\":\"Example\",\"range\":{\"byteOffset\":{\"start\":207,\"end\":475},\"start\":{\"line\":8,\"column\":0},\"end\":{\"line\":17,\"column\":1}},\"signature\":\"\",\"astKind\":\"class_declaration\",\"isImport\":false,\"isExported\":true},{\"role\":\"item\",\"symbolType\":\"enum\",\"name\":\"State\",\"range\":{\"byteOffset\":{\"start\":476,\"end\":538},\"start\":{\"line\":18,\"column\":0},\"end\":{\"line\":18,\"column\":62}},\"signature\":\"\",\"astKind\":\"enum_declaration\",\"isImport\":false,\"isExported\":true},{\"role\":\"item\",\"symbolType\":\"function\",\"name\":\"hello\",\"range\":{\"byteOffset\":{\"start\":539,\"end\":581},\"start\":{\"line\":19,\"column\":0},\"end\":{\"line\":19,\"column\":42}},\"signature\":\"\",\"astKind\":\"function_definition\",\"isImport\":false,\"isExported\":true}]}]\n"
+        },
+        {
+            "arguments": [
+                "--lang",
+                "php",
+                "--color",
+                "never",
+                "--view",
+                "signatures",
+                "sample.phtml"
+            ],
+            "output": "sample.phtml\n 7: interface Face { public function go(int $x): string; }\n 8: trait Mix { protected $x = 1; public function go() {} }\n 9: final class Example extends Base implements Face {\n19: enum State: string { case A = 'a'; public function test() {} }\n20: function hello(int $x): int { return $x; }\n"
+        },
+        {
+            "arguments": [
+                "--lang",
+                "php",
+                "--color",
+                "never",
+                "--view",
+                "signatures",
+                "--json=compact",
+                "sample.phtml"
+            ],
+            "output": "[{\"path\":\"sample.phtml\",\"language\":\"Php\",\"items\":[{\"role\":\"item\",\"symbolType\":\"interface\",\"name\":\"Face\",\"range\":{\"byteOffset\":{\"start\":96,\"end\":150},\"start\":{\"line\":6,\"column\":0},\"end\":{\"line\":6,\"column\":54}},\"signature\":\"interface Face { public function go(int $x): string; }\",\"astKind\":\"interface_declaration\",\"isImport\":false,\"isExported\":true},{\"role\":\"item\",\"symbolType\":\"interface\",\"name\":\"Mix\",\"range\":{\"byteOffset\":{\"start\":151,\"end\":206},\"start\":{\"line\":7,\"column\":0},\"end\":{\"line\":7,\"column\":55}},\"signature\":\"trait Mix { protected $x = 1; public function go() {} }\",\"astKind\":\"trait_declaration\",\"isImport\":false,\"isExported\":true},{\"role\":\"item\",\"symbolType\":\"class\",\"name\":\"Example\",\"range\":{\"byteOffset\":{\"start\":207,\"end\":475},\"start\":{\"line\":8,\"column\":0},\"end\":{\"line\":17,\"column\":1}},\"signature\":\"final class Example extends Base implements Face {\",\"astKind\":\"class_declaration\",\"isImport\":false,\"isExported\":true},{\"role\":\"item\",\"symbolType\":\"enum\",\"name\":\"State\",\"range\":{\"byteOffset\":{\"start\":476,\"end\":538},\"start\":{\"line\":18,\"column\":0},\"end\":{\"line\":18,\"column\":62}},\"signature\":\"enum State: string { case A = 'a'; public function test() {} }\",\"astKind\":\"enum_declaration\",\"isImport\":false,\"isExported\":true},{\"role\":\"item\",\"symbolType\":\"function\",\"name\":\"hello\",\"range\":{\"byteOffset\":{\"start\":539,\"end\":581},\"start\":{\"line\":19,\"column\":0},\"end\":{\"line\":19,\"column\":42}},\"signature\":\"function hello(int $x): int { return $x; }\",\"astKind\":\"function_definition\",\"isImport\":false,\"isExported\":true}]}]\n"
+        },
+        {
+            "arguments": [
+                "--lang",
+                "php",
+                "--color",
+                "never",
+                "--view",
+                "expanded",
+                "sample.phtml"
+            ],
+            "output": "sample.phtml\n 7: interface Face { public function go(int $x): string; }\n 7:   public function go(int $x): string;\n 8: trait Mix { protected $x = 1; public function go() {} }\n 8:   protected $x = 1;\n 8:   public function go() {}\n 9: final class Example extends Base implements Face {\n12:   public $a, $b;\n13:   private int $secret = 2;\n14:   var $legacy;\n15:   public function __construct(public string $name) {}\n16:   function go(int $x): string { return \"hi\"; }\n17:   protected function hidden() {}\n19: enum State: string { case A = 'a'; public function test() {} }\n19:   case A = 'a';\n20: function hello(int $x): int { return $x; }\n"
+        },
+        {
+            "arguments": [
+                "--lang",
+                "php",
+                "--color",
+                "never",
+                "--view",
+                "expanded",
+                "--json=compact",
+                "sample.phtml"
+            ],
+            "output": "[{\"path\":\"sample.phtml\",\"language\":\"Php\",\"items\":[{\"role\":\"item\",\"symbolType\":\"interface\",\"name\":\"Face\",\"range\":{\"byteOffset\":{\"start\":96,\"end\":150},\"start\":{\"line\":6,\"column\":0},\"end\":{\"line\":6,\"column\":54}},\"signature\":\"interface Face { public function go(int $x): string; }\",\"astKind\":\"interface_declaration\",\"isImport\":false,\"isExported\":true,\"members\":[{\"role\":\"member\",\"symbolType\":\"method\",\"name\":\"go\",\"range\":{\"byteOffset\":{\"start\":113,\"end\":148},\"start\":{\"line\":6,\"column\":17},\"end\":{\"line\":6,\"column\":52}},\"signature\":\"public function go(int $x): string;\",\"astKind\":\"method_declaration\",\"isPublic\":true}]},{\"role\":\"item\",\"symbolType\":\"interface\",\"name\":\"Mix\",\"range\":{\"byteOffset\":{\"start\":151,\"end\":206},\"start\":{\"line\":7,\"column\":0},\"end\":{\"line\":7,\"column\":55}},\"signature\":\"trait Mix { protected $x = 1; public function go() {} }\",\"astKind\":\"trait_declaration\",\"isImport\":false,\"isExported\":true,\"members\":[{\"role\":\"member\",\"symbolType\":\"property\",\"name\":\"$x\",\"range\":{\"byteOffset\":{\"start\":163,\"end\":180},\"start\":{\"line\":7,\"column\":12},\"end\":{\"line\":7,\"column\":29}},\"signature\":\"protected $x = 1;\",\"astKind\":\"property_declaration\",\"isPublic\":false},{\"role\":\"member\",\"symbolType\":\"method\",\"name\":\"go\",\"range\":{\"byteOffset\":{\"start\":181,\"end\":204},\"start\":{\"line\":7,\"column\":30},\"end\":{\"line\":7,\"column\":53}},\"signature\":\"public function go() {}\",\"astKind\":\"method_declaration\",\"isPublic\":true}]},{\"role\":\"item\",\"symbolType\":\"class\",\"name\":\"Example\",\"range\":{\"byteOffset\":{\"start\":207,\"end\":475},\"start\":{\"line\":8,\"column\":0},\"end\":{\"line\":17,\"column\":1}},\"signature\":\"final class Example extends Base implements Face {\",\"astKind\":\"class_declaration\",\"isImport\":false,\"isExported\":true,\"members\":[{\"role\":\"member\",\"symbolType\":\"property\",\"name\":\"$a\",\"range\":{\"byteOffset\":{\"start\":288,\"end\":302},\"start\":{\"line\":11,\"column\":1},\"end\":{\"line\":11,\"column\":15}},\"signature\":\"public $a, $b;\",\"astKind\":\"property_declaration\",\"isPublic\":true},{\"role\":\"member\",\"symbolType\":\"property\",\"name\":\"$secret\",\"range\":{\"byteOffset\":{\"start\":304,\"end\":328},\"start\":{\"line\":12,\"column\":1},\"end\":{\"line\":12,\"column\":25}},\"signature\":\"private int $secret = 2;\",\"astKind\":\"property_declaration\",\"isPublic\":false},{\"role\":\"member\",\"symbolType\":\"property\",\"name\":\"$legacy\",\"range\":{\"byteOffset\":{\"start\":330,\"end\":342},\"start\":{\"line\":13,\"column\":1},\"end\":{\"line\":13,\"column\":13}},\"signature\":\"var $legacy;\",\"astKind\":\"property_declaration\",\"isPublic\":false},{\"role\":\"member\",\"symbolType\":\"method\",\"name\":\"__construct\",\"range\":{\"byteOffset\":{\"start\":344,\"end\":395},\"start\":{\"line\":14,\"column\":1},\"end\":{\"line\":14,\"column\":52}},\"signature\":\"public function __construct(public string $name) {}\",\"astKind\":\"method_declaration\",\"isPublic\":true},{\"role\":\"member\",\"symbolType\":\"method\",\"name\":\"go\",\"range\":{\"byteOffset\":{\"start\":397,\"end\":441},\"start\":{\"line\":15,\"column\":1},\"end\":{\"line\":15,\"column\":45}},\"signature\":\"function go(int $x): string { return \\\"hi\\\"; }\",\"astKind\":\"method_declaration\",\"isPublic\":false},{\"role\":\"member\",\"symbolType\":\"method\",\"name\":\"hidden\",\"range\":{\"byteOffset\":{\"start\":443,\"end\":473},\"start\":{\"line\":16,\"column\":1},\"end\":{\"line\":16,\"column\":31}},\"signature\":\"protected function hidden() {}\",\"astKind\":\"method_declaration\",\"isPublic\":false}]},{\"role\":\"item\",\"symbolType\":\"enum\",\"name\":\"State\",\"range\":{\"byteOffset\":{\"start\":476,\"end\":538},\"start\":{\"line\":18,\"column\":0},\"end\":{\"line\":18,\"column\":62}},\"signature\":\"enum State: string { case A = 'a'; public function test() {} }\",\"astKind\":\"enum_declaration\",\"isImport\":false,\"isExported\":true,\"members\":[{\"role\":\"member\",\"symbolType\":\"enumMember\",\"name\":\"A\",\"range\":{\"byteOffset\":{\"start\":497,\"end\":510},\"start\":{\"line\":18,\"column\":21},\"end\":{\"line\":18,\"column\":34}},\"signature\":\"case A = 'a';\",\"astKind\":\"enum_case\",\"isPublic\":true}]},{\"role\":\"item\",\"symbolType\":\"function\",\"name\":\"hello\",\"range\":{\"byteOffset\":{\"start\":539,\"end\":581},\"start\":{\"line\":19,\"column\":0},\"end\":{\"line\":19,\"column\":42}},\"signature\":\"function hello(int $x): int { return $x; }\",\"astKind\":\"function_definition\",\"isImport\":false,\"isExported\":true}]}]\n"
+        },
+        {
+            "arguments": [
+                "--lang",
+                "php",
+                "--color",
+                "never",
+                "--pub-members",
+                "sample.phtml"
+            ],
+            "output": "sample.phtml\n 7: interface Face { public function go(int $x): string; }\n      method: go\n 8: trait Mix { protected $x = 1; public function go() {} }\n      method: go\n 9: final class Example extends Base implements Face {\n      method: __construct\n      property: $a\n19: enum State: string { case A = 'a'; public function test() {} }\n      enumMember: A\n20: function hello(int $x): int { return $x; }\n"
+        },
+        {
+            "arguments": [
+                "--lang",
+                "php",
+                "--color",
+                "never",
+                "--pub-members",
+                "--json=compact",
+                "sample.phtml"
+            ],
+            "output": "[{\"path\":\"sample.phtml\",\"language\":\"Php\",\"items\":[{\"role\":\"item\",\"symbolType\":\"interface\",\"name\":\"Face\",\"range\":{\"byteOffset\":{\"start\":96,\"end\":150},\"start\":{\"line\":6,\"column\":0},\"end\":{\"line\":6,\"column\":54}},\"signature\":\"interface Face { public function go(int $x): string; }\",\"astKind\":\"interface_declaration\",\"isImport\":false,\"isExported\":true,\"members\":[{\"role\":\"member\",\"symbolType\":\"method\",\"name\":\"go\",\"range\":{\"byteOffset\":{\"start\":113,\"end\":148},\"start\":{\"line\":6,\"column\":17},\"end\":{\"line\":6,\"column\":52}},\"signature\":\"\",\"astKind\":\"method_declaration\",\"isPublic\":true}]},{\"role\":\"item\",\"symbolType\":\"interface\",\"name\":\"Mix\",\"range\":{\"byteOffset\":{\"start\":151,\"end\":206},\"start\":{\"line\":7,\"column\":0},\"end\":{\"line\":7,\"column\":55}},\"signature\":\"trait Mix { protected $x = 1; public function go() {} }\",\"astKind\":\"trait_declaration\",\"isImport\":false,\"isExported\":true,\"members\":[{\"role\":\"member\",\"symbolType\":\"method\",\"name\":\"go\",\"range\":{\"byteOffset\":{\"start\":181,\"end\":204},\"start\":{\"line\":7,\"column\":30},\"end\":{\"line\":7,\"column\":53}},\"signature\":\"\",\"astKind\":\"method_declaration\",\"isPublic\":true}]},{\"role\":\"item\",\"symbolType\":\"class\",\"name\":\"Example\",\"range\":{\"byteOffset\":{\"start\":207,\"end\":475},\"start\":{\"line\":8,\"column\":0},\"end\":{\"line\":17,\"column\":1}},\"signature\":\"final class Example extends Base implements Face {\",\"astKind\":\"class_declaration\",\"isImport\":false,\"isExported\":true,\"members\":[{\"role\":\"member\",\"symbolType\":\"property\",\"name\":\"$a\",\"range\":{\"byteOffset\":{\"start\":288,\"end\":302},\"start\":{\"line\":11,\"column\":1},\"end\":{\"line\":11,\"column\":15}},\"signature\":\"\",\"astKind\":\"property_declaration\",\"isPublic\":true},{\"role\":\"member\",\"symbolType\":\"method\",\"name\":\"__construct\",\"range\":{\"byteOffset\":{\"start\":344,\"end\":395},\"start\":{\"line\":14,\"column\":1},\"end\":{\"line\":14,\"column\":52}},\"signature\":\"\",\"astKind\":\"method_declaration\",\"isPublic\":true}]},{\"role\":\"item\",\"symbolType\":\"enum\",\"name\":\"State\",\"range\":{\"byteOffset\":{\"start\":476,\"end\":538},\"start\":{\"line\":18,\"column\":0},\"end\":{\"line\":18,\"column\":62}},\"signature\":\"enum State: string { case A = 'a'; public function test() {} }\",\"astKind\":\"enum_declaration\",\"isImport\":false,\"isExported\":true,\"members\":[{\"role\":\"member\",\"symbolType\":\"enumMember\",\"name\":\"A\",\"range\":{\"byteOffset\":{\"start\":497,\"end\":510},\"start\":{\"line\":18,\"column\":21},\"end\":{\"line\":18,\"column\":34}},\"signature\":\"\",\"astKind\":\"enum_case\",\"isPublic\":true}]},{\"role\":\"item\",\"symbolType\":\"function\",\"name\":\"hello\",\"range\":{\"byteOffset\":{\"start\":539,\"end\":581},\"start\":{\"line\":19,\"column\":0},\"end\":{\"line\":19,\"column\":42}},\"signature\":\"function hello(int $x): int { return $x; }\",\"astKind\":\"function_definition\",\"isImport\":false,\"isExported\":true}]}]\n"
+        },
+        {
+            "arguments": [
+                "--lang",
+                "php",
+                "--color",
+                "never",
+                "--type",
+                "class,enum",
+                "sample.phtml"
+            ],
+            "output": "sample.phtml\n 9: final class Example extends Base implements Face {\n      method: __construct, go, hidden\n      property: $a, $secret, $legacy\n19: enum State: string { case A = 'a'; public function test() {} }\n      enumMember: A\n"
+        },
+        {
+            "arguments": [
+                "--lang",
+                "php",
+                "--color",
+                "never",
+                "--type",
+                "class,enum",
+                "--json=compact",
+                "sample.phtml"
+            ],
+            "output": "[{\"path\":\"sample.phtml\",\"language\":\"Php\",\"items\":[{\"role\":\"item\",\"symbolType\":\"class\",\"name\":\"Example\",\"range\":{\"byteOffset\":{\"start\":207,\"end\":475},\"start\":{\"line\":8,\"column\":0},\"end\":{\"line\":17,\"column\":1}},\"signature\":\"final class Example extends Base implements Face {\",\"astKind\":\"class_declaration\",\"isImport\":false,\"isExported\":true,\"members\":[{\"role\":\"member\",\"symbolType\":\"property\",\"name\":\"$a\",\"range\":{\"byteOffset\":{\"start\":288,\"end\":302},\"start\":{\"line\":11,\"column\":1},\"end\":{\"line\":11,\"column\":15}},\"signature\":\"\",\"astKind\":\"property_declaration\",\"isPublic\":true},{\"role\":\"member\",\"symbolType\":\"property\",\"name\":\"$secret\",\"range\":{\"byteOffset\":{\"start\":304,\"end\":328},\"start\":{\"line\":12,\"column\":1},\"end\":{\"line\":12,\"column\":25}},\"signature\":\"\",\"astKind\":\"property_declaration\",\"isPublic\":false},{\"role\":\"member\",\"symbolType\":\"property\",\"name\":\"$legacy\",\"range\":{\"byteOffset\":{\"start\":330,\"end\":342},\"start\":{\"line\":13,\"column\":1},\"end\":{\"line\":13,\"column\":13}},\"signature\":\"\",\"astKind\":\"property_declaration\",\"isPublic\":false},{\"role\":\"member\",\"symbolType\":\"method\",\"name\":\"__construct\",\"range\":{\"byteOffset\":{\"start\":344,\"end\":395},\"start\":{\"line\":14,\"column\":1},\"end\":{\"line\":14,\"column\":52}},\"signature\":\"\",\"astKind\":\"method_declaration\",\"isPublic\":true},{\"role\":\"member\",\"symbolType\":\"method\",\"name\":\"go\",\"range\":{\"byteOffset\":{\"start\":397,\"end\":441},\"start\":{\"line\":15,\"column\":1},\"end\":{\"line\":15,\"column\":45}},\"signature\":\"\",\"astKind\":\"method_declaration\",\"isPublic\":false},{\"role\":\"member\",\"symbolType\":\"method\",\"name\":\"hidden\",\"range\":{\"byteOffset\":{\"start\":443,\"end\":473},\"start\":{\"line\":16,\"column\":1},\"end\":{\"line\":16,\"column\":31}},\"signature\":\"\",\"astKind\":\"method_declaration\",\"isPublic\":false}]},{\"role\":\"item\",\"symbolType\":\"enum\",\"name\":\"State\",\"range\":{\"byteOffset\":{\"start\":476,\"end\":538},\"start\":{\"line\":18,\"column\":0},\"end\":{\"line\":18,\"column\":62}},\"signature\":\"enum State: string { case A = 'a'; public function test() {} }\",\"astKind\":\"enum_declaration\",\"isImport\":false,\"isExported\":true,\"members\":[{\"role\":\"member\",\"symbolType\":\"enumMember\",\"name\":\"A\",\"range\":{\"byteOffset\":{\"start\":497,\"end\":510},\"start\":{\"line\":18,\"column\":21},\"end\":{\"line\":18,\"column\":34}},\"signature\":\"\",\"astKind\":\"enum_case\",\"isPublic\":true}]}]}]\n"
+        },
+        {
+            "arguments": [
+                "--lang",
+                "php",
+                "--color",
+                "never",
+                "--match",
+                "Example",
+                "sample.phtml"
+            ],
+            "output": "sample.phtml\n 9: final class Example extends Base implements Face {\n      method: __construct, go, hidden\n      property: $a, $secret, $legacy\n"
+        },
+        {
+            "arguments": [
+                "--lang",
+                "php",
+                "--color",
+                "never",
+                "--match",
+                "Example",
+                "--json=compact",
+                "sample.phtml"
+            ],
+            "output": "[{\"path\":\"sample.phtml\",\"language\":\"Php\",\"items\":[{\"role\":\"item\",\"symbolType\":\"class\",\"name\":\"Example\",\"range\":{\"byteOffset\":{\"start\":207,\"end\":475},\"start\":{\"line\":8,\"column\":0},\"end\":{\"line\":17,\"column\":1}},\"signature\":\"final class Example extends Base implements Face {\",\"astKind\":\"class_declaration\",\"isImport\":false,\"isExported\":true,\"members\":[{\"role\":\"member\",\"symbolType\":\"property\",\"name\":\"$a\",\"range\":{\"byteOffset\":{\"start\":288,\"end\":302},\"start\":{\"line\":11,\"column\":1},\"end\":{\"line\":11,\"column\":15}},\"signature\":\"\",\"astKind\":\"property_declaration\",\"isPublic\":true},{\"role\":\"member\",\"symbolType\":\"property\",\"name\":\"$secret\",\"range\":{\"byteOffset\":{\"start\":304,\"end\":328},\"start\":{\"line\":12,\"column\":1},\"end\":{\"line\":12,\"column\":25}},\"signature\":\"\",\"astKind\":\"property_declaration\",\"isPublic\":false},{\"role\":\"member\",\"symbolType\":\"property\",\"name\":\"$legacy\",\"range\":{\"byteOffset\":{\"start\":330,\"end\":342},\"start\":{\"line\":13,\"column\":1},\"end\":{\"line\":13,\"column\":13}},\"signature\":\"\",\"astKind\":\"property_declaration\",\"isPublic\":false},{\"role\":\"member\",\"symbolType\":\"method\",\"name\":\"__construct\",\"range\":{\"byteOffset\":{\"start\":344,\"end\":395},\"start\":{\"line\":14,\"column\":1},\"end\":{\"line\":14,\"column\":52}},\"signature\":\"\",\"astKind\":\"method_declaration\",\"isPublic\":true},{\"role\":\"member\",\"symbolType\":\"method\",\"name\":\"go\",\"range\":{\"byteOffset\":{\"start\":397,\"end\":441},\"start\":{\"line\":15,\"column\":1},\"end\":{\"line\":15,\"column\":45}},\"signature\":\"\",\"astKind\":\"method_declaration\",\"isPublic\":false},{\"role\":\"member\",\"symbolType\":\"method\",\"name\":\"hidden\",\"range\":{\"byteOffset\":{\"start\":443,\"end\":473},\"start\":{\"line\":16,\"column\":1},\"end\":{\"line\":16,\"column\":31}},\"signature\":\"\",\"astKind\":\"method_declaration\",\"isPublic\":false}]}]}]\n"
+        },
+        {
+            "arguments": [
+                "--lang",
+                "php",
+                "--color",
+                "never",
+                "--match",
+                "^Example$",
+                "sample.phtml"
+            ],
+            "output": "sample.phtml\n 9: final class Example extends Base implements Face {\n      method: __construct, go, hidden\n      property: $a, $secret, $legacy\n"
+        },
+        {
+            "arguments": [
+                "--lang",
+                "php",
+                "--color",
+                "never",
+                "--match",
+                "^Example$",
+                "--json=compact",
+                "sample.phtml"
+            ],
+            "output": "[{\"path\":\"sample.phtml\",\"language\":\"Php\",\"items\":[{\"role\":\"item\",\"symbolType\":\"class\",\"name\":\"Example\",\"range\":{\"byteOffset\":{\"start\":207,\"end\":475},\"start\":{\"line\":8,\"column\":0},\"end\":{\"line\":17,\"column\":1}},\"signature\":\"final class Example extends Base implements Face {\",\"astKind\":\"class_declaration\",\"isImport\":false,\"isExported\":true,\"members\":[{\"role\":\"member\",\"symbolType\":\"property\",\"name\":\"$a\",\"range\":{\"byteOffset\":{\"start\":288,\"end\":302},\"start\":{\"line\":11,\"column\":1},\"end\":{\"line\":11,\"column\":15}},\"signature\":\"\",\"astKind\":\"property_declaration\",\"isPublic\":true},{\"role\":\"member\",\"symbolType\":\"property\",\"name\":\"$secret\",\"range\":{\"byteOffset\":{\"start\":304,\"end\":328},\"start\":{\"line\":12,\"column\":1},\"end\":{\"line\":12,\"column\":25}},\"signature\":\"\",\"astKind\":\"property_declaration\",\"isPublic\":false},{\"role\":\"member\",\"symbolType\":\"property\",\"name\":\"$legacy\",\"range\":{\"byteOffset\":{\"start\":330,\"end\":342},\"start\":{\"line\":13,\"column\":1},\"end\":{\"line\":13,\"column\":13}},\"signature\":\"\",\"astKind\":\"property_declaration\",\"isPublic\":false},{\"role\":\"member\",\"symbolType\":\"method\",\"name\":\"__construct\",\"range\":{\"byteOffset\":{\"start\":344,\"end\":395},\"start\":{\"line\":14,\"column\":1},\"end\":{\"line\":14,\"column\":52}},\"signature\":\"\",\"astKind\":\"method_declaration\",\"isPublic\":true},{\"role\":\"member\",\"symbolType\":\"method\",\"name\":\"go\",\"range\":{\"byteOffset\":{\"start\":397,\"end\":441},\"start\":{\"line\":15,\"column\":1},\"end\":{\"line\":15,\"column\":45}},\"signature\":\"\",\"astKind\":\"method_declaration\",\"isPublic\":false},{\"role\":\"member\",\"symbolType\":\"method\",\"name\":\"hidden\",\"range\":{\"byteOffset\":{\"start\":443,\"end\":473},\"start\":{\"line\":16,\"column\":1},\"end\":{\"line\":16,\"column\":31}},\"signature\":\"\",\"astKind\":\"method_declaration\",\"isPublic\":false}]}]}]\n"
+        },
+        {
+            "arguments": [
+                "--lang",
+                "php",
+                "--color",
+                "never",
+                "--match",
+                "^#\\[Attr",
+                "sample.phtml"
+            ],
+            "output": "sample.phtml\nnothing found\n"
+        },
+        {
+            "arguments": [
+                "--lang",
+                "php",
+                "--color",
+                "never",
+                "--match",
+                "^#\\[Attr",
+                "--json=compact",
+                "sample.phtml"
+            ],
+            "output": "[{\"path\":\"sample.phtml\",\"language\":\"Php\",\"items\":[]}]\n"
+        },
+        {
+            "arguments": [
+                "--lang",
+                "php",
+                "--color",
+                "never",
+                "--no-default-outline-rules",
+                "sample.phtml"
+            ],
+            "output": "sample.phtml\nnothing found\n"
+        },
+        {
+            "arguments": [
+                "--lang",
+                "php",
+                "--color",
+                "never",
+                "--no-default-outline-rules",
+                "--json=compact",
+                "sample.phtml"
+            ],
+            "output": "[{\"path\":\"sample.phtml\",\"language\":\"Php\",\"items\":[]}]\n"
+        },
+        {
+            "arguments": [
+                "--lang",
+                "php",
+                "--color",
+                "never",
+                "unicode.phtml"
+            ],
+            "output": "unicode.phtml\n2: class Café { const EMOJI=\"😀\"; public $名; public function hello() {} }\n     method: hello\n     property: $名\n"
+        },
+        {
+            "arguments": [
+                "--lang",
+                "php",
+                "--color",
+                "never",
+                "--json=compact",
+                "unicode.phtml"
+            ],
+            "output": "[{\"path\":\"unicode.phtml\",\"language\":\"Php\",\"items\":[{\"role\":\"item\",\"symbolType\":\"class\",\"name\":\"Café\",\"range\":{\"byteOffset\":{\"start\":7,\"end\":82},\"start\":{\"line\":1,\"column\":0},\"end\":{\"line\":1,\"column\":69}},\"signature\":\"class Café { const EMOJI=\\\"😀\\\"; public $名; public function hello() {} }\",\"astKind\":\"class_declaration\",\"isImport\":false,\"isExported\":true,\"members\":[{\"role\":\"member\",\"symbolType\":\"property\",\"name\":\"$名\",\"range\":{\"byteOffset\":{\"start\":41,\"end\":53},\"start\":{\"line\":1,\"column\":30},\"end\":{\"line\":1,\"column\":40}},\"signature\":\"\",\"astKind\":\"property_declaration\",\"isPublic\":true},{\"role\":\"member\",\"symbolType\":\"method\",\"name\":\"hello\",\"range\":{\"byteOffset\":{\"start\":54,\"end\":80},\"start\":{\"line\":1,\"column\":41},\"end\":{\"line\":1,\"column\":67}},\"signature\":\"\",\"astKind\":\"method_declaration\",\"isPublic\":true}]}]}]\n"
+        },
+        {
+            "arguments": [
+                "--lang",
+                "php",
+                "--color",
+                "never",
+                "--items",
+                "all",
+                "unicode.phtml"
+            ],
+            "output": "unicode.phtml\n2: class Café { const EMOJI=\"😀\"; public $名; public function hello() {} }\n     method: hello\n     property: $名\n"
+        },
+        {
+            "arguments": [
+                "--lang",
+                "php",
+                "--color",
+                "never",
+                "--items",
+                "all",
+                "--json=compact",
+                "unicode.phtml"
+            ],
+            "output": "[{\"path\":\"unicode.phtml\",\"language\":\"Php\",\"items\":[{\"role\":\"item\",\"symbolType\":\"class\",\"name\":\"Café\",\"range\":{\"byteOffset\":{\"start\":7,\"end\":82},\"start\":{\"line\":1,\"column\":0},\"end\":{\"line\":1,\"column\":69}},\"signature\":\"class Café { const EMOJI=\\\"😀\\\"; public $名; public function hello() {} }\",\"astKind\":\"class_declaration\",\"isImport\":false,\"isExported\":true,\"members\":[{\"role\":\"member\",\"symbolType\":\"property\",\"name\":\"$名\",\"range\":{\"byteOffset\":{\"start\":41,\"end\":53},\"start\":{\"line\":1,\"column\":30},\"end\":{\"line\":1,\"column\":40}},\"signature\":\"\",\"astKind\":\"property_declaration\",\"isPublic\":true},{\"role\":\"member\",\"symbolType\":\"method\",\"name\":\"hello\",\"range\":{\"byteOffset\":{\"start\":54,\"end\":80},\"start\":{\"line\":1,\"column\":41},\"end\":{\"line\":1,\"column\":67}},\"signature\":\"\",\"astKind\":\"method_declaration\",\"isPublic\":true}]}]}]\n"
+        },
+        {
+            "arguments": [
+                "--lang",
+                "php",
+                "--color",
+                "never",
+                "--items",
+                "imports",
+                "unicode.phtml"
+            ],
+            "output": "unicode.phtml\nnothing found\n"
+        },
+        {
+            "arguments": [
+                "--lang",
+                "php",
+                "--color",
+                "never",
+                "--items",
+                "imports",
+                "--json=compact",
+                "unicode.phtml"
+            ],
+            "output": "[{\"path\":\"unicode.phtml\",\"language\":\"Php\",\"items\":[]}]\n"
+        },
+        {
+            "arguments": [
+                "--lang",
+                "php",
+                "--color",
+                "never",
+                "--items",
+                "exports",
+                "unicode.phtml"
+            ],
+            "output": "unicode.phtml\n2: class Café { const EMOJI=\"😀\"; public $名; public function hello() {} }\n     method: hello\n     property: $名\n"
+        },
+        {
+            "arguments": [
+                "--lang",
+                "php",
+                "--color",
+                "never",
+                "--items",
+                "exports",
+                "--json=compact",
+                "unicode.phtml"
+            ],
+            "output": "[{\"path\":\"unicode.phtml\",\"language\":\"Php\",\"items\":[{\"role\":\"item\",\"symbolType\":\"class\",\"name\":\"Café\",\"range\":{\"byteOffset\":{\"start\":7,\"end\":82},\"start\":{\"line\":1,\"column\":0},\"end\":{\"line\":1,\"column\":69}},\"signature\":\"class Café { const EMOJI=\\\"😀\\\"; public $名; public function hello() {} }\",\"astKind\":\"class_declaration\",\"isImport\":false,\"isExported\":true,\"members\":[{\"role\":\"member\",\"symbolType\":\"property\",\"name\":\"$名\",\"range\":{\"byteOffset\":{\"start\":41,\"end\":53},\"start\":{\"line\":1,\"column\":30},\"end\":{\"line\":1,\"column\":40}},\"signature\":\"\",\"astKind\":\"property_declaration\",\"isPublic\":true},{\"role\":\"member\",\"symbolType\":\"method\",\"name\":\"hello\",\"range\":{\"byteOffset\":{\"start\":54,\"end\":80},\"start\":{\"line\":1,\"column\":41},\"end\":{\"line\":1,\"column\":67}},\"signature\":\"\",\"astKind\":\"method_declaration\",\"isPublic\":true}]}]}]\n"
+        },
+        {
+            "arguments": [
+                "--lang",
+                "php",
+                "--color",
+                "never",
+                "--view",
+                "names",
+                "unicode.phtml"
+            ],
+            "output": "unicode.phtml\nclass: Café\n"
+        },
+        {
+            "arguments": [
+                "--lang",
+                "php",
+                "--color",
+                "never",
+                "--view",
+                "names",
+                "--json=compact",
+                "unicode.phtml"
+            ],
+            "output": "[{\"path\":\"unicode.phtml\",\"language\":\"Php\",\"items\":[{\"role\":\"item\",\"symbolType\":\"class\",\"name\":\"Café\",\"range\":{\"byteOffset\":{\"start\":7,\"end\":82},\"start\":{\"line\":1,\"column\":0},\"end\":{\"line\":1,\"column\":69}},\"signature\":\"\",\"astKind\":\"class_declaration\",\"isImport\":false,\"isExported\":true}]}]\n"
+        },
+        {
+            "arguments": [
+                "--lang",
+                "php",
+                "--color",
+                "never",
+                "--view",
+                "signatures",
+                "unicode.phtml"
+            ],
+            "output": "unicode.phtml\n2: class Café { const EMOJI=\"😀\"; public $名; public function hello() {} }\n"
+        },
+        {
+            "arguments": [
+                "--lang",
+                "php",
+                "--color",
+                "never",
+                "--view",
+                "signatures",
+                "--json=compact",
+                "unicode.phtml"
+            ],
+            "output": "[{\"path\":\"unicode.phtml\",\"language\":\"Php\",\"items\":[{\"role\":\"item\",\"symbolType\":\"class\",\"name\":\"Café\",\"range\":{\"byteOffset\":{\"start\":7,\"end\":82},\"start\":{\"line\":1,\"column\":0},\"end\":{\"line\":1,\"column\":69}},\"signature\":\"class Café { const EMOJI=\\\"😀\\\"; public $名; public function hello() {} }\",\"astKind\":\"class_declaration\",\"isImport\":false,\"isExported\":true}]}]\n"
+        },
+        {
+            "arguments": [
+                "--lang",
+                "php",
+                "--color",
+                "never",
+                "--view",
+                "expanded",
+                "unicode.phtml"
+            ],
+            "output": "unicode.phtml\n2: class Café { const EMOJI=\"😀\"; public $名; public function hello() {} }\n2:   public $名;\n2:   public function hello() {}\n"
+        },
+        {
+            "arguments": [
+                "--lang",
+                "php",
+                "--color",
+                "never",
+                "--view",
+                "expanded",
+                "--json=compact",
+                "unicode.phtml"
+            ],
+            "output": "[{\"path\":\"unicode.phtml\",\"language\":\"Php\",\"items\":[{\"role\":\"item\",\"symbolType\":\"class\",\"name\":\"Café\",\"range\":{\"byteOffset\":{\"start\":7,\"end\":82},\"start\":{\"line\":1,\"column\":0},\"end\":{\"line\":1,\"column\":69}},\"signature\":\"class Café { const EMOJI=\\\"😀\\\"; public $名; public function hello() {} }\",\"astKind\":\"class_declaration\",\"isImport\":false,\"isExported\":true,\"members\":[{\"role\":\"member\",\"symbolType\":\"property\",\"name\":\"$名\",\"range\":{\"byteOffset\":{\"start\":41,\"end\":53},\"start\":{\"line\":1,\"column\":30},\"end\":{\"line\":1,\"column\":40}},\"signature\":\"public $名;\",\"astKind\":\"property_declaration\",\"isPublic\":true},{\"role\":\"member\",\"symbolType\":\"method\",\"name\":\"hello\",\"range\":{\"byteOffset\":{\"start\":54,\"end\":80},\"start\":{\"line\":1,\"column\":41},\"end\":{\"line\":1,\"column\":67}},\"signature\":\"public function hello() {}\",\"astKind\":\"method_declaration\",\"isPublic\":true}]}]}]\n"
+        },
+        {
+            "arguments": [
+                "--lang",
+                "php",
+                "--color",
+                "never",
+                "--pub-members",
+                "unicode.phtml"
+            ],
+            "output": "unicode.phtml\n2: class Café { const EMOJI=\"😀\"; public $名; public function hello() {} }\n     method: hello\n     property: $名\n"
+        },
+        {
+            "arguments": [
+                "--lang",
+                "php",
+                "--color",
+                "never",
+                "--pub-members",
+                "--json=compact",
+                "unicode.phtml"
+            ],
+            "output": "[{\"path\":\"unicode.phtml\",\"language\":\"Php\",\"items\":[{\"role\":\"item\",\"symbolType\":\"class\",\"name\":\"Café\",\"range\":{\"byteOffset\":{\"start\":7,\"end\":82},\"start\":{\"line\":1,\"column\":0},\"end\":{\"line\":1,\"column\":69}},\"signature\":\"class Café { const EMOJI=\\\"😀\\\"; public $名; public function hello() {} }\",\"astKind\":\"class_declaration\",\"isImport\":false,\"isExported\":true,\"members\":[{\"role\":\"member\",\"symbolType\":\"property\",\"name\":\"$名\",\"range\":{\"byteOffset\":{\"start\":41,\"end\":53},\"start\":{\"line\":1,\"column\":30},\"end\":{\"line\":1,\"column\":40}},\"signature\":\"\",\"astKind\":\"property_declaration\",\"isPublic\":true},{\"role\":\"member\",\"symbolType\":\"method\",\"name\":\"hello\",\"range\":{\"byteOffset\":{\"start\":54,\"end\":80},\"start\":{\"line\":1,\"column\":41},\"end\":{\"line\":1,\"column\":67}},\"signature\":\"\",\"astKind\":\"method_declaration\",\"isPublic\":true}]}]}]\n"
+        },
+        {
+            "arguments": [
+                "--lang",
+                "php",
+                "--color",
+                "never",
+                "--type",
+                "class,enum",
+                "unicode.phtml"
+            ],
+            "output": "unicode.phtml\n2: class Café { const EMOJI=\"😀\"; public $名; public function hello() {} }\n     method: hello\n     property: $名\n"
+        },
+        {
+            "arguments": [
+                "--lang",
+                "php",
+                "--color",
+                "never",
+                "--type",
+                "class,enum",
+                "--json=compact",
+                "unicode.phtml"
+            ],
+            "output": "[{\"path\":\"unicode.phtml\",\"language\":\"Php\",\"items\":[{\"role\":\"item\",\"symbolType\":\"class\",\"name\":\"Café\",\"range\":{\"byteOffset\":{\"start\":7,\"end\":82},\"start\":{\"line\":1,\"column\":0},\"end\":{\"line\":1,\"column\":69}},\"signature\":\"class Café { const EMOJI=\\\"😀\\\"; public $名; public function hello() {} }\",\"astKind\":\"class_declaration\",\"isImport\":false,\"isExported\":true,\"members\":[{\"role\":\"member\",\"symbolType\":\"property\",\"name\":\"$名\",\"range\":{\"byteOffset\":{\"start\":41,\"end\":53},\"start\":{\"line\":1,\"column\":30},\"end\":{\"line\":1,\"column\":40}},\"signature\":\"\",\"astKind\":\"property_declaration\",\"isPublic\":true},{\"role\":\"member\",\"symbolType\":\"method\",\"name\":\"hello\",\"range\":{\"byteOffset\":{\"start\":54,\"end\":80},\"start\":{\"line\":1,\"column\":41},\"end\":{\"line\":1,\"column\":67}},\"signature\":\"\",\"astKind\":\"method_declaration\",\"isPublic\":true}]}]}]\n"
+        },
+        {
+            "arguments": [
+                "--lang",
+                "php",
+                "--color",
+                "never",
+                "--match",
+                "Example",
+                "unicode.phtml"
+            ],
+            "output": "unicode.phtml\nnothing found\n"
+        },
+        {
+            "arguments": [
+                "--lang",
+                "php",
+                "--color",
+                "never",
+                "--match",
+                "Example",
+                "--json=compact",
+                "unicode.phtml"
+            ],
+            "output": "[{\"path\":\"unicode.phtml\",\"language\":\"Php\",\"items\":[]}]\n"
+        },
+        {
+            "arguments": [
+                "--lang",
+                "php",
+                "--color",
+                "never",
+                "--match",
+                "^Example$",
+                "unicode.phtml"
+            ],
+            "output": "unicode.phtml\nnothing found\n"
+        },
+        {
+            "arguments": [
+                "--lang",
+                "php",
+                "--color",
+                "never",
+                "--match",
+                "^Example$",
+                "--json=compact",
+                "unicode.phtml"
+            ],
+            "output": "[{\"path\":\"unicode.phtml\",\"language\":\"Php\",\"items\":[]}]\n"
+        },
+        {
+            "arguments": [
+                "--lang",
+                "php",
+                "--color",
+                "never",
+                "--match",
+                "^#\\[Attr",
+                "unicode.phtml"
+            ],
+            "output": "unicode.phtml\nnothing found\n"
+        },
+        {
+            "arguments": [
+                "--lang",
+                "php",
+                "--color",
+                "never",
+                "--match",
+                "^#\\[Attr",
+                "--json=compact",
+                "unicode.phtml"
+            ],
+            "output": "[{\"path\":\"unicode.phtml\",\"language\":\"Php\",\"items\":[]}]\n"
+        },
+        {
+            "arguments": [
+                "--lang",
+                "php",
+                "--color",
+                "never",
+                "--no-default-outline-rules",
+                "unicode.phtml"
+            ],
+            "output": "unicode.phtml\nnothing found\n"
+        },
+        {
+            "arguments": [
+                "--lang",
+                "php",
+                "--color",
+                "never",
+                "--no-default-outline-rules",
+                "--json=compact",
+                "unicode.phtml"
+            ],
+            "output": "[{\"path\":\"unicode.phtml\",\"language\":\"Php\",\"items\":[]}]\n"
+        },
+        {
+            "arguments": [
+                "--lang",
+                "php",
+                "--color",
+                "never",
+                "plain.phtml"
+            ],
+            "output": "plain.phtml\n1: class ThisIsPlainText {}\n"
+        },
+        {
+            "arguments": [
+                "--lang",
+                "php",
+                "--color",
+                "never",
+                "--json=compact",
+                "plain.phtml"
+            ],
+            "output": "[{\"path\":\"plain.phtml\",\"language\":\"Php\",\"items\":[{\"role\":\"item\",\"symbolType\":\"class\",\"name\":\"ThisIsPlainText\",\"range\":{\"byteOffset\":{\"start\":0,\"end\":24},\"start\":{\"line\":0,\"column\":0},\"end\":{\"line\":0,\"column\":24}},\"signature\":\"class ThisIsPlainText {}\",\"astKind\":\"class_declaration\",\"isImport\":false,\"isExported\":true}]}]\n"
+        },
+        {
+            "arguments": [
+                "--lang",
+                "php",
+                "--color",
+                "never",
+                "--items",
+                "all",
+                "plain.phtml"
+            ],
+            "output": "plain.phtml\n1: class ThisIsPlainText {}\n"
+        },
+        {
+            "arguments": [
+                "--lang",
+                "php",
+                "--color",
+                "never",
+                "--items",
+                "all",
+                "--json=compact",
+                "plain.phtml"
+            ],
+            "output": "[{\"path\":\"plain.phtml\",\"language\":\"Php\",\"items\":[{\"role\":\"item\",\"symbolType\":\"class\",\"name\":\"ThisIsPlainText\",\"range\":{\"byteOffset\":{\"start\":0,\"end\":24},\"start\":{\"line\":0,\"column\":0},\"end\":{\"line\":0,\"column\":24}},\"signature\":\"class ThisIsPlainText {}\",\"astKind\":\"class_declaration\",\"isImport\":false,\"isExported\":true}]}]\n"
+        },
+        {
+            "arguments": [
+                "--lang",
+                "php",
+                "--color",
+                "never",
+                "--items",
+                "imports",
+                "plain.phtml"
+            ],
+            "output": "plain.phtml\nnothing found\n"
+        },
+        {
+            "arguments": [
+                "--lang",
+                "php",
+                "--color",
+                "never",
+                "--items",
+                "imports",
+                "--json=compact",
+                "plain.phtml"
+            ],
+            "output": "[{\"path\":\"plain.phtml\",\"language\":\"Php\",\"items\":[]}]\n"
+        },
+        {
+            "arguments": [
+                "--lang",
+                "php",
+                "--color",
+                "never",
+                "--items",
+                "exports",
+                "plain.phtml"
+            ],
+            "output": "plain.phtml\n1: class ThisIsPlainText {}\n"
+        },
+        {
+            "arguments": [
+                "--lang",
+                "php",
+                "--color",
+                "never",
+                "--items",
+                "exports",
+                "--json=compact",
+                "plain.phtml"
+            ],
+            "output": "[{\"path\":\"plain.phtml\",\"language\":\"Php\",\"items\":[{\"role\":\"item\",\"symbolType\":\"class\",\"name\":\"ThisIsPlainText\",\"range\":{\"byteOffset\":{\"start\":0,\"end\":24},\"start\":{\"line\":0,\"column\":0},\"end\":{\"line\":0,\"column\":24}},\"signature\":\"class ThisIsPlainText {}\",\"astKind\":\"class_declaration\",\"isImport\":false,\"isExported\":true}]}]\n"
+        },
+        {
+            "arguments": [
+                "--lang",
+                "php",
+                "--color",
+                "never",
+                "--view",
+                "names",
+                "plain.phtml"
+            ],
+            "output": "plain.phtml\nclass: ThisIsPlainText\n"
+        },
+        {
+            "arguments": [
+                "--lang",
+                "php",
+                "--color",
+                "never",
+                "--view",
+                "names",
+                "--json=compact",
+                "plain.phtml"
+            ],
+            "output": "[{\"path\":\"plain.phtml\",\"language\":\"Php\",\"items\":[{\"role\":\"item\",\"symbolType\":\"class\",\"name\":\"ThisIsPlainText\",\"range\":{\"byteOffset\":{\"start\":0,\"end\":24},\"start\":{\"line\":0,\"column\":0},\"end\":{\"line\":0,\"column\":24}},\"signature\":\"\",\"astKind\":\"class_declaration\",\"isImport\":false,\"isExported\":true}]}]\n"
+        },
+        {
+            "arguments": [
+                "--lang",
+                "php",
+                "--color",
+                "never",
+                "--view",
+                "signatures",
+                "plain.phtml"
+            ],
+            "output": "plain.phtml\n1: class ThisIsPlainText {}\n"
+        },
+        {
+            "arguments": [
+                "--lang",
+                "php",
+                "--color",
+                "never",
+                "--view",
+                "signatures",
+                "--json=compact",
+                "plain.phtml"
+            ],
+            "output": "[{\"path\":\"plain.phtml\",\"language\":\"Php\",\"items\":[{\"role\":\"item\",\"symbolType\":\"class\",\"name\":\"ThisIsPlainText\",\"range\":{\"byteOffset\":{\"start\":0,\"end\":24},\"start\":{\"line\":0,\"column\":0},\"end\":{\"line\":0,\"column\":24}},\"signature\":\"class ThisIsPlainText {}\",\"astKind\":\"class_declaration\",\"isImport\":false,\"isExported\":true}]}]\n"
+        },
+        {
+            "arguments": [
+                "--lang",
+                "php",
+                "--color",
+                "never",
+                "--view",
+                "expanded",
+                "plain.phtml"
+            ],
+            "output": "plain.phtml\n1: class ThisIsPlainText {}\n"
+        },
+        {
+            "arguments": [
+                "--lang",
+                "php",
+                "--color",
+                "never",
+                "--view",
+                "expanded",
+                "--json=compact",
+                "plain.phtml"
+            ],
+            "output": "[{\"path\":\"plain.phtml\",\"language\":\"Php\",\"items\":[{\"role\":\"item\",\"symbolType\":\"class\",\"name\":\"ThisIsPlainText\",\"range\":{\"byteOffset\":{\"start\":0,\"end\":24},\"start\":{\"line\":0,\"column\":0},\"end\":{\"line\":0,\"column\":24}},\"signature\":\"class ThisIsPlainText {}\",\"astKind\":\"class_declaration\",\"isImport\":false,\"isExported\":true}]}]\n"
+        },
+        {
+            "arguments": [
+                "--lang",
+                "php",
+                "--color",
+                "never",
+                "--pub-members",
+                "plain.phtml"
+            ],
+            "output": "plain.phtml\n1: class ThisIsPlainText {}\n"
+        },
+        {
+            "arguments": [
+                "--lang",
+                "php",
+                "--color",
+                "never",
+                "--pub-members",
+                "--json=compact",
+                "plain.phtml"
+            ],
+            "output": "[{\"path\":\"plain.phtml\",\"language\":\"Php\",\"items\":[{\"role\":\"item\",\"symbolType\":\"class\",\"name\":\"ThisIsPlainText\",\"range\":{\"byteOffset\":{\"start\":0,\"end\":24},\"start\":{\"line\":0,\"column\":0},\"end\":{\"line\":0,\"column\":24}},\"signature\":\"class ThisIsPlainText {}\",\"astKind\":\"class_declaration\",\"isImport\":false,\"isExported\":true}]}]\n"
+        },
+        {
+            "arguments": [
+                "--lang",
+                "php",
+                "--color",
+                "never",
+                "--type",
+                "class,enum",
+                "plain.phtml"
+            ],
+            "output": "plain.phtml\n1: class ThisIsPlainText {}\n"
+        },
+        {
+            "arguments": [
+                "--lang",
+                "php",
+                "--color",
+                "never",
+                "--type",
+                "class,enum",
+                "--json=compact",
+                "plain.phtml"
+            ],
+            "output": "[{\"path\":\"plain.phtml\",\"language\":\"Php\",\"items\":[{\"role\":\"item\",\"symbolType\":\"class\",\"name\":\"ThisIsPlainText\",\"range\":{\"byteOffset\":{\"start\":0,\"end\":24},\"start\":{\"line\":0,\"column\":0},\"end\":{\"line\":0,\"column\":24}},\"signature\":\"class ThisIsPlainText {}\",\"astKind\":\"class_declaration\",\"isImport\":false,\"isExported\":true}]}]\n"
+        },
+        {
+            "arguments": [
+                "--lang",
+                "php",
+                "--color",
+                "never",
+                "--match",
+                "Example",
+                "plain.phtml"
+            ],
+            "output": "plain.phtml\nnothing found\n"
+        },
+        {
+            "arguments": [
+                "--lang",
+                "php",
+                "--color",
+                "never",
+                "--match",
+                "Example",
+                "--json=compact",
+                "plain.phtml"
+            ],
+            "output": "[{\"path\":\"plain.phtml\",\"language\":\"Php\",\"items\":[]}]\n"
+        },
+        {
+            "arguments": [
+                "--lang",
+                "php",
+                "--color",
+                "never",
+                "--match",
+                "^Example$",
+                "plain.phtml"
+            ],
+            "output": "plain.phtml\nnothing found\n"
+        },
+        {
+            "arguments": [
+                "--lang",
+                "php",
+                "--color",
+                "never",
+                "--match",
+                "^Example$",
+                "--json=compact",
+                "plain.phtml"
+            ],
+            "output": "[{\"path\":\"plain.phtml\",\"language\":\"Php\",\"items\":[]}]\n"
+        },
+        {
+            "arguments": [
+                "--lang",
+                "php",
+                "--color",
+                "never",
+                "--match",
+                "^#\\[Attr",
+                "plain.phtml"
+            ],
+            "output": "plain.phtml\nnothing found\n"
+        },
+        {
+            "arguments": [
+                "--lang",
+                "php",
+                "--color",
+                "never",
+                "--match",
+                "^#\\[Attr",
+                "--json=compact",
+                "plain.phtml"
+            ],
+            "output": "[{\"path\":\"plain.phtml\",\"language\":\"Php\",\"items\":[]}]\n"
+        },
+        {
+            "arguments": [
+                "--lang",
+                "php",
+                "--color",
+                "never",
+                "--no-default-outline-rules",
+                "plain.phtml"
+            ],
+            "output": "plain.phtml\nnothing found\n"
+        },
+        {
+            "arguments": [
+                "--lang",
+                "php",
+                "--color",
+                "never",
+                "--no-default-outline-rules",
+                "--json=compact",
+                "plain.phtml"
+            ],
+            "output": "[{\"path\":\"plain.phtml\",\"language\":\"Php\",\"items\":[]}]\n"
+        },
+        {
+            "arguments": [
+                "--lang",
+                "php",
+                "--color",
+                "never",
+                "empty.phtml"
+            ],
+            "output": "empty.phtml\nnothing found\n"
+        },
+        {
+            "arguments": [
+                "--lang",
+                "php",
+                "--color",
+                "never",
+                "--json=compact",
+                "empty.phtml"
+            ],
+            "output": "[{\"path\":\"empty.phtml\",\"language\":\"Php\",\"items\":[]}]\n"
+        },
+        {
+            "arguments": [
+                "--lang",
+                "php",
+                "--color",
+                "never",
+                "--items",
+                "all",
+                "empty.phtml"
+            ],
+            "output": "empty.phtml\nnothing found\n"
+        },
+        {
+            "arguments": [
+                "--lang",
+                "php",
+                "--color",
+                "never",
+                "--items",
+                "all",
+                "--json=compact",
+                "empty.phtml"
+            ],
+            "output": "[{\"path\":\"empty.phtml\",\"language\":\"Php\",\"items\":[]}]\n"
+        },
+        {
+            "arguments": [
+                "--lang",
+                "php",
+                "--color",
+                "never",
+                "--items",
+                "imports",
+                "empty.phtml"
+            ],
+            "output": "empty.phtml\nnothing found\n"
+        },
+        {
+            "arguments": [
+                "--lang",
+                "php",
+                "--color",
+                "never",
+                "--items",
+                "imports",
+                "--json=compact",
+                "empty.phtml"
+            ],
+            "output": "[{\"path\":\"empty.phtml\",\"language\":\"Php\",\"items\":[]}]\n"
+        },
+        {
+            "arguments": [
+                "--lang",
+                "php",
+                "--color",
+                "never",
+                "--items",
+                "exports",
+                "empty.phtml"
+            ],
+            "output": "empty.phtml\nnothing found\n"
+        },
+        {
+            "arguments": [
+                "--lang",
+                "php",
+                "--color",
+                "never",
+                "--items",
+                "exports",
+                "--json=compact",
+                "empty.phtml"
+            ],
+            "output": "[{\"path\":\"empty.phtml\",\"language\":\"Php\",\"items\":[]}]\n"
+        },
+        {
+            "arguments": [
+                "--lang",
+                "php",
+                "--color",
+                "never",
+                "--view",
+                "names",
+                "empty.phtml"
+            ],
+            "output": "empty.phtml\nnothing found\n"
+        },
+        {
+            "arguments": [
+                "--lang",
+                "php",
+                "--color",
+                "never",
+                "--view",
+                "names",
+                "--json=compact",
+                "empty.phtml"
+            ],
+            "output": "[{\"path\":\"empty.phtml\",\"language\":\"Php\",\"items\":[]}]\n"
+        },
+        {
+            "arguments": [
+                "--lang",
+                "php",
+                "--color",
+                "never",
+                "--view",
+                "signatures",
+                "empty.phtml"
+            ],
+            "output": "empty.phtml\nnothing found\n"
+        },
+        {
+            "arguments": [
+                "--lang",
+                "php",
+                "--color",
+                "never",
+                "--view",
+                "signatures",
+                "--json=compact",
+                "empty.phtml"
+            ],
+            "output": "[{\"path\":\"empty.phtml\",\"language\":\"Php\",\"items\":[]}]\n"
+        },
+        {
+            "arguments": [
+                "--lang",
+                "php",
+                "--color",
+                "never",
+                "--view",
+                "expanded",
+                "empty.phtml"
+            ],
+            "output": "empty.phtml\nnothing found\n"
+        },
+        {
+            "arguments": [
+                "--lang",
+                "php",
+                "--color",
+                "never",
+                "--view",
+                "expanded",
+                "--json=compact",
+                "empty.phtml"
+            ],
+            "output": "[{\"path\":\"empty.phtml\",\"language\":\"Php\",\"items\":[]}]\n"
+        },
+        {
+            "arguments": [
+                "--lang",
+                "php",
+                "--color",
+                "never",
+                "--pub-members",
+                "empty.phtml"
+            ],
+            "output": "empty.phtml\nnothing found\n"
+        },
+        {
+            "arguments": [
+                "--lang",
+                "php",
+                "--color",
+                "never",
+                "--pub-members",
+                "--json=compact",
+                "empty.phtml"
+            ],
+            "output": "[{\"path\":\"empty.phtml\",\"language\":\"Php\",\"items\":[]}]\n"
+        },
+        {
+            "arguments": [
+                "--lang",
+                "php",
+                "--color",
+                "never",
+                "--type",
+                "class,enum",
+                "empty.phtml"
+            ],
+            "output": "empty.phtml\nnothing found\n"
+        },
+        {
+            "arguments": [
+                "--lang",
+                "php",
+                "--color",
+                "never",
+                "--type",
+                "class,enum",
+                "--json=compact",
+                "empty.phtml"
+            ],
+            "output": "[{\"path\":\"empty.phtml\",\"language\":\"Php\",\"items\":[]}]\n"
+        },
+        {
+            "arguments": [
+                "--lang",
+                "php",
+                "--color",
+                "never",
+                "--match",
+                "Example",
+                "empty.phtml"
+            ],
+            "output": "empty.phtml\nnothing found\n"
+        },
+        {
+            "arguments": [
+                "--lang",
+                "php",
+                "--color",
+                "never",
+                "--match",
+                "Example",
+                "--json=compact",
+                "empty.phtml"
+            ],
+            "output": "[{\"path\":\"empty.phtml\",\"language\":\"Php\",\"items\":[]}]\n"
+        },
+        {
+            "arguments": [
+                "--lang",
+                "php",
+                "--color",
+                "never",
+                "--match",
+                "^Example$",
+                "empty.phtml"
+            ],
+            "output": "empty.phtml\nnothing found\n"
+        },
+        {
+            "arguments": [
+                "--lang",
+                "php",
+                "--color",
+                "never",
+                "--match",
+                "^Example$",
+                "--json=compact",
+                "empty.phtml"
+            ],
+            "output": "[{\"path\":\"empty.phtml\",\"language\":\"Php\",\"items\":[]}]\n"
+        },
+        {
+            "arguments": [
+                "--lang",
+                "php",
+                "--color",
+                "never",
+                "--match",
+                "^#\\[Attr",
+                "empty.phtml"
+            ],
+            "output": "empty.phtml\nnothing found\n"
+        },
+        {
+            "arguments": [
+                "--lang",
+                "php",
+                "--color",
+                "never",
+                "--match",
+                "^#\\[Attr",
+                "--json=compact",
+                "empty.phtml"
+            ],
+            "output": "[{\"path\":\"empty.phtml\",\"language\":\"Php\",\"items\":[]}]\n"
+        },
+        {
+            "arguments": [
+                "--lang",
+                "php",
+                "--color",
+                "never",
+                "--no-default-outline-rules",
+                "empty.phtml"
+            ],
+            "output": "empty.phtml\nnothing found\n"
+        },
+        {
+            "arguments": [
+                "--lang",
+                "php",
+                "--color",
+                "never",
+                "--no-default-outline-rules",
+                "--json=compact",
+                "empty.phtml"
+            ],
+            "output": "[{\"path\":\"empty.phtml\",\"language\":\"Php\",\"items\":[]}]\n"
+        },
+        {
+            "arguments": [
+                "--lang",
+                "php",
+                "--color",
+                "never",
+                "."
+            ],
+            "output": "nothing found\n"
+        },
+        {
+            "arguments": [
+                "--lang",
+                "php",
+                "--color",
+                "never",
+                "--json=compact",
+                "."
+            ],
+            "output": "[]\n"
+        },
+        {
+            "arguments": [
+                "--lang",
+                "php",
+                "--color",
+                "never",
+                "--items",
+                "all",
+                "."
+            ],
+            "output": "nothing found\n"
+        },
+        {
+            "arguments": [
+                "--lang",
+                "php",
+                "--color",
+                "never",
+                "--items",
+                "all",
+                "--json=compact",
+                "."
+            ],
+            "output": "[]\n"
+        },
+        {
+            "arguments": [
+                "--lang",
+                "php",
+                "--color",
+                "never",
+                "--items",
+                "imports",
+                "."
+            ],
+            "output": "nothing found\n"
+        },
+        {
+            "arguments": [
+                "--lang",
+                "php",
+                "--color",
+                "never",
+                "--items",
+                "imports",
+                "--json=compact",
+                "."
+            ],
+            "output": "[]\n"
+        },
+        {
+            "arguments": [
+                "--lang",
+                "php",
+                "--color",
+                "never",
+                "--items",
+                "exports",
+                "."
+            ],
+            "output": "nothing found\n"
+        },
+        {
+            "arguments": [
+                "--lang",
+                "php",
+                "--color",
+                "never",
+                "--items",
+                "exports",
+                "--json=compact",
+                "."
+            ],
+            "output": "[]\n"
+        },
+        {
+            "arguments": [
+                "--lang",
+                "php",
+                "--color",
+                "never",
+                "--view",
+                "names",
+                "."
+            ],
+            "output": "nothing found\n"
+        },
+        {
+            "arguments": [
+                "--lang",
+                "php",
+                "--color",
+                "never",
+                "--view",
+                "names",
+                "--json=compact",
+                "."
+            ],
+            "output": "[]\n"
+        },
+        {
+            "arguments": [
+                "--lang",
+                "php",
+                "--color",
+                "never",
+                "--view",
+                "signatures",
+                "."
+            ],
+            "output": "nothing found\n"
+        },
+        {
+            "arguments": [
+                "--lang",
+                "php",
+                "--color",
+                "never",
+                "--view",
+                "signatures",
+                "--json=compact",
+                "."
+            ],
+            "output": "[]\n"
+        },
+        {
+            "arguments": [
+                "--lang",
+                "php",
+                "--color",
+                "never",
+                "--view",
+                "expanded",
+                "."
+            ],
+            "output": "nothing found\n"
+        },
+        {
+            "arguments": [
+                "--lang",
+                "php",
+                "--color",
+                "never",
+                "--view",
+                "expanded",
+                "--json=compact",
+                "."
+            ],
+            "output": "[]\n"
+        },
+        {
+            "arguments": [
+                "--lang",
+                "php",
+                "--color",
+                "never",
+                "--pub-members",
+                "."
+            ],
+            "output": "nothing found\n"
+        },
+        {
+            "arguments": [
+                "--lang",
+                "php",
+                "--color",
+                "never",
+                "--pub-members",
+                "--json=compact",
+                "."
+            ],
+            "output": "[]\n"
+        },
+        {
+            "arguments": [
+                "--lang",
+                "php",
+                "--color",
+                "never",
+                "--type",
+                "class,enum",
+                "."
+            ],
+            "output": "nothing found\n"
+        },
+        {
+            "arguments": [
+                "--lang",
+                "php",
+                "--color",
+                "never",
+                "--type",
+                "class,enum",
+                "--json=compact",
+                "."
+            ],
+            "output": "[]\n"
+        },
+        {
+            "arguments": [
+                "--lang",
+                "php",
+                "--color",
+                "never",
+                "--match",
+                "Example",
+                "."
+            ],
+            "output": "nothing found\n"
+        },
+        {
+            "arguments": [
+                "--lang",
+                "php",
+                "--color",
+                "never",
+                "--match",
+                "Example",
+                "--json=compact",
+                "."
+            ],
+            "output": "[]\n"
+        },
+        {
+            "arguments": [
+                "--lang",
+                "php",
+                "--color",
+                "never",
+                "--match",
+                "^Example$",
+                "."
+            ],
+            "output": "nothing found\n"
+        },
+        {
+            "arguments": [
+                "--lang",
+                "php",
+                "--color",
+                "never",
+                "--match",
+                "^Example$",
+                "--json=compact",
+                "."
+            ],
+            "output": "[]\n"
+        },
+        {
+            "arguments": [
+                "--lang",
+                "php",
+                "--color",
+                "never",
+                "--match",
+                "^#\\[Attr",
+                "."
+            ],
+            "output": "nothing found\n"
+        },
+        {
+            "arguments": [
+                "--lang",
+                "php",
+                "--color",
+                "never",
+                "--match",
+                "^#\\[Attr",
+                "--json=compact",
+                "."
+            ],
+            "output": "[]\n"
+        },
+        {
+            "arguments": [
+                "--lang",
+                "php",
+                "--color",
+                "never",
+                "--no-default-outline-rules",
+                "."
+            ],
+            "output": "nothing found\n"
+        },
+        {
+            "arguments": [
+                "--lang",
+                "php",
+                "--color",
+                "never",
+                "--no-default-outline-rules",
+                "--json=compact",
+                "."
+            ],
+            "output": "[]\n"
+        },
+        {
+            "arguments": [
+                "--lang",
+                "php",
+                "--color",
+                "never",
+                "../../Support"
+            ],
+            "output": "../../Support/Workspace.php\nclass: Workspace\n"
+        },
+        {
+            "arguments": [
+                "--lang",
+                "php",
+                "--color",
+                "never",
+                "--json=compact",
+                "../../Support"
+            ],
+            "output": "[{\"path\":\"../../Support/Workspace.php\",\"language\":\"Php\",\"items\":[{\"role\":\"item\",\"symbolType\":\"class\",\"name\":\"Workspace\",\"range\":{\"byteOffset\":{\"start\":96,\"end\":1845},\"start\":{\"line\":8,\"column\":0},\"end\":{\"line\":63,\"column\":1}},\"signature\":\"\",\"astKind\":\"class_declaration\",\"isImport\":false,\"isExported\":true}]}]\n"
+        },
+        {
+            "arguments": [
+                "--lang",
+                "php",
+                "--color",
+                "never",
+                "--items",
+                "all",
+                "../../Support"
+            ],
+            "output": "../../Support/Workspace.php\nmodule: Greph\\Support\\Filesystem\nclass: Workspace\n"
+        },
+        {
+            "arguments": [
+                "--lang",
+                "php",
+                "--color",
+                "never",
+                "--items",
+                "all",
+                "--json=compact",
+                "../../Support"
+            ],
+            "output": "[{\"path\":\"../../Support/Workspace.php\",\"language\":\"Php\",\"items\":[{\"role\":\"item\",\"symbolType\":\"module\",\"name\":\"Greph\\\\Support\\\\Filesystem\",\"range\":{\"byteOffset\":{\"start\":65,\"end\":94},\"start\":{\"line\":6,\"column\":0},\"end\":{\"line\":6,\"column\":29}},\"signature\":\"\",\"astKind\":\"namespace_use_declaration\",\"isImport\":true,\"isExported\":false},{\"role\":\"item\",\"symbolType\":\"class\",\"name\":\"Workspace\",\"range\":{\"byteOffset\":{\"start\":96,\"end\":1845},\"start\":{\"line\":8,\"column\":0},\"end\":{\"line\":63,\"column\":1}},\"signature\":\"\",\"astKind\":\"class_declaration\",\"isImport\":false,\"isExported\":true}]}]\n"
+        },
+        {
+            "arguments": [
+                "--lang",
+                "php",
+                "--color",
+                "never",
+                "--items",
+                "imports",
+                "../../Support"
+            ],
+            "output": "../../Support/Workspace.php\nmodule: Greph\\Support\\Filesystem\n"
+        },
+        {
+            "arguments": [
+                "--lang",
+                "php",
+                "--color",
+                "never",
+                "--items",
+                "imports",
+                "--json=compact",
+                "../../Support"
+            ],
+            "output": "[{\"path\":\"../../Support/Workspace.php\",\"language\":\"Php\",\"items\":[{\"role\":\"item\",\"symbolType\":\"module\",\"name\":\"Greph\\\\Support\\\\Filesystem\",\"range\":{\"byteOffset\":{\"start\":65,\"end\":94},\"start\":{\"line\":6,\"column\":0},\"end\":{\"line\":6,\"column\":29}},\"signature\":\"\",\"astKind\":\"namespace_use_declaration\",\"isImport\":true,\"isExported\":false}]}]\n"
+        },
+        {
+            "arguments": [
+                "--lang",
+                "php",
+                "--color",
+                "never",
+                "--items",
+                "exports",
+                "../../Support"
+            ],
+            "output": "../../Support/Workspace.php\nclass: Workspace\n"
+        },
+        {
+            "arguments": [
+                "--lang",
+                "php",
+                "--color",
+                "never",
+                "--items",
+                "exports",
+                "--json=compact",
+                "../../Support"
+            ],
+            "output": "[{\"path\":\"../../Support/Workspace.php\",\"language\":\"Php\",\"items\":[{\"role\":\"item\",\"symbolType\":\"class\",\"name\":\"Workspace\",\"range\":{\"byteOffset\":{\"start\":96,\"end\":1845},\"start\":{\"line\":8,\"column\":0},\"end\":{\"line\":63,\"column\":1}},\"signature\":\"\",\"astKind\":\"class_declaration\",\"isImport\":false,\"isExported\":true}]}]\n"
+        },
+        {
+            "arguments": [
+                "--lang",
+                "php",
+                "--color",
+                "never",
+                "--view",
+                "names",
+                "../../Support"
+            ],
+            "output": "../../Support/Workspace.php\nclass: Workspace\n"
+        },
+        {
+            "arguments": [
+                "--lang",
+                "php",
+                "--color",
+                "never",
+                "--view",
+                "names",
+                "--json=compact",
+                "../../Support"
+            ],
+            "output": "[{\"path\":\"../../Support/Workspace.php\",\"language\":\"Php\",\"items\":[{\"role\":\"item\",\"symbolType\":\"class\",\"name\":\"Workspace\",\"range\":{\"byteOffset\":{\"start\":96,\"end\":1845},\"start\":{\"line\":8,\"column\":0},\"end\":{\"line\":63,\"column\":1}},\"signature\":\"\",\"astKind\":\"class_declaration\",\"isImport\":false,\"isExported\":true}]}]\n"
+        },
+        {
+            "arguments": [
+                "--lang",
+                "php",
+                "--color",
+                "never",
+                "--view",
+                "signatures",
+                "../../Support"
+            ],
+            "output": "../../Support/Workspace.php\n9: final class Workspace\n"
+        },
+        {
+            "arguments": [
+                "--lang",
+                "php",
+                "--color",
+                "never",
+                "--view",
+                "signatures",
+                "--json=compact",
+                "../../Support"
+            ],
+            "output": "[{\"path\":\"../../Support/Workspace.php\",\"language\":\"Php\",\"items\":[{\"role\":\"item\",\"symbolType\":\"class\",\"name\":\"Workspace\",\"range\":{\"byteOffset\":{\"start\":96,\"end\":1845},\"start\":{\"line\":8,\"column\":0},\"end\":{\"line\":63,\"column\":1}},\"signature\":\"final class Workspace\",\"astKind\":\"class_declaration\",\"isImport\":false,\"isExported\":true}]}]\n"
+        },
+        {
+            "arguments": [
+                "--lang",
+                "php",
+                "--color",
+                "never",
+                "--view",
+                "expanded",
+                "../../Support"
+            ],
+            "output": "../../Support/Workspace.php\n 9: final class Workspace\n11:   public static function createDirectory(string $prefix): string\n28:   public static function writeFile(string $root, string $relativePath, string $contents): string\n44:   public static function remove(string $path): void\n49:   public static function copyDirectory(string $source, string $destination): void\n54:   private static function root(): string\n"
+        },
+        {
+            "arguments": [
+                "--lang",
+                "php",
+                "--color",
+                "never",
+                "--view",
+                "expanded",
+                "--json=compact",
+                "../../Support"
+            ],
+            "output": "[{\"path\":\"../../Support/Workspace.php\",\"language\":\"Php\",\"items\":[{\"role\":\"item\",\"symbolType\":\"class\",\"name\":\"Workspace\",\"range\":{\"byteOffset\":{\"start\":96,\"end\":1845},\"start\":{\"line\":8,\"column\":0},\"end\":{\"line\":63,\"column\":1}},\"signature\":\"final class Workspace\",\"astKind\":\"class_declaration\",\"isImport\":false,\"isExported\":true,\"members\":[{\"role\":\"member\",\"symbolType\":\"method\",\"name\":\"createDirectory\",\"range\":{\"byteOffset\":{\"start\":124,\"end\":685},\"start\":{\"line\":10,\"column\":4},\"end\":{\"line\":25,\"column\":5}},\"signature\":\"public static function createDirectory(string $prefix): string\",\"astKind\":\"method_declaration\",\"isPublic\":true},{\"role\":\"member\",\"symbolType\":\"method\",\"name\":\"writeFile\",\"range\":{\"byteOffset\":{\"start\":691,\"end\":1270},\"start\":{\"line\":27,\"column\":4},\"end\":{\"line\":41,\"column\":5}},\"signature\":\"public static function writeFile(string $root, string $relativePath, string $contents): string\",\"astKind\":\"method_declaration\",\"isPublic\":true},{\"role\":\"member\",\"symbolType\":\"method\",\"name\":\"remove\",\"range\":{\"byteOffset\":{\"start\":1276,\"end\":1372},\"start\":{\"line\":43,\"column\":4},\"end\":{\"line\":46,\"column\":5}},\"signature\":\"public static function remove(string $path): void\",\"astKind\":\"method_declaration\",\"isPublic\":true},{\"role\":\"member\",\"symbolType\":\"method\",\"name\":\"copyDirectory\",\"range\":{\"byteOffset\":{\"start\":1378,\"end\":1527},\"start\":{\"line\":48,\"column\":4},\"end\":{\"line\":51,\"column\":5}},\"signature\":\"public static function copyDirectory(string $source, string $destination): void\",\"astKind\":\"method_declaration\",\"isPublic\":true},{\"role\":\"member\",\"symbolType\":\"method\",\"name\":\"root\",\"range\":{\"byteOffset\":{\"start\":1533,\"end\":1843},\"start\":{\"line\":53,\"column\":4},\"end\":{\"line\":62,\"column\":5}},\"signature\":\"private static function root(): string\",\"astKind\":\"method_declaration\",\"isPublic\":false}]}]}]\n"
+        },
+        {
+            "arguments": [
+                "--lang",
+                "php",
+                "--color",
+                "never",
+                "--pub-members",
+                "../../Support"
+            ],
+            "output": "../../Support/Workspace.php\nclass: Workspace\n"
+        },
+        {
+            "arguments": [
+                "--lang",
+                "php",
+                "--color",
+                "never",
+                "--pub-members",
+                "--json=compact",
+                "../../Support"
+            ],
+            "output": "[{\"path\":\"../../Support/Workspace.php\",\"language\":\"Php\",\"items\":[{\"role\":\"item\",\"symbolType\":\"class\",\"name\":\"Workspace\",\"range\":{\"byteOffset\":{\"start\":96,\"end\":1845},\"start\":{\"line\":8,\"column\":0},\"end\":{\"line\":63,\"column\":1}},\"signature\":\"\",\"astKind\":\"class_declaration\",\"isImport\":false,\"isExported\":true}]}]\n"
+        },
+        {
+            "arguments": [
+                "--lang",
+                "php",
+                "--color",
+                "never",
+                "--type",
+                "class,enum",
+                "../../Support"
+            ],
+            "output": "../../Support/Workspace.php\nclass: Workspace\n"
+        },
+        {
+            "arguments": [
+                "--lang",
+                "php",
+                "--color",
+                "never",
+                "--type",
+                "class,enum",
+                "--json=compact",
+                "../../Support"
+            ],
+            "output": "[{\"path\":\"../../Support/Workspace.php\",\"language\":\"Php\",\"items\":[{\"role\":\"item\",\"symbolType\":\"class\",\"name\":\"Workspace\",\"range\":{\"byteOffset\":{\"start\":96,\"end\":1845},\"start\":{\"line\":8,\"column\":0},\"end\":{\"line\":63,\"column\":1}},\"signature\":\"\",\"astKind\":\"class_declaration\",\"isImport\":false,\"isExported\":true}]}]\n"
+        },
+        {
+            "arguments": [
+                "--lang",
+                "php",
+                "--color",
+                "never",
+                "--match",
+                "Example",
+                "../../Support"
+            ],
+            "output": "nothing found\n"
+        },
+        {
+            "arguments": [
+                "--lang",
+                "php",
+                "--color",
+                "never",
+                "--match",
+                "Example",
+                "--json=compact",
+                "../../Support"
+            ],
+            "output": "[]\n"
+        },
+        {
+            "arguments": [
+                "--lang",
+                "php",
+                "--color",
+                "never",
+                "--match",
+                "^Example$",
+                "../../Support"
+            ],
+            "output": "nothing found\n"
+        },
+        {
+            "arguments": [
+                "--lang",
+                "php",
+                "--color",
+                "never",
+                "--match",
+                "^Example$",
+                "--json=compact",
+                "../../Support"
+            ],
+            "output": "[]\n"
+        },
+        {
+            "arguments": [
+                "--lang",
+                "php",
+                "--color",
+                "never",
+                "--match",
+                "^#\\[Attr",
+                "../../Support"
+            ],
+            "output": "nothing found\n"
+        },
+        {
+            "arguments": [
+                "--lang",
+                "php",
+                "--color",
+                "never",
+                "--match",
+                "^#\\[Attr",
+                "--json=compact",
+                "../../Support"
+            ],
+            "output": "[]\n"
+        },
+        {
+            "arguments": [
+                "--lang",
+                "php",
+                "--color",
+                "never",
+                "--no-default-outline-rules",
+                "../../Support"
+            ],
+            "output": "nothing found\n"
+        },
+        {
+            "arguments": [
+                "--lang",
+                "php",
+                "--color",
+                "never",
+                "--no-default-outline-rules",
+                "--json=compact",
+                "../../Support"
+            ],
+            "output": "[]\n"
+        },
+        {
+            "arguments": [
+                "--lang",
+                "php",
+                "--stdin",
+                "--color",
+                "never",
+                "--view",
+                "names"
+            ],
+            "input": "<?php\nnamespace Demo;\nuse Foo\\Bar;\nuse function Foo\\run;\nuse const Foo\\KEY;\nuse Foo\\{Baz, Qux};\ninterface Face { public function go(int $x): string; }\ntrait Mix { protected $x = 1; public function go() {} }\n#[Attr]\nfinal class Example extends Base implements Face {\n public const X = 1;\n public $a, $b;\n private int $secret = 2;\n var $legacy;\n public function __construct(public string $name) {}\n function go(int $x): string { return \"hi\"; }\n protected function hidden() {}\n}\nenum State: string { case A = 'a'; public function test() {} }\nfunction hello(int $x): int { return $x; }\n",
+            "output": "STDIN\nclass: Example\nenum: State\ninterface: Face, Mix\nfunction: hello\n"
+        },
+        {
+            "arguments": [
+                "--lang",
+                "php",
+                "--stdin",
+                "--color",
+                "never",
+                "--view",
+                "names",
+                "--json=compact"
+            ],
+            "input": "<?php\nnamespace Demo;\nuse Foo\\Bar;\nuse function Foo\\run;\nuse const Foo\\KEY;\nuse Foo\\{Baz, Qux};\ninterface Face { public function go(int $x): string; }\ntrait Mix { protected $x = 1; public function go() {} }\n#[Attr]\nfinal class Example extends Base implements Face {\n public const X = 1;\n public $a, $b;\n private int $secret = 2;\n var $legacy;\n public function __construct(public string $name) {}\n function go(int $x): string { return \"hi\"; }\n protected function hidden() {}\n}\nenum State: string { case A = 'a'; public function test() {} }\nfunction hello(int $x): int { return $x; }\n",
+            "output": "[{\"path\":\"STDIN\",\"language\":\"Php\",\"items\":[{\"role\":\"item\",\"symbolType\":\"interface\",\"name\":\"Face\",\"range\":{\"byteOffset\":{\"start\":96,\"end\":150},\"start\":{\"line\":6,\"column\":0},\"end\":{\"line\":6,\"column\":54}},\"signature\":\"\",\"astKind\":\"interface_declaration\",\"isImport\":false,\"isExported\":true},{\"role\":\"item\",\"symbolType\":\"interface\",\"name\":\"Mix\",\"range\":{\"byteOffset\":{\"start\":151,\"end\":206},\"start\":{\"line\":7,\"column\":0},\"end\":{\"line\":7,\"column\":55}},\"signature\":\"\",\"astKind\":\"trait_declaration\",\"isImport\":false,\"isExported\":true},{\"role\":\"item\",\"symbolType\":\"class\",\"name\":\"Example\",\"range\":{\"byteOffset\":{\"start\":207,\"end\":475},\"start\":{\"line\":8,\"column\":0},\"end\":{\"line\":17,\"column\":1}},\"signature\":\"\",\"astKind\":\"class_declaration\",\"isImport\":false,\"isExported\":true},{\"role\":\"item\",\"symbolType\":\"enum\",\"name\":\"State\",\"range\":{\"byteOffset\":{\"start\":476,\"end\":538},\"start\":{\"line\":18,\"column\":0},\"end\":{\"line\":18,\"column\":62}},\"signature\":\"\",\"astKind\":\"enum_declaration\",\"isImport\":false,\"isExported\":true},{\"role\":\"item\",\"symbolType\":\"function\",\"name\":\"hello\",\"range\":{\"byteOffset\":{\"start\":539,\"end\":581},\"start\":{\"line\":19,\"column\":0},\"end\":{\"line\":19,\"column\":42}},\"signature\":\"\",\"astKind\":\"function_definition\",\"isImport\":false,\"isExported\":true}]}]\n"
+        },
+        {
+            "arguments": [
+                "--lang",
+                "php",
+                "--stdin",
+                "--color",
+                "never",
+                "--view",
+                "names",
+                "--json=stream"
+            ],
+            "input": "<?php\nnamespace Demo;\nuse Foo\\Bar;\nuse function Foo\\run;\nuse const Foo\\KEY;\nuse Foo\\{Baz, Qux};\ninterface Face { public function go(int $x): string; }\ntrait Mix { protected $x = 1; public function go() {} }\n#[Attr]\nfinal class Example extends Base implements Face {\n public const X = 1;\n public $a, $b;\n private int $secret = 2;\n var $legacy;\n public function __construct(public string $name) {}\n function go(int $x): string { return \"hi\"; }\n protected function hidden() {}\n}\nenum State: string { case A = 'a'; public function test() {} }\nfunction hello(int $x): int { return $x; }\n",
+            "output": "{\"path\":\"STDIN\",\"language\":\"Php\",\"items\":[{\"role\":\"item\",\"symbolType\":\"interface\",\"name\":\"Face\",\"range\":{\"byteOffset\":{\"start\":96,\"end\":150},\"start\":{\"line\":6,\"column\":0},\"end\":{\"line\":6,\"column\":54}},\"signature\":\"\",\"astKind\":\"interface_declaration\",\"isImport\":false,\"isExported\":true},{\"role\":\"item\",\"symbolType\":\"interface\",\"name\":\"Mix\",\"range\":{\"byteOffset\":{\"start\":151,\"end\":206},\"start\":{\"line\":7,\"column\":0},\"end\":{\"line\":7,\"column\":55}},\"signature\":\"\",\"astKind\":\"trait_declaration\",\"isImport\":false,\"isExported\":true},{\"role\":\"item\",\"symbolType\":\"class\",\"name\":\"Example\",\"range\":{\"byteOffset\":{\"start\":207,\"end\":475},\"start\":{\"line\":8,\"column\":0},\"end\":{\"line\":17,\"column\":1}},\"signature\":\"\",\"astKind\":\"class_declaration\",\"isImport\":false,\"isExported\":true},{\"role\":\"item\",\"symbolType\":\"enum\",\"name\":\"State\",\"range\":{\"byteOffset\":{\"start\":476,\"end\":538},\"start\":{\"line\":18,\"column\":0},\"end\":{\"line\":18,\"column\":62}},\"signature\":\"\",\"astKind\":\"enum_declaration\",\"isImport\":false,\"isExported\":true},{\"role\":\"item\",\"symbolType\":\"function\",\"name\":\"hello\",\"range\":{\"byteOffset\":{\"start\":539,\"end\":581},\"start\":{\"line\":19,\"column\":0},\"end\":{\"line\":19,\"column\":42}},\"signature\":\"\",\"astKind\":\"function_definition\",\"isImport\":false,\"isExported\":true}]}\n"
+        },
+        {
+            "arguments": [
+                "--lang",
+                "php",
+                "--stdin",
+                "--color",
+                "never",
+                "--view",
+                "signatures"
+            ],
+            "input": "<?php\nnamespace Demo;\nuse Foo\\Bar;\nuse function Foo\\run;\nuse const Foo\\KEY;\nuse Foo\\{Baz, Qux};\ninterface Face { public function go(int $x): string; }\ntrait Mix { protected $x = 1; public function go() {} }\n#[Attr]\nfinal class Example extends Base implements Face {\n public const X = 1;\n public $a, $b;\n private int $secret = 2;\n var $legacy;\n public function __construct(public string $name) {}\n function go(int $x): string { return \"hi\"; }\n protected function hidden() {}\n}\nenum State: string { case A = 'a'; public function test() {} }\nfunction hello(int $x): int { return $x; }\n",
+            "output": "STDIN\n 7: interface Face { public function go(int $x): string; }\n 8: trait Mix { protected $x = 1; public function go() {} }\n 9: final class Example extends Base implements Face {\n19: enum State: string { case A = 'a'; public function test() {} }\n20: function hello(int $x): int { return $x; }\n"
+        },
+        {
+            "arguments": [
+                "--lang",
+                "php",
+                "--stdin",
+                "--color",
+                "never",
+                "--view",
+                "signatures",
+                "--json=compact"
+            ],
+            "input": "<?php\nnamespace Demo;\nuse Foo\\Bar;\nuse function Foo\\run;\nuse const Foo\\KEY;\nuse Foo\\{Baz, Qux};\ninterface Face { public function go(int $x): string; }\ntrait Mix { protected $x = 1; public function go() {} }\n#[Attr]\nfinal class Example extends Base implements Face {\n public const X = 1;\n public $a, $b;\n private int $secret = 2;\n var $legacy;\n public function __construct(public string $name) {}\n function go(int $x): string { return \"hi\"; }\n protected function hidden() {}\n}\nenum State: string { case A = 'a'; public function test() {} }\nfunction hello(int $x): int { return $x; }\n",
+            "output": "[{\"path\":\"STDIN\",\"language\":\"Php\",\"items\":[{\"role\":\"item\",\"symbolType\":\"interface\",\"name\":\"Face\",\"range\":{\"byteOffset\":{\"start\":96,\"end\":150},\"start\":{\"line\":6,\"column\":0},\"end\":{\"line\":6,\"column\":54}},\"signature\":\"interface Face { public function go(int $x): string; }\",\"astKind\":\"interface_declaration\",\"isImport\":false,\"isExported\":true},{\"role\":\"item\",\"symbolType\":\"interface\",\"name\":\"Mix\",\"range\":{\"byteOffset\":{\"start\":151,\"end\":206},\"start\":{\"line\":7,\"column\":0},\"end\":{\"line\":7,\"column\":55}},\"signature\":\"trait Mix { protected $x = 1; public function go() {} }\",\"astKind\":\"trait_declaration\",\"isImport\":false,\"isExported\":true},{\"role\":\"item\",\"symbolType\":\"class\",\"name\":\"Example\",\"range\":{\"byteOffset\":{\"start\":207,\"end\":475},\"start\":{\"line\":8,\"column\":0},\"end\":{\"line\":17,\"column\":1}},\"signature\":\"final class Example extends Base implements Face {\",\"astKind\":\"class_declaration\",\"isImport\":false,\"isExported\":true},{\"role\":\"item\",\"symbolType\":\"enum\",\"name\":\"State\",\"range\":{\"byteOffset\":{\"start\":476,\"end\":538},\"start\":{\"line\":18,\"column\":0},\"end\":{\"line\":18,\"column\":62}},\"signature\":\"enum State: string { case A = 'a'; public function test() {} }\",\"astKind\":\"enum_declaration\",\"isImport\":false,\"isExported\":true},{\"role\":\"item\",\"symbolType\":\"function\",\"name\":\"hello\",\"range\":{\"byteOffset\":{\"start\":539,\"end\":581},\"start\":{\"line\":19,\"column\":0},\"end\":{\"line\":19,\"column\":42}},\"signature\":\"function hello(int $x): int { return $x; }\",\"astKind\":\"function_definition\",\"isImport\":false,\"isExported\":true}]}]\n"
+        },
+        {
+            "arguments": [
+                "--lang",
+                "php",
+                "--stdin",
+                "--color",
+                "never",
+                "--view",
+                "signatures",
+                "--json=stream"
+            ],
+            "input": "<?php\nnamespace Demo;\nuse Foo\\Bar;\nuse function Foo\\run;\nuse const Foo\\KEY;\nuse Foo\\{Baz, Qux};\ninterface Face { public function go(int $x): string; }\ntrait Mix { protected $x = 1; public function go() {} }\n#[Attr]\nfinal class Example extends Base implements Face {\n public const X = 1;\n public $a, $b;\n private int $secret = 2;\n var $legacy;\n public function __construct(public string $name) {}\n function go(int $x): string { return \"hi\"; }\n protected function hidden() {}\n}\nenum State: string { case A = 'a'; public function test() {} }\nfunction hello(int $x): int { return $x; }\n",
+            "output": "{\"path\":\"STDIN\",\"language\":\"Php\",\"items\":[{\"role\":\"item\",\"symbolType\":\"interface\",\"name\":\"Face\",\"range\":{\"byteOffset\":{\"start\":96,\"end\":150},\"start\":{\"line\":6,\"column\":0},\"end\":{\"line\":6,\"column\":54}},\"signature\":\"interface Face { public function go(int $x): string; }\",\"astKind\":\"interface_declaration\",\"isImport\":false,\"isExported\":true},{\"role\":\"item\",\"symbolType\":\"interface\",\"name\":\"Mix\",\"range\":{\"byteOffset\":{\"start\":151,\"end\":206},\"start\":{\"line\":7,\"column\":0},\"end\":{\"line\":7,\"column\":55}},\"signature\":\"trait Mix { protected $x = 1; public function go() {} }\",\"astKind\":\"trait_declaration\",\"isImport\":false,\"isExported\":true},{\"role\":\"item\",\"symbolType\":\"class\",\"name\":\"Example\",\"range\":{\"byteOffset\":{\"start\":207,\"end\":475},\"start\":{\"line\":8,\"column\":0},\"end\":{\"line\":17,\"column\":1}},\"signature\":\"final class Example extends Base implements Face {\",\"astKind\":\"class_declaration\",\"isImport\":false,\"isExported\":true},{\"role\":\"item\",\"symbolType\":\"enum\",\"name\":\"State\",\"range\":{\"byteOffset\":{\"start\":476,\"end\":538},\"start\":{\"line\":18,\"column\":0},\"end\":{\"line\":18,\"column\":62}},\"signature\":\"enum State: string { case A = 'a'; public function test() {} }\",\"astKind\":\"enum_declaration\",\"isImport\":false,\"isExported\":true},{\"role\":\"item\",\"symbolType\":\"function\",\"name\":\"hello\",\"range\":{\"byteOffset\":{\"start\":539,\"end\":581},\"start\":{\"line\":19,\"column\":0},\"end\":{\"line\":19,\"column\":42}},\"signature\":\"function hello(int $x): int { return $x; }\",\"astKind\":\"function_definition\",\"isImport\":false,\"isExported\":true}]}\n"
+        },
+        {
+            "arguments": [
+                "--lang",
+                "php",
+                "--stdin",
+                "--color",
+                "never",
+                "--view",
+                "digest"
+            ],
+            "input": "<?php\nnamespace Demo;\nuse Foo\\Bar;\nuse function Foo\\run;\nuse const Foo\\KEY;\nuse Foo\\{Baz, Qux};\ninterface Face { public function go(int $x): string; }\ntrait Mix { protected $x = 1; public function go() {} }\n#[Attr]\nfinal class Example extends Base implements Face {\n public const X = 1;\n public $a, $b;\n private int $secret = 2;\n var $legacy;\n public function __construct(public string $name) {}\n function go(int $x): string { return \"hi\"; }\n protected function hidden() {}\n}\nenum State: string { case A = 'a'; public function test() {} }\nfunction hello(int $x): int { return $x; }\n",
+            "output": "STDIN\n 7: interface Face { public function go(int $x): string; }\n      method: go\n 8: trait Mix { protected $x = 1; public function go() {} }\n      method: go\n      property: $x\n 9: final class Example extends Base implements Face {\n      method: __construct, go, hidden\n      property: $a, $secret, $legacy\n19: enum State: string { case A = 'a'; public function test() {} }\n      enumMember: A\n20: function hello(int $x): int { return $x; }\n"
+        },
+        {
+            "arguments": [
+                "--lang",
+                "php",
+                "--stdin",
+                "--color",
+                "never",
+                "--view",
+                "digest",
+                "--json=compact"
+            ],
+            "input": "<?php\nnamespace Demo;\nuse Foo\\Bar;\nuse function Foo\\run;\nuse const Foo\\KEY;\nuse Foo\\{Baz, Qux};\ninterface Face { public function go(int $x): string; }\ntrait Mix { protected $x = 1; public function go() {} }\n#[Attr]\nfinal class Example extends Base implements Face {\n public const X = 1;\n public $a, $b;\n private int $secret = 2;\n var $legacy;\n public function __construct(public string $name) {}\n function go(int $x): string { return \"hi\"; }\n protected function hidden() {}\n}\nenum State: string { case A = 'a'; public function test() {} }\nfunction hello(int $x): int { return $x; }\n",
+            "output": "[{\"path\":\"STDIN\",\"language\":\"Php\",\"items\":[{\"role\":\"item\",\"symbolType\":\"interface\",\"name\":\"Face\",\"range\":{\"byteOffset\":{\"start\":96,\"end\":150},\"start\":{\"line\":6,\"column\":0},\"end\":{\"line\":6,\"column\":54}},\"signature\":\"interface Face { public function go(int $x): string; }\",\"astKind\":\"interface_declaration\",\"isImport\":false,\"isExported\":true,\"members\":[{\"role\":\"member\",\"symbolType\":\"method\",\"name\":\"go\",\"range\":{\"byteOffset\":{\"start\":113,\"end\":148},\"start\":{\"line\":6,\"column\":17},\"end\":{\"line\":6,\"column\":52}},\"signature\":\"\",\"astKind\":\"method_declaration\",\"isPublic\":true}]},{\"role\":\"item\",\"symbolType\":\"interface\",\"name\":\"Mix\",\"range\":{\"byteOffset\":{\"start\":151,\"end\":206},\"start\":{\"line\":7,\"column\":0},\"end\":{\"line\":7,\"column\":55}},\"signature\":\"trait Mix { protected $x = 1; public function go() {} }\",\"astKind\":\"trait_declaration\",\"isImport\":false,\"isExported\":true,\"members\":[{\"role\":\"member\",\"symbolType\":\"property\",\"name\":\"$x\",\"range\":{\"byteOffset\":{\"start\":163,\"end\":180},\"start\":{\"line\":7,\"column\":12},\"end\":{\"line\":7,\"column\":29}},\"signature\":\"\",\"astKind\":\"property_declaration\",\"isPublic\":false},{\"role\":\"member\",\"symbolType\":\"method\",\"name\":\"go\",\"range\":{\"byteOffset\":{\"start\":181,\"end\":204},\"start\":{\"line\":7,\"column\":30},\"end\":{\"line\":7,\"column\":53}},\"signature\":\"\",\"astKind\":\"method_declaration\",\"isPublic\":true}]},{\"role\":\"item\",\"symbolType\":\"class\",\"name\":\"Example\",\"range\":{\"byteOffset\":{\"start\":207,\"end\":475},\"start\":{\"line\":8,\"column\":0},\"end\":{\"line\":17,\"column\":1}},\"signature\":\"final class Example extends Base implements Face {\",\"astKind\":\"class_declaration\",\"isImport\":false,\"isExported\":true,\"members\":[{\"role\":\"member\",\"symbolType\":\"property\",\"name\":\"$a\",\"range\":{\"byteOffset\":{\"start\":288,\"end\":302},\"start\":{\"line\":11,\"column\":1},\"end\":{\"line\":11,\"column\":15}},\"signature\":\"\",\"astKind\":\"property_declaration\",\"isPublic\":true},{\"role\":\"member\",\"symbolType\":\"property\",\"name\":\"$secret\",\"range\":{\"byteOffset\":{\"start\":304,\"end\":328},\"start\":{\"line\":12,\"column\":1},\"end\":{\"line\":12,\"column\":25}},\"signature\":\"\",\"astKind\":\"property_declaration\",\"isPublic\":false},{\"role\":\"member\",\"symbolType\":\"property\",\"name\":\"$legacy\",\"range\":{\"byteOffset\":{\"start\":330,\"end\":342},\"start\":{\"line\":13,\"column\":1},\"end\":{\"line\":13,\"column\":13}},\"signature\":\"\",\"astKind\":\"property_declaration\",\"isPublic\":false},{\"role\":\"member\",\"symbolType\":\"method\",\"name\":\"__construct\",\"range\":{\"byteOffset\":{\"start\":344,\"end\":395},\"start\":{\"line\":14,\"column\":1},\"end\":{\"line\":14,\"column\":52}},\"signature\":\"\",\"astKind\":\"method_declaration\",\"isPublic\":true},{\"role\":\"member\",\"symbolType\":\"method\",\"name\":\"go\",\"range\":{\"byteOffset\":{\"start\":397,\"end\":441},\"start\":{\"line\":15,\"column\":1},\"end\":{\"line\":15,\"column\":45}},\"signature\":\"\",\"astKind\":\"method_declaration\",\"isPublic\":false},{\"role\":\"member\",\"symbolType\":\"method\",\"name\":\"hidden\",\"range\":{\"byteOffset\":{\"start\":443,\"end\":473},\"start\":{\"line\":16,\"column\":1},\"end\":{\"line\":16,\"column\":31}},\"signature\":\"\",\"astKind\":\"method_declaration\",\"isPublic\":false}]},{\"role\":\"item\",\"symbolType\":\"enum\",\"name\":\"State\",\"range\":{\"byteOffset\":{\"start\":476,\"end\":538},\"start\":{\"line\":18,\"column\":0},\"end\":{\"line\":18,\"column\":62}},\"signature\":\"enum State: string { case A = 'a'; public function test() {} }\",\"astKind\":\"enum_declaration\",\"isImport\":false,\"isExported\":true,\"members\":[{\"role\":\"member\",\"symbolType\":\"enumMember\",\"name\":\"A\",\"range\":{\"byteOffset\":{\"start\":497,\"end\":510},\"start\":{\"line\":18,\"column\":21},\"end\":{\"line\":18,\"column\":34}},\"signature\":\"\",\"astKind\":\"enum_case\",\"isPublic\":true}]},{\"role\":\"item\",\"symbolType\":\"function\",\"name\":\"hello\",\"range\":{\"byteOffset\":{\"start\":539,\"end\":581},\"start\":{\"line\":19,\"column\":0},\"end\":{\"line\":19,\"column\":42}},\"signature\":\"function hello(int $x): int { return $x; }\",\"astKind\":\"function_definition\",\"isImport\":false,\"isExported\":true}]}]\n"
+        },
+        {
+            "arguments": [
+                "--lang",
+                "php",
+                "--stdin",
+                "--color",
+                "never",
+                "--view",
+                "digest",
+                "--json=stream"
+            ],
+            "input": "<?php\nnamespace Demo;\nuse Foo\\Bar;\nuse function Foo\\run;\nuse const Foo\\KEY;\nuse Foo\\{Baz, Qux};\ninterface Face { public function go(int $x): string; }\ntrait Mix { protected $x = 1; public function go() {} }\n#[Attr]\nfinal class Example extends Base implements Face {\n public const X = 1;\n public $a, $b;\n private int $secret = 2;\n var $legacy;\n public function __construct(public string $name) {}\n function go(int $x): string { return \"hi\"; }\n protected function hidden() {}\n}\nenum State: string { case A = 'a'; public function test() {} }\nfunction hello(int $x): int { return $x; }\n",
+            "output": "{\"path\":\"STDIN\",\"language\":\"Php\",\"items\":[{\"role\":\"item\",\"symbolType\":\"interface\",\"name\":\"Face\",\"range\":{\"byteOffset\":{\"start\":96,\"end\":150},\"start\":{\"line\":6,\"column\":0},\"end\":{\"line\":6,\"column\":54}},\"signature\":\"interface Face { public function go(int $x): string; }\",\"astKind\":\"interface_declaration\",\"isImport\":false,\"isExported\":true,\"members\":[{\"role\":\"member\",\"symbolType\":\"method\",\"name\":\"go\",\"range\":{\"byteOffset\":{\"start\":113,\"end\":148},\"start\":{\"line\":6,\"column\":17},\"end\":{\"line\":6,\"column\":52}},\"signature\":\"\",\"astKind\":\"method_declaration\",\"isPublic\":true}]},{\"role\":\"item\",\"symbolType\":\"interface\",\"name\":\"Mix\",\"range\":{\"byteOffset\":{\"start\":151,\"end\":206},\"start\":{\"line\":7,\"column\":0},\"end\":{\"line\":7,\"column\":55}},\"signature\":\"trait Mix { protected $x = 1; public function go() {} }\",\"astKind\":\"trait_declaration\",\"isImport\":false,\"isExported\":true,\"members\":[{\"role\":\"member\",\"symbolType\":\"property\",\"name\":\"$x\",\"range\":{\"byteOffset\":{\"start\":163,\"end\":180},\"start\":{\"line\":7,\"column\":12},\"end\":{\"line\":7,\"column\":29}},\"signature\":\"\",\"astKind\":\"property_declaration\",\"isPublic\":false},{\"role\":\"member\",\"symbolType\":\"method\",\"name\":\"go\",\"range\":{\"byteOffset\":{\"start\":181,\"end\":204},\"start\":{\"line\":7,\"column\":30},\"end\":{\"line\":7,\"column\":53}},\"signature\":\"\",\"astKind\":\"method_declaration\",\"isPublic\":true}]},{\"role\":\"item\",\"symbolType\":\"class\",\"name\":\"Example\",\"range\":{\"byteOffset\":{\"start\":207,\"end\":475},\"start\":{\"line\":8,\"column\":0},\"end\":{\"line\":17,\"column\":1}},\"signature\":\"final class Example extends Base implements Face {\",\"astKind\":\"class_declaration\",\"isImport\":false,\"isExported\":true,\"members\":[{\"role\":\"member\",\"symbolType\":\"property\",\"name\":\"$a\",\"range\":{\"byteOffset\":{\"start\":288,\"end\":302},\"start\":{\"line\":11,\"column\":1},\"end\":{\"line\":11,\"column\":15}},\"signature\":\"\",\"astKind\":\"property_declaration\",\"isPublic\":true},{\"role\":\"member\",\"symbolType\":\"property\",\"name\":\"$secret\",\"range\":{\"byteOffset\":{\"start\":304,\"end\":328},\"start\":{\"line\":12,\"column\":1},\"end\":{\"line\":12,\"column\":25}},\"signature\":\"\",\"astKind\":\"property_declaration\",\"isPublic\":false},{\"role\":\"member\",\"symbolType\":\"property\",\"name\":\"$legacy\",\"range\":{\"byteOffset\":{\"start\":330,\"end\":342},\"start\":{\"line\":13,\"column\":1},\"end\":{\"line\":13,\"column\":13}},\"signature\":\"\",\"astKind\":\"property_declaration\",\"isPublic\":false},{\"role\":\"member\",\"symbolType\":\"method\",\"name\":\"__construct\",\"range\":{\"byteOffset\":{\"start\":344,\"end\":395},\"start\":{\"line\":14,\"column\":1},\"end\":{\"line\":14,\"column\":52}},\"signature\":\"\",\"astKind\":\"method_declaration\",\"isPublic\":true},{\"role\":\"member\",\"symbolType\":\"method\",\"name\":\"go\",\"range\":{\"byteOffset\":{\"start\":397,\"end\":441},\"start\":{\"line\":15,\"column\":1},\"end\":{\"line\":15,\"column\":45}},\"signature\":\"\",\"astKind\":\"method_declaration\",\"isPublic\":false},{\"role\":\"member\",\"symbolType\":\"method\",\"name\":\"hidden\",\"range\":{\"byteOffset\":{\"start\":443,\"end\":473},\"start\":{\"line\":16,\"column\":1},\"end\":{\"line\":16,\"column\":31}},\"signature\":\"\",\"astKind\":\"method_declaration\",\"isPublic\":false}]},{\"role\":\"item\",\"symbolType\":\"enum\",\"name\":\"State\",\"range\":{\"byteOffset\":{\"start\":476,\"end\":538},\"start\":{\"line\":18,\"column\":0},\"end\":{\"line\":18,\"column\":62}},\"signature\":\"enum State: string { case A = 'a'; public function test() {} }\",\"astKind\":\"enum_declaration\",\"isImport\":false,\"isExported\":true,\"members\":[{\"role\":\"member\",\"symbolType\":\"enumMember\",\"name\":\"A\",\"range\":{\"byteOffset\":{\"start\":497,\"end\":510},\"start\":{\"line\":18,\"column\":21},\"end\":{\"line\":18,\"column\":34}},\"signature\":\"\",\"astKind\":\"enum_case\",\"isPublic\":true}]},{\"role\":\"item\",\"symbolType\":\"function\",\"name\":\"hello\",\"range\":{\"byteOffset\":{\"start\":539,\"end\":581},\"start\":{\"line\":19,\"column\":0},\"end\":{\"line\":19,\"column\":42}},\"signature\":\"function hello(int $x): int { return $x; }\",\"astKind\":\"function_definition\",\"isImport\":false,\"isExported\":true}]}\n"
+        },
+        {
+            "arguments": [
+                "--lang",
+                "php",
+                "--stdin",
+                "--color",
+                "never",
+                "--view",
+                "expanded"
+            ],
+            "input": "<?php\nnamespace Demo;\nuse Foo\\Bar;\nuse function Foo\\run;\nuse const Foo\\KEY;\nuse Foo\\{Baz, Qux};\ninterface Face { public function go(int $x): string; }\ntrait Mix { protected $x = 1; public function go() {} }\n#[Attr]\nfinal class Example extends Base implements Face {\n public const X = 1;\n public $a, $b;\n private int $secret = 2;\n var $legacy;\n public function __construct(public string $name) {}\n function go(int $x): string { return \"hi\"; }\n protected function hidden() {}\n}\nenum State: string { case A = 'a'; public function test() {} }\nfunction hello(int $x): int { return $x; }\n",
+            "output": "STDIN\n 7: interface Face { public function go(int $x): string; }\n 7:   public function go(int $x): string;\n 8: trait Mix { protected $x = 1; public function go() {} }\n 8:   protected $x = 1;\n 8:   public function go() {}\n 9: final class Example extends Base implements Face {\n12:   public $a, $b;\n13:   private int $secret = 2;\n14:   var $legacy;\n15:   public function __construct(public string $name) {}\n16:   function go(int $x): string { return \"hi\"; }\n17:   protected function hidden() {}\n19: enum State: string { case A = 'a'; public function test() {} }\n19:   case A = 'a';\n20: function hello(int $x): int { return $x; }\n"
+        },
+        {
+            "arguments": [
+                "--lang",
+                "php",
+                "--stdin",
+                "--color",
+                "never",
+                "--view",
+                "expanded",
+                "--json=compact"
+            ],
+            "input": "<?php\nnamespace Demo;\nuse Foo\\Bar;\nuse function Foo\\run;\nuse const Foo\\KEY;\nuse Foo\\{Baz, Qux};\ninterface Face { public function go(int $x): string; }\ntrait Mix { protected $x = 1; public function go() {} }\n#[Attr]\nfinal class Example extends Base implements Face {\n public const X = 1;\n public $a, $b;\n private int $secret = 2;\n var $legacy;\n public function __construct(public string $name) {}\n function go(int $x): string { return \"hi\"; }\n protected function hidden() {}\n}\nenum State: string { case A = 'a'; public function test() {} }\nfunction hello(int $x): int { return $x; }\n",
+            "output": "[{\"path\":\"STDIN\",\"language\":\"Php\",\"items\":[{\"role\":\"item\",\"symbolType\":\"interface\",\"name\":\"Face\",\"range\":{\"byteOffset\":{\"start\":96,\"end\":150},\"start\":{\"line\":6,\"column\":0},\"end\":{\"line\":6,\"column\":54}},\"signature\":\"interface Face { public function go(int $x): string; }\",\"astKind\":\"interface_declaration\",\"isImport\":false,\"isExported\":true,\"members\":[{\"role\":\"member\",\"symbolType\":\"method\",\"name\":\"go\",\"range\":{\"byteOffset\":{\"start\":113,\"end\":148},\"start\":{\"line\":6,\"column\":17},\"end\":{\"line\":6,\"column\":52}},\"signature\":\"public function go(int $x): string;\",\"astKind\":\"method_declaration\",\"isPublic\":true}]},{\"role\":\"item\",\"symbolType\":\"interface\",\"name\":\"Mix\",\"range\":{\"byteOffset\":{\"start\":151,\"end\":206},\"start\":{\"line\":7,\"column\":0},\"end\":{\"line\":7,\"column\":55}},\"signature\":\"trait Mix { protected $x = 1; public function go() {} }\",\"astKind\":\"trait_declaration\",\"isImport\":false,\"isExported\":true,\"members\":[{\"role\":\"member\",\"symbolType\":\"property\",\"name\":\"$x\",\"range\":{\"byteOffset\":{\"start\":163,\"end\":180},\"start\":{\"line\":7,\"column\":12},\"end\":{\"line\":7,\"column\":29}},\"signature\":\"protected $x = 1;\",\"astKind\":\"property_declaration\",\"isPublic\":false},{\"role\":\"member\",\"symbolType\":\"method\",\"name\":\"go\",\"range\":{\"byteOffset\":{\"start\":181,\"end\":204},\"start\":{\"line\":7,\"column\":30},\"end\":{\"line\":7,\"column\":53}},\"signature\":\"public function go() {}\",\"astKind\":\"method_declaration\",\"isPublic\":true}]},{\"role\":\"item\",\"symbolType\":\"class\",\"name\":\"Example\",\"range\":{\"byteOffset\":{\"start\":207,\"end\":475},\"start\":{\"line\":8,\"column\":0},\"end\":{\"line\":17,\"column\":1}},\"signature\":\"final class Example extends Base implements Face {\",\"astKind\":\"class_declaration\",\"isImport\":false,\"isExported\":true,\"members\":[{\"role\":\"member\",\"symbolType\":\"property\",\"name\":\"$a\",\"range\":{\"byteOffset\":{\"start\":288,\"end\":302},\"start\":{\"line\":11,\"column\":1},\"end\":{\"line\":11,\"column\":15}},\"signature\":\"public $a, $b;\",\"astKind\":\"property_declaration\",\"isPublic\":true},{\"role\":\"member\",\"symbolType\":\"property\",\"name\":\"$secret\",\"range\":{\"byteOffset\":{\"start\":304,\"end\":328},\"start\":{\"line\":12,\"column\":1},\"end\":{\"line\":12,\"column\":25}},\"signature\":\"private int $secret = 2;\",\"astKind\":\"property_declaration\",\"isPublic\":false},{\"role\":\"member\",\"symbolType\":\"property\",\"name\":\"$legacy\",\"range\":{\"byteOffset\":{\"start\":330,\"end\":342},\"start\":{\"line\":13,\"column\":1},\"end\":{\"line\":13,\"column\":13}},\"signature\":\"var $legacy;\",\"astKind\":\"property_declaration\",\"isPublic\":false},{\"role\":\"member\",\"symbolType\":\"method\",\"name\":\"__construct\",\"range\":{\"byteOffset\":{\"start\":344,\"end\":395},\"start\":{\"line\":14,\"column\":1},\"end\":{\"line\":14,\"column\":52}},\"signature\":\"public function __construct(public string $name) {}\",\"astKind\":\"method_declaration\",\"isPublic\":true},{\"role\":\"member\",\"symbolType\":\"method\",\"name\":\"go\",\"range\":{\"byteOffset\":{\"start\":397,\"end\":441},\"start\":{\"line\":15,\"column\":1},\"end\":{\"line\":15,\"column\":45}},\"signature\":\"function go(int $x): string { return \\\"hi\\\"; }\",\"astKind\":\"method_declaration\",\"isPublic\":false},{\"role\":\"member\",\"symbolType\":\"method\",\"name\":\"hidden\",\"range\":{\"byteOffset\":{\"start\":443,\"end\":473},\"start\":{\"line\":16,\"column\":1},\"end\":{\"line\":16,\"column\":31}},\"signature\":\"protected function hidden() {}\",\"astKind\":\"method_declaration\",\"isPublic\":false}]},{\"role\":\"item\",\"symbolType\":\"enum\",\"name\":\"State\",\"range\":{\"byteOffset\":{\"start\":476,\"end\":538},\"start\":{\"line\":18,\"column\":0},\"end\":{\"line\":18,\"column\":62}},\"signature\":\"enum State: string { case A = 'a'; public function test() {} }\",\"astKind\":\"enum_declaration\",\"isImport\":false,\"isExported\":true,\"members\":[{\"role\":\"member\",\"symbolType\":\"enumMember\",\"name\":\"A\",\"range\":{\"byteOffset\":{\"start\":497,\"end\":510},\"start\":{\"line\":18,\"column\":21},\"end\":{\"line\":18,\"column\":34}},\"signature\":\"case A = 'a';\",\"astKind\":\"enum_case\",\"isPublic\":true}]},{\"role\":\"item\",\"symbolType\":\"function\",\"name\":\"hello\",\"range\":{\"byteOffset\":{\"start\":539,\"end\":581},\"start\":{\"line\":19,\"column\":0},\"end\":{\"line\":19,\"column\":42}},\"signature\":\"function hello(int $x): int { return $x; }\",\"astKind\":\"function_definition\",\"isImport\":false,\"isExported\":true}]}]\n"
+        },
+        {
+            "arguments": [
+                "--lang",
+                "php",
+                "--stdin",
+                "--color",
+                "never",
+                "--view",
+                "expanded",
+                "--json=stream"
+            ],
+            "input": "<?php\nnamespace Demo;\nuse Foo\\Bar;\nuse function Foo\\run;\nuse const Foo\\KEY;\nuse Foo\\{Baz, Qux};\ninterface Face { public function go(int $x): string; }\ntrait Mix { protected $x = 1; public function go() {} }\n#[Attr]\nfinal class Example extends Base implements Face {\n public const X = 1;\n public $a, $b;\n private int $secret = 2;\n var $legacy;\n public function __construct(public string $name) {}\n function go(int $x): string { return \"hi\"; }\n protected function hidden() {}\n}\nenum State: string { case A = 'a'; public function test() {} }\nfunction hello(int $x): int { return $x; }\n",
+            "output": "{\"path\":\"STDIN\",\"language\":\"Php\",\"items\":[{\"role\":\"item\",\"symbolType\":\"interface\",\"name\":\"Face\",\"range\":{\"byteOffset\":{\"start\":96,\"end\":150},\"start\":{\"line\":6,\"column\":0},\"end\":{\"line\":6,\"column\":54}},\"signature\":\"interface Face { public function go(int $x): string; }\",\"astKind\":\"interface_declaration\",\"isImport\":false,\"isExported\":true,\"members\":[{\"role\":\"member\",\"symbolType\":\"method\",\"name\":\"go\",\"range\":{\"byteOffset\":{\"start\":113,\"end\":148},\"start\":{\"line\":6,\"column\":17},\"end\":{\"line\":6,\"column\":52}},\"signature\":\"public function go(int $x): string;\",\"astKind\":\"method_declaration\",\"isPublic\":true}]},{\"role\":\"item\",\"symbolType\":\"interface\",\"name\":\"Mix\",\"range\":{\"byteOffset\":{\"start\":151,\"end\":206},\"start\":{\"line\":7,\"column\":0},\"end\":{\"line\":7,\"column\":55}},\"signature\":\"trait Mix { protected $x = 1; public function go() {} }\",\"astKind\":\"trait_declaration\",\"isImport\":false,\"isExported\":true,\"members\":[{\"role\":\"member\",\"symbolType\":\"property\",\"name\":\"$x\",\"range\":{\"byteOffset\":{\"start\":163,\"end\":180},\"start\":{\"line\":7,\"column\":12},\"end\":{\"line\":7,\"column\":29}},\"signature\":\"protected $x = 1;\",\"astKind\":\"property_declaration\",\"isPublic\":false},{\"role\":\"member\",\"symbolType\":\"method\",\"name\":\"go\",\"range\":{\"byteOffset\":{\"start\":181,\"end\":204},\"start\":{\"line\":7,\"column\":30},\"end\":{\"line\":7,\"column\":53}},\"signature\":\"public function go() {}\",\"astKind\":\"method_declaration\",\"isPublic\":true}]},{\"role\":\"item\",\"symbolType\":\"class\",\"name\":\"Example\",\"range\":{\"byteOffset\":{\"start\":207,\"end\":475},\"start\":{\"line\":8,\"column\":0},\"end\":{\"line\":17,\"column\":1}},\"signature\":\"final class Example extends Base implements Face {\",\"astKind\":\"class_declaration\",\"isImport\":false,\"isExported\":true,\"members\":[{\"role\":\"member\",\"symbolType\":\"property\",\"name\":\"$a\",\"range\":{\"byteOffset\":{\"start\":288,\"end\":302},\"start\":{\"line\":11,\"column\":1},\"end\":{\"line\":11,\"column\":15}},\"signature\":\"public $a, $b;\",\"astKind\":\"property_declaration\",\"isPublic\":true},{\"role\":\"member\",\"symbolType\":\"property\",\"name\":\"$secret\",\"range\":{\"byteOffset\":{\"start\":304,\"end\":328},\"start\":{\"line\":12,\"column\":1},\"end\":{\"line\":12,\"column\":25}},\"signature\":\"private int $secret = 2;\",\"astKind\":\"property_declaration\",\"isPublic\":false},{\"role\":\"member\",\"symbolType\":\"property\",\"name\":\"$legacy\",\"range\":{\"byteOffset\":{\"start\":330,\"end\":342},\"start\":{\"line\":13,\"column\":1},\"end\":{\"line\":13,\"column\":13}},\"signature\":\"var $legacy;\",\"astKind\":\"property_declaration\",\"isPublic\":false},{\"role\":\"member\",\"symbolType\":\"method\",\"name\":\"__construct\",\"range\":{\"byteOffset\":{\"start\":344,\"end\":395},\"start\":{\"line\":14,\"column\":1},\"end\":{\"line\":14,\"column\":52}},\"signature\":\"public function __construct(public string $name) {}\",\"astKind\":\"method_declaration\",\"isPublic\":true},{\"role\":\"member\",\"symbolType\":\"method\",\"name\":\"go\",\"range\":{\"byteOffset\":{\"start\":397,\"end\":441},\"start\":{\"line\":15,\"column\":1},\"end\":{\"line\":15,\"column\":45}},\"signature\":\"function go(int $x): string { return \\\"hi\\\"; }\",\"astKind\":\"method_declaration\",\"isPublic\":false},{\"role\":\"member\",\"symbolType\":\"method\",\"name\":\"hidden\",\"range\":{\"byteOffset\":{\"start\":443,\"end\":473},\"start\":{\"line\":16,\"column\":1},\"end\":{\"line\":16,\"column\":31}},\"signature\":\"protected function hidden() {}\",\"astKind\":\"method_declaration\",\"isPublic\":false}]},{\"role\":\"item\",\"symbolType\":\"enum\",\"name\":\"State\",\"range\":{\"byteOffset\":{\"start\":476,\"end\":538},\"start\":{\"line\":18,\"column\":0},\"end\":{\"line\":18,\"column\":62}},\"signature\":\"enum State: string { case A = 'a'; public function test() {} }\",\"astKind\":\"enum_declaration\",\"isImport\":false,\"isExported\":true,\"members\":[{\"role\":\"member\",\"symbolType\":\"enumMember\",\"name\":\"A\",\"range\":{\"byteOffset\":{\"start\":497,\"end\":510},\"start\":{\"line\":18,\"column\":21},\"end\":{\"line\":18,\"column\":34}},\"signature\":\"case A = 'a';\",\"astKind\":\"enum_case\",\"isPublic\":true}]},{\"role\":\"item\",\"symbolType\":\"function\",\"name\":\"hello\",\"range\":{\"byteOffset\":{\"start\":539,\"end\":581},\"start\":{\"line\":19,\"column\":0},\"end\":{\"line\":19,\"column\":42}},\"signature\":\"function hello(int $x): int { return $x; }\",\"astKind\":\"function_definition\",\"isImport\":false,\"isExported\":true}]}\n"
+        }
+    ]
+}

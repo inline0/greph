@@ -432,6 +432,33 @@ final class FeatureMatrixGenerator
             'providers' => $sectionProviders,
             'rows' => [
                 $this->buildRow(
+                    'PHP outline JSON',
+                    'Probe: `outline --lang php --json=compact src/App.php`',
+                    $sectionProviders,
+                    static fn (self $generator, string $provider): array => $generator->runCommandProbe(
+                        $providers[$provider],
+                        ['outline', '--lang', 'php', '--json=compact', 'src/App.php'],
+                        static fn (ProcessResult $result): ?string => self::expectContainsAllAndExcludes(
+                            $result,
+                            0,
+                            ['"language":"Php"', '"symbolType":"function"', '"name":"visible"', '"byteOffset"'],
+                            [],
+                            'Expected a PHP function outline with source offsets.',
+                            '',
+                        ),
+                    ),
+                ),
+                $this->buildRow(
+                    'PHP outline text views',
+                    'Probe: `outline --view expanded --color never src/App.php`',
+                    $sectionProviders,
+                    static fn (self $generator, string $provider): array => $generator->runCommandProbe(
+                        $providers[$provider],
+                        ['outline', '--view', 'expanded', '--color', 'never', 'src/App.php'],
+                        static fn (ProcessResult $result): ?string => self::expectExitAndStdoutContains($result, 0, '3: function visible(): void {}'),
+                    ),
+                ),
+                $this->buildRow(
                     'Pattern search with `run --pattern`',
                     'Probe: `run --pattern array($$$ITEMS) src/App.php`',
                     $sectionProviders,

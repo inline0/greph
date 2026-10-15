@@ -66,6 +66,8 @@ If something is documented but missing from the matrix, the docs are out of date
 
 | Feature | sg | bin/sg | Notes |
 |---|---|---|---|
+| PHP outline JSON | Pass | Pass | Probe: `outline --lang php --json=compact src/App.php` |
+| PHP outline text views | Pass | Pass | Probe: `outline --view expanded --color never src/App.php` |
 | Pattern search with `run --pattern` | Pass | Pass | Probe: `run --pattern array($$$ITEMS) src/App.php` |
 | Rewrite via `run --rewrite` | Pass | Pass | Probe: `run --pattern array($$$ITEMS) --rewrite [$$$ITEMS] src/App.php` |
 | Structured JSON stream output | Pass | Pass | Probe: `run --json=stream --pattern dispatch($EVENT) src/App.php` |

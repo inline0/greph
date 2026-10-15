@@ -339,3 +339,9 @@ Greph follows grep / ripgrep conventions:
 | `0` | At least one match was found (or, for rewrites, at least one file changed) |
 | `1` | No matches found |
 | `2` | Usage error or runtime failure (bad arguments, missing index, parse error in `--strict-parse` mode) |
+
+## PHP source outlines
+
+`vendor/bin/sg outline src/` prints a PHP code outline. Use `--view expanded`
+for member signatures, or `--json=compact` for source ranges and symbol metadata.
+See [sg Compatibility](/docs/compatibility/sg#php-outlines) for filters and stdin.

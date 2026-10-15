@@ -50,7 +50,7 @@ final class ToolResolver
      */
     public function astGrep(): array
     {
-        $binary = $this->findBinary(['sg', 'ast-grep']);
+        $binary = $this->findBinary(['ast-grep', 'sg']);
 
         if ($binary !== null) {
             return [$binary];
@@ -59,10 +59,10 @@ final class ToolResolver
         $npm = $this->findBinary(['npm']);
 
         if ($npm === null) {
-            throw new \RuntimeException('Unable to find ast-grep. Install sg or npm.');
+            throw new \RuntimeException('Unable to find ast-grep. Install ast-grep or npm.');
         }
 
-        return [$npm, 'exec', '--yes', '--package=@ast-grep/cli', 'sg', '--'];
+        return [$npm, 'exec', '--yes', '--package=@ast-grep/cli@0.51.0', 'ast-grep', '--'];
     }
 
     /**

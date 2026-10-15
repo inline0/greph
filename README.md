@@ -513,3 +513,14 @@ src/
 ## License
 
 MIT
+
+## Upstream compatibility baseline
+
+The current refresh checks [GNU grep 3.12](https://ftp.gnu.org/gnu/grep/),
+[ripgrep 15.2.0](https://github.com/BurntSushi/ripgrep/releases/tag/15.2.0), and
+[ast-grep 0.51.0](https://github.com/ast-grep/ast-grep/releases/tag/0.51.0).
+`upstream-versions.json` records the versions and source links.
+
+PHP code outlines are available from `vendor/bin/sg outline src/` and
+`Greph::outline('src/')`. Outlines use the native PHP parser and include classes,
+interfaces, traits, enums, functions, imports, methods, and properties.

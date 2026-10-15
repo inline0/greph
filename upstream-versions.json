@@ -1,0 +1,13 @@
+{
+  "checked_on": "2026-10-15",
+  "oracles": {
+    "GNU grep": "3.12",
+    "ripgrep": "15.2.0",
+    "ast-grep": "0.51.0"
+  },
+  "sources": {
+    "grep": "https://ftp.gnu.org/gnu/grep/",
+    "ripgrep": "https://github.com/BurntSushi/ripgrep/releases/tag/15.2.0",
+    "ast-grep": "https://github.com/ast-grep/ast-grep/releases/tag/0.51.0"
+  }
+}
