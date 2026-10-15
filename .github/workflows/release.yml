@@ -44,6 +44,7 @@ jobs:
             --exclude='bin/oracle' --exclude='bin/actual' --exclude='bin/compare' \
             --exclude='bin/test-scenario' --exclude='bin/test-regression' \
             --exclude='bin/verify-compliance' --exclude='bin/feature-matrix' \
+            --exclude='bin/generate-outline-fixtures' \
             --exclude='bin/bench' --exclude='bin/bench-aggregate' --exclude='bin/bench-ci' \
             --exclude='bin/bench-compare' --exclude='bin/bench-run' --exclude='bin/bench-series' \
             . dist/greph/
