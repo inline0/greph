@@ -2,9 +2,15 @@
 
 Pure PHP code search and structural refactoring tool. Two modes: fast text search (like ripgrep) and AST-aware structural search with rewrite (like ast-grep). Uses PHP's ctype, JSON, tokenizer, and zlib extensions. No FFI or runtime shelling out. Oracle-tested against grep, ripgrep, and ast-grep.
 
+## Agent instructions
+
+Keep agent instructions in `AGENTS.md` only. Use nested `AGENTS.md` files when
+guidance needs a narrower scope. Do not add `CLAUDE.md` files, symlinks, or
+forwarding stubs for repository guidance.
+
 ## Releases
 
-Follow the [shared release rule](https://github.com/inline0/_cp/blob/main/CLAUDE.md#canonical-github-releases).
+Follow the [shared release rule](https://github.com/inline0/_cp/blob/main/AGENTS.md#canonical-github-releases).
 Titles are exactly the tag. Bodies contain only the linked `CHANGELOG.md`
 sentence with that tag. Keep complete notes in `CHANGELOG.md` before publishing.
 `.github/workflows/release-format.yml` enforces this format; keep it identical
@@ -215,7 +221,7 @@ greph/
 ├── composer.json
 ├── phpunit.xml.dist
 ├── phpcs.xml
-└── CLAUDE.md
+└── AGENTS.md
 ```
 
 ## CLI Interface
