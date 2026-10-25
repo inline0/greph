@@ -324,7 +324,7 @@ That keeps warmed baseline indexes stable while letting active overlays refresh 
 Portable Markdown documentation lives under [`docs/`](docs), with `meta.json` files describing the navigation. Validate it with:
 
 ```bash
-node scripts/check-docs-content.mjs --root docs --expected-docs 18 --expected-nav 5
+node scripts/check-docs-content.ts --root docs --expected-docs 18 --expected-nav 5
 ```
 
 Topics covered:
@@ -524,3 +524,12 @@ The current refresh checks [GNU grep 3.12](https://ftp.gnu.org/gnu/grep/),
 PHP code outlines are available from `vendor/bin/sg outline src/` and
 `Greph::outline('src/')`. Outlines use the native PHP parser and include classes,
 interfaces, traits, enums, functions, imports, methods, and properties.
+
+Development tooling runs as TypeScript directly on Node 26.12+ with pnpm 12.14.
+Install it with `pnpm install --frozen-lockfile`; run `pnpm typecheck`,
+`pnpm test:scripts`, and `pnpm docs:check` to check the tooling.
+`node scripts/verify.ts` runs the complete PHP verification sequence.
+Every tooling command supports `--help`, `--json`, `--dry-run`, and
+`--log-level`. Verification children belong to an Effect scope and are stopped
+on interruption. The Node dependencies are development-only and are excluded
+from Composer archives.

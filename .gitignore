@@ -11,3 +11,5 @@
 /scenarios/**/actual/
 /scenarios/**/reports/
 .DS_Store
+
+/node_modules/

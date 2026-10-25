@@ -73,11 +73,12 @@
         "analyse": "phpstan analyse --configuration=phpstan.neon.dist --memory-limit=512M",
         "cs": "phpcs --warning-severity=0",
         "cs:fix": "phpcbf",
-        "verify": [
-            "@analyse",
-            "@cs",
-            "@test",
-            "@test:oracle"
-        ]
+        "verify": "node scripts/verify.ts",
+        "verify:tooling": [
+            "pnpm typecheck",
+            "pnpm test:scripts",
+            "pnpm docs:check"
+        ],
+        "docs:check": "node scripts/check-docs-content.ts"
     }
 }

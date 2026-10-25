@@ -30,3 +30,11 @@
 
 # Preserve the oracle fixture byte offsets across fresh clones.
 /tests/fixtures/outline/unicode.phtml -text whitespace=cr-at-eol
+
+# Node tooling is used only in the source checkout.
+/package.json         export-ignore
+/pnpm-lock.yaml       export-ignore
+/pnpm-workspace.yaml  export-ignore
+/tsconfig.scripts.json export-ignore
+/.node-version        export-ignore
+/.nvmrc               export-ignore
