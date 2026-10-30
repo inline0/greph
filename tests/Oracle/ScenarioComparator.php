@@ -19,6 +19,7 @@ final class ScenarioComparator
             'mode' => $scenario->mode(),
             'oracles' => [],
             'oracle_disagreement' => $scenario->oracleDisagreement(),
+            'grep_reference' => $scenario->usesLiveGrep() ? 'live-same-workspace' : 'committed',
         ];
 
         $oracleDir = $scenario->oracleDir();
@@ -32,7 +33,12 @@ final class ScenarioComparator
             }
 
             $report['oracles'][$oracle] = match ($oracle) {
-                'grep', 'rg' => $this->compareExactText(
+                'grep' => $this->compareExactText(
+                    $mode,
+                    (string) $actualText,
+                    $this->grepReference($scenario),
+                ),
+                'rg' => $this->compareExactText(
                     $mode,
                     (string) $actualText,
                     is_file($oracleDir . '/' . $oracle . '.txt') ? (string) file_get_contents($oracleDir . '/' . $oracle . '.txt') : null,
@@ -59,6 +65,15 @@ final class ScenarioComparator
         $report['expectation'] = $scenario->evaluateReport($report);
 
         return $report;
+    }
+
+    private function grepReference(Scenario $scenario): ?string
+    {
+        $path = $scenario->usesLiveGrep()
+            ? $scenario->actualDir() . '/grep.live.txt'
+            : $scenario->oracleDir() . '/grep.txt';
+
+        return is_file($path) ? (string) file_get_contents($path) : null;
     }
 
     /**

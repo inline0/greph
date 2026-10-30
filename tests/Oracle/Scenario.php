@@ -143,6 +143,11 @@ final readonly class Scenario
         return $result;
     }
 
+    public function usesLiveGrep(): bool
+    {
+        return ($this->definition['live_grep'] ?? false) === true;
+    }
+
     public function scenarioDir(): string
     {
         return $this->rootPath . '/scenarios/' . $this->name;
@@ -194,7 +199,9 @@ final readonly class Scenario
      */
     public function expectedActualFiles(): array
     {
-        return ['greph.txt', 'greph.json'];
+        return $this->usesLiveGrep()
+            ? ['greph.txt', 'greph.json', 'grep.live.txt']
+            : ['greph.txt', 'greph.json'];
     }
 
     /**

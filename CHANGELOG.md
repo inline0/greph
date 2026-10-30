@@ -1,5 +1,10 @@
 # Changelog
 
+## [Unreleased]
+
+### Fixed
+- Compare filesystem-sensitive grep traversal order with native grep on the same temporary workspace, keeping exact output assertions and committed semantic oracles intact across macOS and Linux CI.
+
 ## [0.3.0] - 2026-10-15
 
 ### Added

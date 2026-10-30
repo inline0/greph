@@ -14,10 +14,13 @@ final class ActualCapture
 
     private OutputNormalizer $normalizer;
 
-    public function __construct(?FlagParser $flagParser = null, ?OutputNormalizer $normalizer = null)
+    private OracleCapture $oracleCapture;
+
+    public function __construct(?FlagParser $flagParser = null, ?OutputNormalizer $normalizer = null, ?OracleCapture $oracleCapture = null)
     {
         $this->flagParser = $flagParser ?? new FlagParser();
         $this->normalizer = $normalizer ?? new OutputNormalizer();
+        $this->oracleCapture = $oracleCapture ?? new OracleCapture();
     }
 
     /**
@@ -69,10 +72,15 @@ final class ActualCapture
         $results = Greph::searchText($scenario->pattern(), $paths, $options);
         $outputs = $this->normalizer->textOutputs($results, $options, $workspaceRoot);
 
-        return [
+        $captured = [
             'greph.txt' => $outputs['text'],
             'greph.json' => $outputs['json'],
         ];
+        if ($scenario->usesLiveGrep()) {
+            $captured['grep.live.txt'] = $this->oracleCapture->captureGrepFromWorkspace($scenario, $workspaceRoot);
+        }
+
+        return $captured;
     }
 
     /**

@@ -386,6 +386,13 @@ scenarios/ast/match-function-call/
     └── comparison.json
 ```
 
+Scenarios whose exact grep output depends on directory enumeration set
+`"live_grep": true`. Actual capture records `grep.live.txt` from native grep
+on the same temporary workspace as Greph. The comparator uses that exact
+reference without sorting lines or rewriting committed snapshots. The pinned
+ripgrep JSON snapshot still verifies semantic content. A missing live reference
+is a test failure, never a fallback to a stale directory-order snapshot.
+
 ### Comparison Rules
 
 | Oracle | Mode | Comparison |

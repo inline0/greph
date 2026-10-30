@@ -75,10 +75,27 @@ final class OracleCapture
     }
 
     /**
-     * @param FlagSet $flags
-     * @return array<string, mixed>
+     * Capture traversal order on the same filesystem as the actual search.
+     * Cached directory order is not portable between macOS and Linux.
      */
-    private function captureTextOracle(Scenario $scenario, string $workspaceRoot, array $flags): array
+    public function captureGrepFromWorkspace(Scenario $scenario, string $workspaceRoot): string
+    {
+        $result = $this->commandRunner->run(
+            $this->grepCommand($scenario, $this->flagParser->parse($scenario)),
+            $workspaceRoot,
+        );
+        if (!in_array($result->exitCode, [0, 1], true)) {
+            throw new \RuntimeException('Live grep oracle failed: ' . $result->output());
+        }
+
+        return $this->normalizer->normalizeTextOutput($result->stdout);
+    }
+
+    /**
+     * @param FlagSet $flags
+     * @return list<string>
+     */
+    private function grepCommand(Scenario $scenario, array $flags): array
     {
         $pathArguments = $scenario->paths();
 
@@ -142,6 +159,18 @@ final class OracleCapture
             [$scenario->pattern()],
             $pathArguments,
         );
+
+        return $grepCommand;
+    }
+
+    /**
+     * @param FlagSet $flags
+     * @return array<string, mixed>
+     */
+    private function captureTextOracle(Scenario $scenario, string $workspaceRoot, array $flags): array
+    {
+        $pathArguments = $scenario->paths();
+        $grepCommand = $this->grepCommand($scenario, $flags);
 
         $rgCommand = array_merge($this->toolResolver->ripgrep(), ['-n', '--color', 'never']);
 

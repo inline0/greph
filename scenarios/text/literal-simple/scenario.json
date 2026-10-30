@@ -7,6 +7,7 @@
         "-F"
     ],
     "path": "setup",
+    "live_grep": true,
     "expectations": {
         "grep": "exact",
         "rg": "skip",
@@ -15,6 +16,6 @@
     "oracle_disagreement": {
         "grep_vs_rg": "grep preserves directory entry order while ripgrep prints files in lexical order here",
         "greph_follows": "grep",
-        "reason": "Text mode is grep-compatible and must match grep -rn output ordering"
+        "reason": "Text mode is grep-compatible and must match grep -rn ordering on the same temporary filesystem; the committed rg_json oracle still checks content"
     }
 }
