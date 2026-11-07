@@ -18,6 +18,9 @@ final class UpstreamIgnoreOracleTest extends TestCase
         $workspace = Workspace::createDirectory('rg152-oracle');
         $runner = new CommandRunner();
         $reference = (new ToolResolver())->ripgrep();
+        $version = $runner->run([...$reference, '--version'], $workspace);
+        self::assertSame(0, $version->exitCode, $version->stderr);
+        self::assertStringStartsWith('ripgrep 15.2.0', $version->stdout);
         Workspace::writeFile($workspace, '.git/HEAD', "ref: refs/heads/main\n");
         Workspace::writeFile($workspace, 'global.ignore', "global.txt\n");
         Workspace::writeFile($workspace, 'gitconfig', "[core]\n excludesFile = {$workspace}/global.ignore\n");

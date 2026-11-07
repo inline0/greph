@@ -69,6 +69,7 @@
         "test": "phpunit",
         "test:unit": "phpunit --testsuite unit",
         "test:oracle": "php bin/test-regression",
+        "test:upstream": "phpunit --testsuite upstream",
         "test:coverage": "php -d pcov.enabled=1 vendor/bin/phpunit --coverage-text --colors=never",
         "analyse": "phpstan analyse --configuration=phpstan.neon.dist --memory-limit=512M",
         "cs": "phpcs --warning-severity=0",

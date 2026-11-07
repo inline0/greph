@@ -42,6 +42,15 @@ export const checks = [
             "test:oracle",
             "--no-interaction"
         ]
+    },
+    {
+        "name": "test:upstream",
+        "command": "composer",
+        "args": [
+            "run-script",
+            "test:upstream",
+            "--no-interaction"
+        ]
     }
 ] as const;
 

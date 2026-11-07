@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.3.3] - 2026-11-07
+
+### Added
+- `composer test:upstream` runs the new PHPUnit `upstream` suite, which compares the `rg` wrapper's ignore handling with ripgrep 15.2.0 across multiple roots and a global excludes file. The test checks that ripgrep 15.2.0 is installed. CI runs it, and `composer verify` includes it. The test existed since 0.3.0 but was outside every configured suite, so nothing ran it.
+
+### Changed
+- CI checks the SHA-256 checksum of the ripgrep 15.2.0 archive before installing it.
+- `composer test` keeps running only the unit and integration suites through `defaultTestSuite`.
+
+### Fixed
+- Correction to the 0.2.0 entry and the README: `src/` line coverage is not 100%. With Xdebug over the unit and integration suites it measures 91.25% (8169 of 8952 lines), excluding code that runs in forked workers and child processes. The README and the testing docs now state the measured figure and how to reproduce it.
+
 ## [0.3.2] - 2026-11-07
 
 ### Fixed

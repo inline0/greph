@@ -64,6 +64,7 @@ jobs:
       - name: Install ripgrep 15.2.0 oracle
         run: |
           curl --fail --location --retry 3 https://github.com/BurntSushi/ripgrep/releases/download/15.2.0/ripgrep-15.2.0-x86_64-unknown-linux-musl.tar.gz -o "$RUNNER_TEMP/ripgrep.tar.gz"
+          echo "33e15bcf1624b25cdd2a55813a47a2f95dbe126268203e76aa6a585d1e7b149c  $RUNNER_TEMP/ripgrep.tar.gz" | sha256sum --check --strict
           tar -xzf "$RUNNER_TEMP/ripgrep.tar.gz" -C "$RUNNER_TEMP"
           echo "$RUNNER_TEMP/ripgrep-15.2.0-x86_64-unknown-linux-musl" >> "$GITHUB_PATH"
       - name: Install ast-grep 0.51.0 oracle
@@ -72,6 +73,7 @@ jobs:
           echo "$RUNNER_TEMP/greph-oracles/node_modules/.bin" >> "$GITHUB_PATH"
       - run: composer test
       - run: composer test:oracle
+      - run: composer test:upstream
 
   dependency-audit:
     name: Dependency Audit
