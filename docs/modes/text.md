@@ -160,7 +160,7 @@ The result objects are documented in [API / Result objects](/docs/api#result-obj
 The text engine has two paths:
 
 - **Literal path**: when `-F` is set, the search runs `strpos()` over a 64 KiB buffered reader and tracks newlines for line numbering. There is no regex compile step.
-- **Regex path**: when `-F` is not set, Greph extracts literal substrings from the pattern using a small PCRE-shaped analyzer (`Greph\Text\LiteralExtractor`) and uses them as a `strpos()` pre-filter. Lines that pass the pre-filter are then matched against the compiled PCRE2 pattern with JIT enabled.
+- **Regex path**: when `-F` is not set, Greph extracts the longest literal substring that every match must contain using a small PCRE-shaped analyzer (`Greph\Text\LiteralExtractor`) and uses it as a `strpos()` pre-filter. Optional characters (`colou?r`), alternations (`alpha|nothing`), inline flags and other constructs the analyzer does not model contribute no literal, so the pre-filter never rejects a line the regex would match. Lines that pass the pre-filter are then matched against the compiled PCRE2 pattern with JIT enabled.
 
 Both paths use the same `BufferedReader` for I/O. The reader reads in 64 KiB chunks instead of `fgets()`-per-line, which reduces the syscall count dramatically on large files.
 

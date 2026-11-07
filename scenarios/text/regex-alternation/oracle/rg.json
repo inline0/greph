@@ -1,0 +1,16 @@
+[
+    {
+        "file": "setup/branches.php",
+        "line": 3,
+        "column": 10,
+        "content": "function alpha(): string",
+        "matched_text": "alpha"
+    },
+    {
+        "file": "setup/branches.php",
+        "line": 8,
+        "column": 7,
+        "content": "echo 'nothing';",
+        "matched_text": "nothing"
+    }
+]

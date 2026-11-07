@@ -379,7 +379,6 @@ final class IndexedTextSearcher
             ],
             'plan' => [
                 'direct_summary' => $this->canUseDirectLiteralSummary($pattern, $options),
-                'direct_word_summary' => $this->canUseDirectWordSummary($wholeWordToken, $options),
                 'candidate_source' => $candidateSource,
                 'whole_word_token' => $wholeWordToken,
                 'seeds' => $seeds,
@@ -449,17 +448,6 @@ final class IndexedTextSearcher
     ): array {
         $resultsByPath = [];
         $canUseDirectLiteralSummary = $this->canUseDirectLiteralSummary($pattern, $options);
-        $wholeWordToken = $this->indexedWholeWordToken($pattern, $options);
-        $canUseDirectWordSummary = $this->canUseDirectWordSummary($wholeWordToken, $options);
-
-        if ($options->quiet && $canUseDirectWordSummary && $candidateIds !== null && $index !== null) {
-            $candidatePath = $this->firstCandidatePath($selectedPaths, $candidateIds, $index);
-
-            if ($candidatePath !== null) {
-                return [new TextFileResult($candidatePath, [], 1)];
-            }
-        }
-
         if ($options->quiet && $canUseDirectLiteralSummary) {
             return $this->searchLiteralQuietPaths(
                 $selectedPaths,
@@ -493,11 +481,9 @@ final class IndexedTextSearcher
                 $candidatePaths[] = $absolutePath;
             }
 
-            $searchResults = $canUseDirectWordSummary
-                ? $this->searchDirectWordSummaryResults($candidatePaths)
-                : ($canUseDirectLiteralSummary
+            $searchResults = $canUseDirectLiteralSummary
                 ? $this->searchLiteralSummaryFiles($candidatePaths, $pattern, $options)
-                : $this->textSearcher->searchFiles(new FileList($candidatePaths), $pattern, $options));
+                : $this->textSearcher->searchFiles(new FileList($candidatePaths), $pattern, $options);
 
             foreach ($searchResults as $result) {
                 $resultsByPath[$result->file] = $result;
@@ -547,23 +533,6 @@ final class IndexedTextSearcher
         }
 
         return $options->countOnly || $options->filesWithMatches || $options->filesWithoutMatches || $options->quiet;
-    }
-
-    private function canUseDirectWordSummary(?string $wholeWordToken, TextSearchOptions $options): bool
-    {
-        if ($wholeWordToken === null) {
-            return false;
-        }
-
-        if ($options->invertMatch || $options->countOnly) {
-            return false;
-        }
-
-        if ($options->beforeContext > 0 || $options->afterContext > 0) {
-            return false;
-        }
-
-        return $options->filesWithMatches || $options->filesWithoutMatches || $options->quiet;
     }
 
     /**
@@ -688,37 +657,6 @@ final class IndexedTextSearcher
         }
 
         return $results;
-    }
-
-    /**
-     * @param list<string> $paths
-     * @return list<TextFileResult>
-     */
-    private function searchDirectWordSummaryResults(array $paths): array
-    {
-        return array_map(
-            static fn (string $path): TextFileResult => new TextFileResult($path, [], 1),
-            $paths,
-        );
-    }
-
-    /**
-     * @param list<string> $selectedPaths
-     * @param array<int, true> $candidateIds
-     */
-    private function firstCandidatePath(array $selectedPaths, array $candidateIds, TextIndex $index): ?string
-    {
-        $selectedPathSet = array_fill_keys($selectedPaths, true);
-
-        foreach ($index->files as $file) {
-            $absolutePath = $index->rootPath . '/' . $file['p'];
-
-            if (isset($selectedPathSet[$absolutePath]) && isset($candidateIds[$file['id']])) {
-                return $absolutePath;
-            }
-        }
-
-        return null;
     }
 
     /**
@@ -930,17 +868,8 @@ final class IndexedTextSearcher
             return strlen($pattern) >= 3 ? [$pattern] : [];
         }
 
-        $segments = $this->literalExtractor->extractSegments($pattern);
+        $segments = $this->literalExtractor->extractSegments($pattern, $options->caseInsensitive);
         $segments = array_values(array_filter($segments, static fn (string $segment): bool => strlen($segment) >= 3));
-
-        if ($segments === []) {
-            return [];
-        }
-
-        // Alternation makes "all segments are required" unsafe, so stay conservative there.
-        if (str_contains($pattern, '|')) {
-            return [$segments[0]];
-        }
 
         return array_slice($segments, 0, 3);
     }

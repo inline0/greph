@@ -1,0 +1,5 @@
+color x
+colour 7x
+colour 42x
+colr x
+color 123x

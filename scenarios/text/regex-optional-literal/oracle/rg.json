@@ -1,0 +1,23 @@
+[
+    {
+        "file": "setup/spelling.txt",
+        "line": 1,
+        "column": 1,
+        "content": "color x",
+        "matched_text": "color x"
+    },
+    {
+        "file": "setup/spelling.txt",
+        "line": 2,
+        "column": 1,
+        "content": "colour 7x",
+        "matched_text": "colour 7x"
+    },
+    {
+        "file": "setup/spelling.txt",
+        "line": 3,
+        "column": 1,
+        "content": "colour 42x",
+        "matched_text": "colour 42x"
+    }
+]

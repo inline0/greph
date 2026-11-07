@@ -72,6 +72,14 @@ final class TextSearcher
 
         $literalPlan = $this->literalExtractor->extractRegexLiteralPlan($pattern);
 
+        if (
+            $literalPlan !== null
+            && $options->caseInsensitive
+            && !LiteralExtractor::isAsciiCaseFoldSafe($literalPlan['literal'])
+        ) {
+            $literalPlan = null;
+        }
+
         if ($literalPlan !== null) {
             if ($literalPlan['type'] === 'literal') {
                 return new LiteralSearcher($literalPlan['literal'], $options->caseInsensitive, $options->wholeWord);
@@ -90,7 +98,7 @@ final class TextSearcher
             $pattern,
             $options->caseInsensitive,
             $options->wholeWord,
-            $this->literalExtractor->extract($pattern),
+            $this->literalExtractor->extract($pattern, $options->caseInsensitive),
         );
     }
 

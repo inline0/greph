@@ -36,9 +36,9 @@ Indexed search pays the read cost once at build time. Every lifecycle except `st
 Indexed mode beats the plain mode when all of these hold:
 
 - **The same tree is searched many times.** Agent loops, editor integrations, CI jobs that run several searches and long-lived tools on a stable checkout all qualify. A one-off search pays the build cost for nothing.
-- **The pattern has something to prefilter on.** A fixed string of at least three bytes, a regex with a literal run of at least three bytes, or a fixed-string whole-word identifier lets the index rule out most files. Patterns without one fall back to scanning every indexed file, which is no faster than plain mode.
+- **The pattern has something to prefilter on.** A fixed string of at least three bytes, a regex with a literal run of at least three bytes that every match must contain, or a fixed-string whole-word identifier lets the index rule out most files. Patterns without one fall back to scanning every indexed file, which is no faster than plain mode.
 - **The pattern is selective.** The fewer files contain the literal, the more the index saves. `new Logger` touches a handful of files in a large project; `<?php` touches all of them.
-- **The question is a summary.** Counts (`-c`), file lists (`-l`, `-L`) and existence checks (`-q`) can be answered with less per-file work, and some whole-word summaries without opening files at all (see [Direct summaries](#direct-summaries)).
+- **The question is a summary.** Counts (`-c`), file lists (`-l`, `-L`) and existence checks (`-q`) can be answered with less per-file work (see [Direct summaries](#direct-summaries)).
 - **The tree changes slowly or predictably.** A vendored framework, WordPress core or a dependency tree can use a `static` index that never pays for a freshness check. A working copy you edit constantly needs a lifecycle that refreshes or rejects stale data.
 
 Stay with [plain text search](/docs/modes/text) when:
@@ -47,7 +47,7 @@ Stay with [plain text search](/docs/modes/text) when:
 - You search a path once and will not query it again.
 - You need inverted matches (`-v`). Indexed mode scans every selected file for them, so it only adds the cost of loading the index.
 - You need results that reflect unsaved or very recent edits and do not want to manage refreshes.
-- The pattern is very short (`-F "wp"`) or is a regex built from classes and wildcards with no literal run.
+- The pattern is very short (`-F "wp"`), is a top-level alternation (`foo|bar`), or is a regex built from classes and wildcards with no literal run.
 
 ### Break-even from the published numbers
 
@@ -235,7 +235,7 @@ The text index is a trigram + identifier postings store. For every indexed file 
 - **File metadata**: path, size and mtime for refresh decisions and stale inspection.
 - **Lifecycle metadata**: the profile and its refresh thresholds.
 
-Both sets are inverted into postings lists that map each trigram or word to the files that contain it. Because the postings are case-folded, one index serves case-sensitive and case-insensitive queries. Except for the whole-word summaries described under [Direct summaries](#direct-summaries), the verification step applies the exact case rules.
+Both sets are inverted into postings lists that map each trigram or word to the files that contain it. Because the postings are case-folded, one index serves case-sensitive and case-insensitive queries. Postings only choose candidate files: every candidate is then searched with the exact case and word-boundary rules of the query.
 
 This is the same idea as ripgrep's optional preindexing and codesearch's trigram index, but built specifically around the on-disk shapes that warmed PHP can hit fastest.
 
@@ -248,9 +248,9 @@ When a query arrives, Greph selects the indexed files under the requested paths,
 | `word-postings` | `-F -w` with a pattern made only of `[A-Za-z0-9_]` | Files whose word set contains the lowercased pattern |
 | `trigram-postings` | A fixed string of at least three bytes, or a regex with literal runs of at least three bytes | Files that contain every trigram of the selected literals |
 | `invert-scan` | `-v` | Every selected file |
-| `full-scan` | No usable literal (for example `-F "wp"` or `[a-z]+\(`) | Every selected file |
+| `full-scan` | No usable literal (for example `-F "wp"`, `foo\|bar` or `[a-z]+\(`) | Every selected file |
 
-For regex patterns Greph extracts the literal runs between metacharacters, keeps those of at least three bytes and uses up to the three longest. The trigram postings of those literals are intersected, smallest list first, and the search stops early when the intersection is empty. Candidate files are then searched with the plain text engine, so the matches, line numbers and context lines are identical to [plain text search](/docs/modes/text).
+For regex patterns Greph extracts only the literal runs that every match must contain. A character followed by `?`, `*` or a repeat with a minimum of zero is not required. A group adds its literals only when it is not optional and has no alternation inside, so `= '(apple|banana)'` still requires `= '`. A top-level alternation such as `apple|banana` requires no literal and falls back to `full-scan`, as do inline flags like `(?i)`, backreferences and `\Q...\E`. Case-insensitive regex searches drop literals that contain non-ASCII bytes or the letters `k` and `s`, because Unicode case folding matches those against characters such as the Kelvin sign. Greph keeps the literals of at least three bytes and uses up to the three longest. The trigram postings of those literals are intersected, smallest list first, and the search stops early when the intersection is empty. Candidate files are then searched with the plain text engine, so the matches, line numbers and context lines are identical to [plain text search](/docs/modes/text).
 
 ### Query cache
 
@@ -262,8 +262,9 @@ The query cache is skipped for inverted matches, context lines (`-A`, `-B`, `-C`
 
 Some summary queries skip the full text engine:
 
-- A fixed-string search with `-c`, `-l`, `-L` or `-q` (and no `-w`, `-v` or context) reads each candidate file once and checks or counts matching lines with `strpos()` instead of building match objects.
-- Whole-word fixed-string `-l`, `-L` and `-q` are answered directly from the case-folded word postings without reopening the candidate files.
+- A fixed-string search with `-c`, `-l`, `-L` or `-q` (and no `-w`, `-v` or context) reads each candidate file once and checks or counts matching lines with `strpos()` (`stripos()` with `-i`) instead of building match objects.
+
+Whole-word queries use the word postings only to choose candidates. Each candidate is searched, because the postings are case-folded and do not record Unicode word boundaries: `-w "Needle"` must not report a file that only contains `needle`, and `-w -i "needle"` must not report `éneedle`.
 
 ## Planner diagnostics
 
@@ -291,7 +292,6 @@ Some summary queries skip the full text engine:
     },
     "plan": {
         "direct_summary": false,
-        "direct_word_summary": false,
         "candidate_source": "trigram-postings",
         "whole_word_token": null,
         "seeds": [

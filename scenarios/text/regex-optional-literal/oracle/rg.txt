@@ -1,0 +1,3 @@
+setup/spelling.txt:1:color x
+setup/spelling.txt:2:colour 7x
+setup/spelling.txt:3:colour 42x

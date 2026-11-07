@@ -39,6 +39,60 @@ final class TextSearcherTest extends TestCase
     }
 
     #[Test]
+    public function itNeverPrefiltersAwayLinesTheRegexMatches(): void
+    {
+        Workspace::writeFile($this->workspace, 'prefilter/alpha.txt', "function alpha()\n");
+        Workspace::writeFile($this->workspace, 'prefilter/nothing.txt', "echo nothing\n");
+        Workspace::writeFile($this->workspace, 'prefilter/color.txt', "color\n");
+        Workspace::writeFile($this->workspace, 'prefilter/digits.txt', "n 456\n");
+        Workspace::writeFile($this->workspace, 'prefilter/upper.txt', "PLAIN\n");
+        Workspace::writeFile($this->workspace, 'prefilter/kelvin.txt', "\u{212A}elvin scale\n");
+        $searcher = new TextSearcher();
+        $directory = $this->workspace . '/prefilter';
+        $files = new FileList([
+            $directory . '/alpha.txt',
+            $directory . '/nothing.txt',
+            $directory . '/color.txt',
+            $directory . '/digits.txt',
+            $directory . '/upper.txt',
+            $directory . '/kelvin.txt',
+        ]);
+        $matchedFiles = static function (array $results): array {
+            $names = [];
+
+            foreach ($results as $result) {
+                if ($result instanceof TextFileResult && $result->hasMatches()) {
+                    $names[] = basename($result->file);
+                }
+            }
+
+            sort($names);
+
+            return $names;
+        };
+
+        $this->assertSame(
+            ['alpha.txt', 'nothing.txt'],
+            $matchedFiles($searcher->searchFiles($files, 'alpha|nothing', new TextSearchOptions())),
+        );
+        $this->assertSame(
+            ['alpha.txt', 'nothing.txt'],
+            $matchedFiles($searcher->searchFiles($files, '(alpha|nothing)', new TextSearchOptions())),
+        );
+        $this->assertSame(['color.txt'], $matchedFiles($searcher->searchFiles($files, 'colou?r', new TextSearchOptions())));
+        $this->assertSame(['digits.txt'], $matchedFiles($searcher->searchFiles($files, '\d{3}', new TextSearchOptions())));
+        $this->assertSame(['upper.txt'], $matchedFiles($searcher->searchFiles($files, '(?i)plain', new TextSearchOptions())));
+        $this->assertSame(
+            ['kelvin.txt'],
+            $matchedFiles($searcher->searchFiles($files, 'kelvin\s', new TextSearchOptions(caseInsensitive: true))),
+        );
+        $this->assertSame(
+            ['kelvin.txt'],
+            $matchedFiles($searcher->searchFiles($files, 'kelvin', new TextSearchOptions(caseInsensitive: true))),
+        );
+    }
+
+    #[Test]
     public function itSortsWithoutAnExplicitOrder(): void
     {
         $searcher = new TextSearcher();

@@ -1,0 +1,2 @@
+setup/branches.php:3:function alpha(): string
+setup/branches.php:8:echo 'nothing';

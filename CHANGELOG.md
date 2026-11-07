@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.3.2] - 2026-11-07
+
+### Fixed
+- Regex literal prefilters in text search, indexed text search, and the `rg` wrapper only use literals that every match must contain. Alternations (`alpha|nothing`), optional characters (`colou?r`), zero-minimum repeats (`x{0,2}`), and brace quantifiers (`\d{3}`) no longer drop matching lines. Inline flags, backreferences, `\Q...\E`, and other unmodelled constructs disable the prefilter, and case-insensitive searches skip literals that Unicode case folding can match differently.
+- Indexed whole-word `-l`, `-L`, and `-q` searches verify each candidate file instead of answering from case-folded word postings, so case-sensitive queries and Unicode word boundaries are honoured. The `direct_word_summary` field is removed from `--trace-plan` output.
+- Indexed query cache keys include a result version, so results cached by earlier releases are not reused.
+
+### Added
+- Oracle scenarios `text/regex-alternation` and `text/regex-optional-literal`, checked against ripgrep.
+
 ## [0.3.1] - 2026-11-07
 
 ### Fixed

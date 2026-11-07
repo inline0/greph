@@ -17,6 +17,8 @@ final class TextQueryCacheStore
 
     private const LEGACY_EXTENSION = '.phpbin.gz';
 
+    private const RESULT_SEMANTICS = 2;
+
     private TextResultCodec $codec;
 
     public function __construct(?TextResultCodec $codec = null)
@@ -135,6 +137,7 @@ final class TextQueryCacheStore
     private function cachePath(string $indexPath, string $pattern, TextSearchOptions $options): string
     {
         $key = sha1(json_encode([
+            'semantics' => self::RESULT_SEMANTICS,
             'pattern' => $pattern,
             'fixed' => $options->fixedString,
             'case_insensitive' => $options->caseInsensitive,

@@ -132,6 +132,97 @@ final class IndexedTextSearcherTest extends TestCase
     }
 
     #[Test]
+    public function itVerifiesCaseSensitiveWholeWordSummariesAgainstFileContents(): void
+    {
+        Workspace::writeFile($this->workspace, 'src/Lower.php', "<?php\n\$value = 'needle';\n");
+        Workspace::writeFile($this->workspace, 'src/Upper.php', "<?php\n\$value = 'Needle';\n");
+        Workspace::writeFile($this->workspace, 'src/Accent.php', "<?php\n\$value = 'éneedle';\n");
+        Greph::refreshTextIndex($this->workspace);
+
+        $matchingFiles = static function (array $results): array {
+            $files = [];
+
+            foreach ($results as $result) {
+                if ($result instanceof TextFileResult && $result->hasMatches()) {
+                    $files[] = basename($result->file);
+                }
+            }
+
+            sort($files);
+
+            return $files;
+        };
+
+        $caseSensitive = $this->searcher->search(
+            'Needle',
+            $this->workspace,
+            new TextSearchOptions(fixedString: true, wholeWord: true, filesWithMatches: true),
+        );
+        $caseSensitiveQuiet = $this->searcher->search(
+            'NEEDLE',
+            $this->workspace,
+            new TextSearchOptions(fixedString: true, wholeWord: true, quiet: true),
+        );
+        $caseInsensitive = $this->searcher->search(
+            'NEEDLE',
+            $this->workspace,
+            new TextSearchOptions(fixedString: true, caseInsensitive: true, wholeWord: true, filesWithMatches: true),
+        );
+        $plan = $this->searcher->plan(
+            'Needle',
+            $this->workspace,
+            new TextSearchOptions(fixedString: true, wholeWord: true, filesWithMatches: true),
+        );
+
+        $this->assertSame(['Upper.php'], $matchingFiles($caseSensitive));
+        $this->assertSame([], $matchingFiles($caseSensitiveQuiet));
+        $this->assertSame(['Lower.php', 'Upper.php'], $matchingFiles($caseInsensitive));
+        $this->assertSame($matchingFiles(Greph::searchText(
+            'NEEDLE',
+            $this->workspace,
+            new TextSearchOptions(fixedString: true, caseInsensitive: true, wholeWord: true, filesWithMatches: true),
+        )), $matchingFiles($caseInsensitive));
+        $this->assertIsArray($plan['plan']);
+        $this->assertSame('word-postings', $plan['plan']['candidate_source']);
+        $this->assertArrayNotHasKey('direct_word_summary', $plan['plan']);
+    }
+
+    #[Test]
+    public function itKeepsEveryAlternationBranchInIndexedRegexSearch(): void
+    {
+        Workspace::writeFile($this->workspace, 'src/Branches.php', "<?php\n\$first = 'apple';\n\$second = 'banana';\n");
+        Greph::refreshTextIndex($this->workspace);
+
+        $indexed = $this->searcher->search('apple|banana', $this->workspace, new TextSearchOptions());
+        $grouped = $this->searcher->search('= \'(apple|banana)\'', $this->workspace, new TextSearchOptions());
+        $plan = $this->searcher->plan('apple|banana', $this->workspace, new TextSearchOptions());
+        $groupedPlan = $this->searcher->plan('= \'(apple|banana)\';', $this->workspace, new TextSearchOptions());
+
+        $lines = static function (array $results): array {
+            $lines = [];
+
+            foreach ($results as $result) {
+                if (!$result instanceof TextFileResult) {
+                    continue;
+                }
+
+                foreach ($result->matches as $match) {
+                    $lines[] = $match->line;
+                }
+            }
+
+            return $lines;
+        };
+
+        $this->assertSame([2, 3], $lines($indexed));
+        $this->assertSame([2, 3], $lines($grouped));
+        $this->assertIsArray($plan['plan']);
+        $this->assertSame('full-scan', $plan['plan']['candidate_source']);
+        $this->assertIsArray($groupedPlan['plan']);
+        $this->assertSame(["= '"], $groupedPlan['plan']['seeds']);
+    }
+
+    #[Test]
     public function itRejectsMissingPathsAndMissingIndexes(): void
     {
         try {
@@ -294,7 +385,7 @@ final class IndexedTextSearcherTest extends TestCase
             null,
         );
 
-        $this->assertSame(['barbaz'], $querySeeds);
+        $this->assertSame([], $querySeeds);
         $this->assertSame([], $shortFixedSeeds);
         $this->assertSame([], $candidateIdsWithoutTrigrams);
         $this->assertArrayHasKey($appFileId, $candidateIdsWithTrigrams);

@@ -1,0 +1,18 @@
+{
+    "name": "regex-alternation",
+    "category": "text",
+    "description": "Regex alternation matches lines from every branch",
+    "pattern": "alpha|nothing",
+    "flags": [],
+    "path": "setup",
+    "expectations": {
+        "grep": "skip",
+        "rg": "exact",
+        "rg_json": "semantic"
+    },
+    "oracle_disagreement": {
+        "grep_vs_rg": "grep reads the pattern as a basic regex, where | is a literal character",
+        "greph_follows": "rg",
+        "reason": "Greph patterns are PCRE2 regexes, which treat | as alternation like ripgrep"
+    }
+}
