@@ -1,9 +1,13 @@
 # Changelog
 
-## [Unreleased]
+## [0.3.1] - 2026-11-07
 
 ### Fixed
 - Compare filesystem-sensitive grep traversal order with native grep on the same temporary workspace, keeping exact output assertions and committed semantic oracles intact across macOS and Linux CI.
+
+### Changed
+- The docs introduction now gives an overview of every mode with its command and facade method, a minimal example with real output, and a map of the documentation sections.
+- Indexed Text Search explains when the index beats plain text search, how queries are planned, the query cache, direct summaries, and how stale `manual-refresh` indexes miss new and edited files. It also corrects the refresh, build and identifier postings descriptions to match the implementation.
 
 ## [0.3.0] - 2026-10-15
 
