@@ -12,6 +12,10 @@ final class LiteralSearcher implements TextMatcher
 
     private bool $asciiWholeWordCandidate = false;
 
+    private bool $asciiNeedle;
+
+    private ?string $unicodeFoldRegex = null;
+
     public function __construct(
         private readonly string $needle,
         private readonly bool $caseInsensitive = false,
@@ -26,12 +30,36 @@ final class LiteralSearcher implements TextMatcher
             $modifiers = $this->caseInsensitive ? 'iu' : 'u';
             $this->wholeWordRegex = '#' . $pattern . '#' . $modifiers;
         }
+
+        $this->asciiNeedle = preg_match('/^[\x00-\x7F]*$/', $this->needle) === 1;
+
+        if ($this->caseInsensitive && $this->needle !== '' && !LiteralExtractor::isAsciiCaseFoldSafe($this->needle)) {
+            $regex = $this->wholeWordRegex ?? '#' . preg_quote($this->needle, '#') . '#iu';
+            $this->unicodeFoldRegex = @preg_match($regex, '') === false ? null : $regex;
+        }
+    }
+
+    public function requiresUnicodeCaseFolding(string $contents): bool
+    {
+        if ($this->unicodeFoldRegex === null) {
+            return false;
+        }
+
+        if (!$this->asciiNeedle) {
+            return true;
+        }
+
+        return str_contains($contents, "\u{212A}") || str_contains($contents, "\u{017F}");
     }
 
     public function mayMatchContents(string $contents): bool
     {
         if ($this->needle === '') {
             return true;
+        }
+
+        if ($this->unicodeFoldRegex !== null && $this->requiresUnicodeCaseFolding($contents)) {
+            return @preg_match($this->unicodeFoldRegex, $contents) !== 0;
         }
 
         if ($this->supportsWholeWordOccurrenceScanForContents($contents)) {
@@ -43,8 +71,24 @@ final class LiteralSearcher implements TextMatcher
 
     public function match(string $line): ?LineMatch
     {
-        if ($this->needle === '') {
+        if ($this->needle === '' && !$this->wholeWord) {
             return new LineMatch(1, '');
+        }
+
+        if ($this->unicodeFoldRegex !== null && $this->requiresUnicodeCaseFolding($line)) {
+            $matches = [];
+            $matched = @preg_match($this->unicodeFoldRegex, $line, $matches, PREG_OFFSET_CAPTURE);
+
+            if ($matched === 0) {
+                return null;
+            }
+
+            if ($matched === 1) {
+                /** @var array{0: string, 1: int<0, max>} $match */
+                $match = $matches[0];
+
+                return new LineMatch($match[1] + 1, $match[0]);
+            }
         }
 
         if ($this->caseInsensitive && !$this->wholeWord) {

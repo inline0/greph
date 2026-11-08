@@ -209,7 +209,7 @@ The AST cache stores parsed trees on disk so searches skip the parser entirely. 
 
 ### Options
 
-Text search options match the `greph` flag set (`-F`, `-i`, `-w`, `-v`, `-c`, `-l`, `-L`, `-A`, `-B`, `-C`, `-m`, `--glob`, `--type`, `--type-not`, `--json`, `--no-ignore`, `--hidden`).
+Text search options match the `greph` flag set except `-j` (`-F`, `-i`, `-w`, `-v`, `-c`, `-l`, `-L`, `-q`/`--quiet`, `-h`, `-H`, `-n`, `-A`, `-B`, `-C`, `-m`, `--glob`, `--type`, `--type-not`, `--json`, `--no-ignore`, `--hidden`).
 
 Additional flags:
 

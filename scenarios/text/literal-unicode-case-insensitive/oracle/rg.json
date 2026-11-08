@@ -1,0 +1,23 @@
+[
+    {
+        "file": "setup/menu.txt",
+        "line": 1,
+        "column": 1,
+        "content": "CAF\u00c9 menu",
+        "matched_text": "CAF\u00c9"
+    },
+    {
+        "file": "setup/menu.txt",
+        "line": 2,
+        "column": 1,
+        "content": "Caf\u00e9 au lait",
+        "matched_text": "Caf\u00e9"
+    },
+    {
+        "file": "setup/menu.txt",
+        "line": 4,
+        "column": 5,
+        "content": "the caf\u00e9 is open",
+        "matched_text": "caf\u00e9"
+    }
+]

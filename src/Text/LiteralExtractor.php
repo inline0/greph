@@ -82,6 +82,16 @@ final class LiteralExtractor
     }
 
     /**
+     * @return list<string>
+     */
+    public static function asciiCaseFoldSafePieces(string $literal): array
+    {
+        preg_match_all('/(?:(?![ksKS])[\x00-\x7F])+/', $literal, $matches);
+
+        return $matches[0];
+    }
+
+    /**
      * @return list<string>|null
      */
     private function requiredSegments(string $pattern, int &$position, bool $inGroup): ?array

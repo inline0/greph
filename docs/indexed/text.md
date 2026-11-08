@@ -113,7 +113,7 @@ Every profile except `static` re-walks the tree and compares sizes and mtimes be
 
 The `opportunistic-refresh` thresholds default to 32 changed files and 1,048,576 changed bytes (`--auto-refresh-max-files`, `--auto-refresh-max-bytes`). Added, updated and deleted files all count toward the file limit, and their sizes toward the byte limit. When either limit is exceeded, the search uses the stored index as-is, like `manual-refresh`.
 
-A stale index can miss matches. Files added after the last build or refresh are not in the file list, so indexed search does not read them. A file edited to contain the pattern is still filtered by its old postings and is skipped. A file edited to remove the pattern is re-read during verification, so stale data never produces a match that is not in the file. If you cannot afford missed matches, use `strict-stale-check`, refresh before searching, or use plain text search.
+A stale index can miss matches. Files added after the last build or refresh are not in the file list, so indexed search does not read them. A file edited to contain the pattern is still filtered by its old postings and is skipped. A file edited to remove the pattern is re-read during verification, and the [query cache](#query-cache) is neither read nor written while the freshness check reports the index stale, so these lifecycles never report a line that is no longer in the file. A `static` index skips the freshness check, so after an edit it can replay a cached result for a repeated identical query, including lines that were since deleted, until the next refresh or build. If you cannot afford missed matches, use `strict-stale-check`, refresh before searching, or use plain text search.
 
 For example, with a `manual-refresh` index built over `src/a.php`, `src/b.php` and `src/c.php`, adding `src/d.php` with `new Logger()` and editing `src/c.php` to contain `new Baz()` leaves the indexed search unchanged:
 
@@ -166,6 +166,9 @@ After `greph-index refresh .` the same search returns all four matches.
 # Files only
 ./vendor/bin/greph-index search -F -l "function" .
 
+# Existence check: no output, exit 0 on a match and 1 otherwise
+./vendor/bin/greph-index search -q -F "function" .
+
 # Multi-index search
 ./vendor/bin/greph-index search -F "apply_filters" . \
   --index-dir wordpress/.greph-index \
@@ -182,7 +185,7 @@ After `greph-index refresh .` the same search returns all four matches.
 ./vendor/bin/greph-index search --trace-plan -F "function" .
 ```
 
-The flag set is the same as native text search. See the [CLI reference](/docs/cli#greph-index) for the full list.
+The text flags are the same as native text search, including `-q`/`--quiet`, except `-j`: indexed search verifies candidates in one process. See the [CLI reference](/docs/cli#greph-index) for the full list.
 
 The path argument selects which indexed files to search. A directory under the index root narrows the search to that subtree. Paths outside the index root, and explicitly named files that the index does not hold, are searched directly with the plain engine and merged into the result.
 
@@ -245,16 +248,18 @@ When a query arrives, Greph selects the indexed files under the requested paths,
 
 | Candidate source | When | Files read |
 |---|---|---|
-| `word-postings` | `-F -w` with a pattern made only of `[A-Za-z0-9_]` | Files whose word set contains the lowercased pattern |
-| `trigram-postings` | A fixed string of at least three bytes, or a regex with literal runs of at least three bytes | Files that contain every trigram of the selected literals |
+| `word-postings` | `-F -w` with a pattern made only of `[A-Za-z0-9_]` (with `-i`, also without `k` or `s`) | Files whose word set contains the lowercased pattern |
+| `trigram-postings` | A fixed string with a usable run of at least three bytes, or a regex with literal runs of at least three bytes | Files that contain every trigram of the selected literals |
 | `invert-scan` | `-v` | Every selected file |
 | `full-scan` | No usable literal (for example `-F "wp"`, `foo\|bar` or `[a-z]+\(`) | Every selected file |
 
-For regex patterns Greph extracts only the literal runs that every match must contain. A character followed by `?`, `*` or a repeat with a minimum of zero is not required. A group adds its literals only when it is not optional and has no alternation inside, so `= '(apple|banana)'` still requires `= '`. A top-level alternation such as `apple|banana` requires no literal and falls back to `full-scan`, as do inline flags like `(?i)`, backreferences and `\Q...\E`. Case-insensitive regex searches drop literals that contain non-ASCII bytes or the letters `k` and `s`, because Unicode case folding matches those against characters such as the Kelvin sign. Greph keeps the literals of at least three bytes and uses up to the three longest. The trigram postings of those literals are intersected, smallest list first, and the search stops early when the intersection is empty. Candidate files are then searched with the plain text engine, so the matches, line numbers and context lines are identical to [plain text search](/docs/modes/text).
+For regex patterns Greph extracts only the literal runs that every match must contain. A character followed by `?`, `*` or a repeat with a minimum of zero is not required. A group adds its literals only when it is not optional and has no alternation inside, so `= '(apple|banana)'` still requires `= '`. A top-level alternation such as `apple|banana` requires no literal and falls back to `full-scan`, as do inline flags like `(?i)`, backreferences and `\Q...\E`. Case-insensitive regex searches drop literals that contain non-ASCII bytes or the letters `k` and `s`, because Unicode case folding matches those against characters such as the Kelvin sign. Case-insensitive fixed strings are split at the same characters, and the runs between them become the seeds, so `-F -i café` seeds on `caf` and `-F -i -w kelvin` seeds on `elvin`. Greph keeps the literals of at least three bytes and uses up to the three longest. The trigram postings of those literals are intersected, smallest list first, and the search stops early when the intersection is empty. Candidate files are then searched with the plain text engine, so the matches, line numbers and context lines are identical to [plain text search](/docs/modes/text).
 
 ### Query cache
 
-Indexed search also stores complete results for repeated identical queries in `<index>/queries/`. A cached result is written when the search path is the index root itself and is reused for the same pattern and options when the search path is the root or a directory under it. Entries written for an earlier build or refresh are ignored.
+Indexed search also stores complete results for repeated identical queries in `<index>/queries/`. A cached result is written when the search path is the index root itself and is reused for the same pattern and options when the search path is the root or a directory under it. Entries written for an earlier build or refresh are ignored, and so are entries written by a release with different result semantics.
+
+The cache is neither read nor written while the freshness check reports the index stale, which happens under `manual-refresh`, and under `opportunistic-refresh` when the changes exceed its thresholds. Such a search reads the candidate files as they are on disk. A `static` index skips the freshness check, so it keeps answering repeated queries from the cache until the next refresh or build.
 
 The query cache is skipped for inverted matches, context lines (`-A`, `-B`, `-C`), a per-file match limit (`-m`), explicitly named files, paths outside the index root and any walker override: hidden files, disabled ignore rules, followed symlinks, binary files, type and glob filters, or a non-default maximum file size.
 
@@ -262,7 +267,7 @@ The query cache is skipped for inverted matches, context lines (`-A`, `-B`, `-C`
 
 Some summary queries skip the full text engine:
 
-- A fixed-string search with `-c`, `-l`, `-L` or `-q` (and no `-w`, `-v` or context) reads each candidate file once and checks or counts matching lines with `strpos()` (`stripos()` with `-i`) instead of building match objects.
+- A fixed-string search with `-c`, `-l`, `-L` or `-q` (and no `-w`, `-v` or context) reads each candidate file once and checks or counts matching lines with `strpos()` (`stripos()` with `-i`) instead of building match objects. With `-i`, a pattern that contains non-ASCII bytes, or `k` or `s` in a file that holds the Kelvin sign or the long s, is matched with Unicode case folding instead.
 
 Whole-word queries use the word postings only to choose candidates. Each candidate is searched, because the postings are case-folded and do not record Unicode word boundaries: `-w "Needle"` must not report a file that only contains `needle`, and `-w -i "needle"` must not report `éneedle`.
 

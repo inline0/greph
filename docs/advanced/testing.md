@@ -59,7 +59,7 @@ composer verify
 
 `composer test:upstream` runs the PHPUnit `upstream` suite in `tests/Oracle/`. It builds repositories with `.gitignore` rules, a global excludes file and several search roots, then compares `rg --files` from the installed ripgrep with Greph's `rg` wrapper for each combination. It needs ripgrep 15.2.0 on the `PATH` and fails when another version is installed, because ignore handling changes between ripgrep releases. CI installs that version from the upstream release archive after checking its SHA-256 checksum.
 
-`composer test:coverage` reports line coverage for `src/` over the unit and integration suites. With Xdebug instead of pcov, run `XDEBUG_MODE=coverage vendor/bin/phpunit --coverage-text`. Code that runs in forked parallel workers or in child processes started by the integration tests is not counted, so the figure understates what the suites exercise. At 0.3.3 it measures 91.25% of lines with Xdebug.
+`composer test:coverage` reports line coverage for `src/` over the unit and integration suites. With Xdebug instead of pcov, run `XDEBUG_MODE=coverage vendor/bin/phpunit --coverage-text`. Code that runs in forked parallel workers or in child processes started by the integration tests is not counted, so the figure understates what the suites exercise. At 0.3.4 it measures 91.34% of lines with Xdebug.
 
 ## The oracle model
 

@@ -93,6 +93,113 @@ final class TextSearcherTest extends TestCase
     }
 
     #[Test]
+    public function itKeepsScanningFileListsPastPrefilterLinesThatDoNotMatch(): void
+    {
+        Workspace::writeFile($this->workspace, 'file-list/logger.php', "<?php\nuse App\\Logger;\n\$x = new Logger();\n");
+        Workspace::writeFile($this->workspace, 'file-list/import.php', "<?php\nuse App\\Logger;\n");
+        $searcher = new TextSearcher();
+        $logger = $this->workspace . '/file-list/logger.php';
+        $import = $this->workspace . '/file-list/import.php';
+        $files = new FileList([$logger, $import]);
+        $hasMatches = static function (array $results): array {
+            $flags = [];
+
+            foreach ($results as $result) {
+                if ($result instanceof TextFileResult) {
+                    $flags[basename($result->file)] = $result->hasMatches();
+                }
+            }
+
+            return $flags;
+        };
+
+        foreach (['new\s+Logger', 'new *Logger', 'new Logger\(\)'] as $pattern) {
+            $this->assertSame(
+                ['logger.php' => true, 'import.php' => false],
+                $hasMatches($searcher->searchFiles($files, $pattern, new TextSearchOptions(filesWithMatches: true))),
+                $pattern,
+            );
+            $this->assertSame(
+                ['logger.php' => true, 'import.php' => false],
+                $hasMatches($searcher->searchFiles($files, $pattern, new TextSearchOptions(filesWithoutMatches: true))),
+                $pattern,
+            );
+            $this->assertSame(
+                ['logger.php' => true],
+                $hasMatches($searcher->searchFiles($files, $pattern, new TextSearchOptions(quiet: true))),
+                $pattern,
+            );
+        }
+    }
+
+    #[Test]
+    public function itFoldsUnicodeCaseForFixedStrings(): void
+    {
+        Workspace::writeFile($this->workspace, 'fold/upper.txt', "CAFÉ menu\n");
+        Workspace::writeFile($this->workspace, 'fold/kelvin.txt', "\u{212A}elvin scale\n");
+        Workspace::writeFile($this->workspace, 'fold/long-s.txt', "\u{017F}tar light\n");
+        Workspace::writeFile($this->workspace, 'fold/plain.txt', "kelvin star cafe\n");
+        $searcher = new TextSearcher();
+        $directory = $this->workspace . '/fold';
+        $files = new FileList([
+            $directory . '/upper.txt',
+            $directory . '/kelvin.txt',
+            $directory . '/long-s.txt',
+            $directory . '/plain.txt',
+        ]);
+        $matchedFiles = static function (array $results): array {
+            $names = [];
+
+            foreach ($results as $result) {
+                if ($result instanceof TextFileResult && $result->hasMatches()) {
+                    $names[] = basename($result->file);
+                }
+            }
+
+            sort($names);
+
+            return $names;
+        };
+        $cases = [
+            'café' => ['upper.txt'],
+            'kelvin' => ['kelvin.txt', 'plain.txt'],
+            'STAR' => ['long-s.txt', 'plain.txt'],
+        ];
+
+        foreach ($cases as $needle => $expected) {
+            foreach ([false, true] as $wholeWord) {
+                $variants = [
+                    'lines' => new TextSearchOptions(fixedString: true, caseInsensitive: true, wholeWord: $wholeWord),
+                    'files' => new TextSearchOptions(fixedString: true, caseInsensitive: true, wholeWord: $wholeWord, filesWithMatches: true),
+                    'count' => new TextSearchOptions(fixedString: true, caseInsensitive: true, wholeWord: $wholeWord, countOnly: true),
+                    'context' => new TextSearchOptions(fixedString: true, caseInsensitive: true, wholeWord: $wholeWord, beforeContext: 1),
+                ];
+
+                foreach ($variants as $variant => $options) {
+                    $this->assertSame(
+                        $expected,
+                        $matchedFiles($searcher->searchFiles($files, $needle, $options)),
+                        sprintf('%s %s %s', $needle, $wholeWord ? '-w' : '', $variant),
+                    );
+                }
+            }
+        }
+
+        $results = $searcher->searchFiles(
+            new FileList([$directory . '/kelvin.txt']),
+            'KELVIN',
+            new TextSearchOptions(fixedString: true, caseInsensitive: true),
+        );
+
+        $this->assertSame(1, $results[0]->matches[0]->column);
+        $this->assertSame("\u{212A}elvin", $results[0]->matches[0]->matchedText);
+        $this->assertSame(
+            [],
+            $matchedFiles($searcher->searchFiles($files, 'café', new TextSearchOptions(fixedString: true))),
+        );
+    }
+
+    #[Test]
     public function itSortsWithoutAnExplicitOrder(): void
     {
         $searcher = new TextSearcher();

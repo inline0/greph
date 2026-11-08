@@ -235,6 +235,7 @@ final class TextSearcher
         if (
             $matcher instanceof LiteralSearcher
             && !$options->invertMatch
+            && !$matcher->requiresUnicodeCaseFolding($contents)
             && ($matcher->supportsOccurrenceScan() || $matcher->supportsWholeWordOccurrenceScanForContents($contents))
         ) {
             return $this->searchContentsByLiteral($file, $contents, $matcher, $options);
@@ -566,11 +567,11 @@ final class TextSearcher
             if ($lineMatch !== null) {
                 $foundCount++;
 
-                if ($options->quiet) {
+                if ($options->quiet || $options->filesWithMatches || $options->filesWithoutMatches) {
                     break;
                 }
 
-                if (!$options->countOnly && !$options->filesWithMatches && !$options->filesWithoutMatches) {
+                if (!$options->countOnly) {
                     $matches[] = new TextMatch(
                         file: $file,
                         line: $lineNumber,
@@ -583,9 +584,7 @@ final class TextSearcher
             }
 
             if (
-                $options->filesWithMatches
-                || $options->filesWithoutMatches
-                || ($options->maxCount !== null && $foundCount >= $options->maxCount)
+                ($options->maxCount !== null && $foundCount >= $options->maxCount)
                 || $lineEnd === false
             ) {
                 break;

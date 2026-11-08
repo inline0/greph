@@ -1,0 +1,2 @@
+setup/colors.css:1:.a { color #fff; }
+setup/colors.css:4:.d { color #ff0000; }

@@ -1,0 +1,15 @@
+{
+    "name": "regex-files-without-match",
+    "category": "text",
+    "description": "Files-without-match does not list a file whose first prefilter literal line fails to match",
+    "pattern": "new *Logger",
+    "flags": [
+        "-L"
+    ],
+    "path": "setup",
+    "expectations": {
+        "grep": "exact",
+        "rg": "exact",
+        "rg_json": "skip"
+    }
+}

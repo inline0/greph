@@ -1,0 +1,3 @@
+setup/menu.txt:1:CAFÉ menu
+setup/menu.txt:2:Café au lait
+setup/menu.txt:4:the café is open

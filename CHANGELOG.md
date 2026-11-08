@@ -1,5 +1,21 @@
 # Changelog
 
+## [0.3.4] - 2026-11-08
+
+### Fixed
+- Regex `-l` and `-L` searches no longer stop at the first line that contains the prefilter literal. A file with `use App\Logger;` before `$x = new Logger();` was missing from `greph -l 'new\s+Logger'` and listed by `-L`. This affected plain text search, the `rg` wrapper, `Greph::searchText()` and indexed search. Correction to the 0.3.2 entry: its prefilter fix did not cover these file-list modes.
+- Case-insensitive fixed-string search (`-F -i`) folds case with Unicode rules like ripgrep and greph's own regex `-i`, in plain, whole-word (`-w`), `rg` wrapper and indexed search. `-F -i café` now matches `CAFÉ`, and `-F -i kelvin` matches the Kelvin sign. ASCII patterns keep the `stripos()` path unless a file contains the Kelvin sign or the long s.
+- Indexed case-insensitive fixed strings seed the trigram lookup only with the runs between non-ASCII bytes and the letters `k` and `s`, and `-F -i -w` skips word postings for patterns with `k` or `s`, so those candidates are no longer dropped.
+- Indexed search neither reads nor writes the query cache while the freshness check reports the index stale, so a repeated query on a stale `manual-refresh` index no longer returns lines deleted from disk. Correction to the 0.3.1 docs, which said stale data never produces such a match: it did through the query cache. The docs now describe the `static` profile, which skips the check and keeps serving cached results until the next refresh or build.
+- Query cache keys use a new result version, so cached `-l`, `-L` and `-F -i` results from earlier releases are not reused.
+- Regex patterns that contain `#` are wrapped with a delimiter the pattern does not use, so `r\s\#f+` and `(?#comment)foo` search instead of failing with "Invalid regex pattern".
+- `greph-index search` and `greph-index set search` accept `-q` and `--quiet`, which print nothing and answer with the exit code like native `greph -q`. The 0.3.1 docs and the 0.3.2 entry described indexed `-q`, but the CLI rejected it.
+- An empty pattern argument (`greph -c '' .`, `greph-index search ''`) no longer prints an "Uninitialized string offset" warning before the results. With `-w`, an empty pattern matches only lines with a position between two non-word characters, like ripgrep, instead of every line.
+- The oracle harness passes `--files-without-match` to ripgrep for `-L` scenarios; ripgrep reads `-L` as `--follow`.
+
+### Added
+- Oracle scenarios `text/regex-files-with-matches`, `text/regex-files-without-match`, `text/literal-unicode-case-insensitive`, `text/literal-kelvin-whole-word` and `text/regex-escaped-hash`, checked against ripgrep and, for the file-list modes, grep.
+
 ## [0.3.3] - 2026-11-07
 
 ### Added

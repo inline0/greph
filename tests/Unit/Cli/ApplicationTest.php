@@ -123,6 +123,17 @@ PHP);
     }
 
     #[Test]
+    public function itAcceptsAnEmptyPatternLikeRipgrep(): void
+    {
+        $harness = $this->newApplication();
+        $exitCode = $harness['application']->run(['greph', '-c', '', 'single.txt']);
+
+        $this->assertSame(0, $exitCode);
+        $this->assertSame("2\n", $this->readStream($harness['stdout']));
+        $this->assertSame('', $this->readStream($harness['stderr']));
+    }
+
+    #[Test]
     public function itParsesHelpDefaultPathsAndDoubleDash(): void
     {
         $application = $this->newApplication()['application'];

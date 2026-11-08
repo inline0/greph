@@ -72,6 +72,32 @@ final class RegexSearcherTest extends TestCase
     }
 
     #[Test]
+    public function itAcceptsPatternsThatContainTheDefaultDelimiter(): void
+    {
+        $cases = [
+            'r\s\#f+' => 'color #fff',
+            '(?#comment)foo' => 'a foo b',
+            'f(?#x)oo' => 'a foo b',
+            'a#b' => 'a#b',
+            '\\\\#' => 'path\\#',
+            '[#]x' => '#x',
+            '(?x) a \# b # trailing comment' => 'a#b',
+            "#~/%!@;,`=x" => "#~/%!@;,`=x",
+            "a#~/%!@;,`=\x01\x02\x03\x04\x05\x06\x07\x08\x0E\x0F\x7F\\#" => "a#~/%!@;,`=\x01\x02\x03\x04\x05\x06\x07\x08\x0E\x0F\x7F#",
+        ];
+
+        foreach ($cases as $pattern => $subject) {
+            $searcher = new RegexSearcher($pattern);
+
+            $this->assertNotNull($searcher->match($subject), $pattern);
+            $this->assertNull($searcher->match('unrelated'), $pattern);
+        }
+
+        $this->assertNotNull((new RegexSearcher('R\s\#F+', caseInsensitive: true))->match('color #fff'));
+        $this->assertNotNull((new RegexSearcher('\#fff', wholeWord: true))->match('a #fff b'));
+    }
+
+    #[Test]
     public function itCanSkipCaptureMaterializationForNonJsonPaths(): void
     {
         $searcher = new RegexSearcher('(save)', literalPrefilter: 'save');

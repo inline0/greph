@@ -199,7 +199,7 @@ final class OracleCapture
         }
 
         if ($flags['filesWithoutMatches']) {
-            $rgCommand[] = '-L';
+            $rgCommand[] = '--files-without-match';
         }
 
         if ($flags['maxCount'] !== null) {

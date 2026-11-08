@@ -1,0 +1,2 @@
+setup/kelvin.txt:1:Kelvin scale
+setup/kelvin.txt:2:KELVIN in caps

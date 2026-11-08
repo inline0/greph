@@ -1,0 +1,16 @@
+[
+    {
+        "file": "setup/colors.css",
+        "line": 1,
+        "column": 10,
+        "content": ".a { color #fff; }",
+        "matched_text": "r #fff"
+    },
+    {
+        "file": "setup/colors.css",
+        "line": 4,
+        "column": 10,
+        "content": ".d { color #ff0000; }",
+        "matched_text": "r #ff"
+    }
+]

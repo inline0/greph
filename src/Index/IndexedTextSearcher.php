@@ -7,6 +7,7 @@ namespace Greph\Index;
 use Greph\Greph;
 use Greph\Support\Filesystem;
 use Greph\Text\LiteralExtractor;
+use Greph\Text\LiteralSearcher;
 use Greph\Text\TextFileResult;
 use Greph\Text\TextSearchOptions;
 use Greph\Text\TextSearcher;
@@ -27,6 +28,11 @@ final class IndexedTextSearcher
     private TextIndexBuilder $builder;
 
     private IndexFreshnessInspector $freshnessInspector;
+
+    /**
+     * @var array<string, true>
+     */
+    private array $staleIndexPaths = [];
 
     public function __construct(
         ?TextSearcher $textSearcher = null,
@@ -223,7 +229,7 @@ final class IndexedTextSearcher
             }
         }
 
-        if ($this->canUseQueryCache($pattern, $options, $selection, $explicitSelections, $fallbackPaths)) {
+        if ($this->canUseQueryCache($pattern, $options, $selection, $explicitSelections, $fallbackPaths, $index)) {
             $cachedResults = $this->queryCacheStore->load($index, $pattern, $options);
 
             if ($cachedResults !== null) {
@@ -374,7 +380,7 @@ final class IndexedTextSearcher
                 'fallback_paths' => count($fallbackPaths),
             ],
             'cache' => [
-                'query_cache_eligible' => $this->canUseQueryCache($pattern, $options, $selection, $explicitSelections, $fallbackPaths),
+                'query_cache_eligible' => $this->canUseQueryCache($pattern, $options, $selection, $explicitSelections, $fallbackPaths, $index),
                 'query_cache_populate' => $this->canPopulateQueryCache($pattern, $options, $resolvedPaths, $explicitSelections, $fallbackPaths, $index),
             ],
             'plan' => [
@@ -404,6 +410,7 @@ final class IndexedTextSearcher
 
         $index = $this->store->load($indexPath);
         $lifecycle = $index->lifecycle;
+        unset($this->staleIndexPaths[$index->indexPath]);
 
         if (!$lifecycle->shouldInspectFreshness()) {
             return $index;
@@ -428,6 +435,8 @@ final class IndexedTextSearcher
 
             return $this->store->load($index->indexPath);
         }
+
+        $this->staleIndexPaths[$index->indexPath] = true;
 
         return $index;
     }
@@ -546,8 +555,9 @@ final class IndexedTextSearcher
         array $selection,
         array $explicitSelections,
         array $fallbackPaths,
+        TextIndex $index,
     ): bool {
-        if (!$this->supportsQueryCache($pattern, $options)) {
+        if (!$this->supportsQueryCache($pattern, $options, $index)) {
             return false;
         }
 
@@ -571,7 +581,7 @@ final class IndexedTextSearcher
         array $fallbackPaths,
         TextIndex $index,
     ): bool {
-        if (!$this->supportsQueryCache($pattern, $options)) {
+        if (!$this->supportsQueryCache($pattern, $options, $index)) {
             return false;
         }
 
@@ -582,9 +592,9 @@ final class IndexedTextSearcher
         return $resolvedPaths[0] === $index->rootPath;
     }
 
-    private function supportsQueryCache(string $pattern, TextSearchOptions $options): bool
+    private function supportsQueryCache(string $pattern, TextSearchOptions $options, TextIndex $index): bool
     {
-        if ($pattern === '' || $options->invertMatch) {
+        if ($pattern === '' || $options->invertMatch || isset($this->staleIndexPaths[$index->indexPath])) {
             return false;
         }
 
@@ -634,6 +644,7 @@ final class IndexedTextSearcher
     private function searchLiteralSummaryFiles(array $paths, string $pattern, TextSearchOptions $options): array
     {
         $results = [];
+        $matcher = new LiteralSearcher($pattern, $options->caseInsensitive);
 
         foreach ($paths as $path) {
             $contents = @file_get_contents($path);
@@ -647,12 +658,12 @@ final class IndexedTextSearcher
                 $results[] = new TextFileResult(
                     $path,
                     [],
-                    $this->countLiteralMatchingLines($contents, $pattern, $options->caseInsensitive, $options->maxCount),
+                    $this->countLiteralMatchingLines($contents, $matcher, $options->maxCount),
                 );
                 continue;
             }
 
-            $matched = $this->contentsContainLiteral($contents, $pattern, $options->caseInsensitive);
+            $matched = $this->contentsContainLiteral($contents, $matcher);
             $results[] = new TextFileResult($path, [], $matched ? 1 : 0);
         }
 
@@ -689,6 +700,8 @@ final class IndexedTextSearcher
             }
         }
 
+        $matcher = new LiteralSearcher($pattern, $options->caseInsensitive);
+
         foreach ([...$paths, ...$fallbackPaths] as $path) {
             $contents = @file_get_contents($path);
 
@@ -696,7 +709,7 @@ final class IndexedTextSearcher
                 continue;
             }
 
-            if ($this->contentsContainLiteral($contents, $pattern, $options->caseInsensitive)) {
+            if ($this->contentsContainLiteral($contents, $matcher)) {
                 return [new TextFileResult($path, [], 1)];
             }
         }
@@ -704,17 +717,18 @@ final class IndexedTextSearcher
         return [];
     }
 
-    private function contentsContainLiteral(string $contents, string $pattern, bool $caseInsensitive): bool
+    private function contentsContainLiteral(string $contents, LiteralSearcher $matcher): bool
     {
-        return $caseInsensitive
-            ? stripos($contents, $pattern) !== false
-            : strpos($contents, $pattern) !== false;
+        if ($matcher->requiresUnicodeCaseFolding($contents)) {
+            return $this->countLiteralMatchingLines($contents, $matcher, 1) > 0;
+        }
+
+        return $matcher->findInContents($contents) !== false;
     }
 
     private function countLiteralMatchingLines(
         string $contents,
-        string $pattern,
-        bool $caseInsensitive,
+        LiteralSearcher $matcher,
         ?int $maxCount,
     ): int {
         $count = 0;
@@ -732,12 +746,7 @@ final class IndexedTextSearcher
                 $offset = $newlinePosition + 1;
             }
 
-            $line = rtrim($rawLine, "\r");
-            $matched = $caseInsensitive
-                ? stripos($line, $pattern) !== false
-                : strpos($line, $pattern) !== false;
-
-            if (!$matched) {
+            if ($matcher->match(rtrim($rawLine, "\r")) === null) {
                 continue;
             }
 
@@ -865,7 +874,20 @@ final class IndexedTextSearcher
     private function querySeeds(string $pattern, TextSearchOptions $options): array
     {
         if ($options->fixedString) {
-            return strlen($pattern) >= 3 ? [$pattern] : [];
+            if (!$options->caseInsensitive || LiteralExtractor::isAsciiCaseFoldSafe($pattern)) {
+                return strlen($pattern) >= 3 ? [$pattern] : [];
+            }
+
+            $pieces = array_values(array_unique(array_filter(
+                LiteralExtractor::asciiCaseFoldSafePieces($pattern),
+                static fn (string $piece): bool => strlen($piece) >= 3,
+            )));
+            usort(
+                $pieces,
+                static fn (string $left, string $right): int => [strlen($right), $right] <=> [strlen($left), $left]
+            );
+
+            return array_slice($pieces, 0, 3);
         }
 
         $segments = $this->literalExtractor->extractSegments($pattern, $options->caseInsensitive);
@@ -881,6 +903,10 @@ final class IndexedTextSearcher
         }
 
         if (preg_match('/^[A-Za-z0-9_]+$/', $pattern) !== 1) {
+            return null;
+        }
+
+        if ($options->caseInsensitive && !LiteralExtractor::isAsciiCaseFoldSafe($pattern)) {
             return null;
         }
 

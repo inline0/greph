@@ -426,6 +426,7 @@ final class IndexApplication
              *   countOnly: bool,
              *   filesWithMatches: bool,
              *   filesWithoutMatches: bool,
+             *   quiet: bool,
              *   json: bool,
              *   noIgnore: bool,
              *   hidden: bool,
@@ -465,6 +466,7 @@ final class IndexApplication
                 countOnly: $search['countOnly'],
                 filesWithMatches: $search['filesWithMatches'],
                 filesWithoutMatches: $search['filesWithoutMatches'],
+                quiet: $search['quiet'],
                 jsonOutput: $search['json'],
                 collectCaptures: $search['json'],
                 tracePlan: $search['tracePlan'],
@@ -489,7 +491,7 @@ final class IndexApplication
                 $arguments['showIndexOrigin'] ? $entries : null,
             );
 
-            if ($search['json']) {
+            if ($search['json'] && !$search['quiet']) {
                 $payload = array_map(
                     static fn ($result): array => [
                         'file' => $result->file,
@@ -508,7 +510,7 @@ final class IndexApplication
                 );
 
                 $this->writeOutput(json_encode($payload, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES) . PHP_EOL);
-            } else {
+            } elseif (!$search['quiet']) {
                 $this->writeOutput($this->grepFormatter->format($displayResults, $options));
             }
 
@@ -817,6 +819,7 @@ final class IndexApplication
      *   countOnly: bool,
      *   filesWithMatches: bool,
      *   filesWithoutMatches: bool,
+     *   quiet: bool,
      *   json: bool,
      *   noIgnore: bool,
      *   hidden: bool,
@@ -858,6 +861,7 @@ final class IndexApplication
             countOnly: $arguments['countOnly'],
             filesWithMatches: $arguments['filesWithMatches'],
             filesWithoutMatches: $arguments['filesWithoutMatches'],
+            quiet: $arguments['quiet'],
             jsonOutput: $arguments['json'],
             collectCaptures: $arguments['json'],
             tracePlan: $arguments['tracePlan'],
@@ -891,7 +895,7 @@ final class IndexApplication
                 : null,
         );
 
-        if ($arguments['json']) {
+        if ($arguments['json'] && !$arguments['quiet']) {
             $payload = array_map(
                 static fn ($result): array => [
                     'file' => $result->file,
@@ -910,7 +914,7 @@ final class IndexApplication
             );
 
             $this->writeOutput(json_encode($payload, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES) . PHP_EOL);
-        } else {
+        } elseif (!$arguments['quiet']) {
             $this->writeOutput($this->grepFormatter->format($displayResults, $options));
         }
 
@@ -1102,7 +1106,7 @@ final class IndexApplication
                 continue;
             }
 
-            if ($argument[0] === '-') {
+            if (str_starts_with($argument, '-')) {
                 throw new \InvalidArgumentException(sprintf('Unknown argument: %s', $argument));
             }
 
@@ -1148,6 +1152,7 @@ final class IndexApplication
      *   countOnly: bool,
      *   filesWithMatches: bool,
      *   filesWithoutMatches: bool,
+     *   quiet: bool,
      *   json: bool,
      *   noIgnore: bool,
      *   hidden: bool,
@@ -1177,6 +1182,7 @@ final class IndexApplication
             'countOnly' => false,
             'filesWithMatches' => false,
             'filesWithoutMatches' => false,
+            'quiet' => false,
             'json' => false,
             'noIgnore' => false,
             'hidden' => false,
@@ -1204,7 +1210,7 @@ final class IndexApplication
                 break;
             }
 
-            if ($argument[0] !== '-') {
+            if (!str_starts_with($argument, '-')) {
                 if ($parsed['pattern'] === null) {
                     $parsed['pattern'] = $argument;
                 } else {
@@ -1235,6 +1241,10 @@ final class IndexApplication
                     break;
                 case '-L':
                     $parsed['filesWithoutMatches'] = true;
+                    break;
+                case '-q':
+                case '--quiet':
+                    $parsed['quiet'] = true;
                     break;
                 case '--json':
                     $parsed['json'] = true;
@@ -1481,7 +1491,7 @@ final class IndexApplication
                 continue;
             }
 
-            if ($argument[0] === '-') {
+            if (str_starts_with($argument, '-')) {
                 throw new \InvalidArgumentException(sprintf('Unknown argument: %s', $argument));
             }
 
@@ -2105,6 +2115,7 @@ Search Options:
   -c              Count matches per file.
   -l              List matching files.
   -L              List non-matching files.
+  -q, --quiet     Exit immediately after the first selected match.
   -h              Suppress filename prefixes.
   -H              Always print filename prefixes.
   -n              Show line numbers. Default: on.

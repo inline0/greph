@@ -17,7 +17,7 @@ final class TextQueryCacheStore
 
     private const LEGACY_EXTENSION = '.phpbin.gz';
 
-    private const RESULT_SEMANTICS = 2;
+    private const RESULT_SEMANTICS = 3;
 
     private TextResultCodec $codec;
 

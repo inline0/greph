@@ -1,0 +1,15 @@
+{
+    "name": "regex-files-with-matches",
+    "category": "text",
+    "description": "Files-with-matches keeps scanning after a line that holds the prefilter literal but does not match",
+    "pattern": "new *Logger",
+    "flags": [
+        "-l"
+    ],
+    "path": "setup",
+    "expectations": {
+        "grep": "exact",
+        "rg": "exact",
+        "rg_json": "skip"
+    }
+}

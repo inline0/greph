@@ -8,6 +8,7 @@ use Greph\Index\IndexedTextSearcher;
 use Greph\Index\TextIndexStore;
 use Greph\Greph;
 use Greph\Tests\Support\Workspace;
+use Greph\Text\LiteralSearcher;
 use Greph\Text\TextFileResult;
 use Greph\Text\TextSearchOptions;
 use Greph\Walker\FileTypeFilter;
@@ -310,6 +311,7 @@ final class IndexedTextSearcherTest extends TestCase
             'supportsQueryCache',
             'needle',
             new TextSearchOptions(fixedString: true),
+            $store->load($this->workspace . '/.greph-index'),
         );
         $cacheRejected = $this->invokeMethod(
             $this->searcher,
@@ -326,6 +328,7 @@ final class IndexedTextSearcherTest extends TestCase
                 maxFileSizeBytes: 1,
                 globPatterns: ['*.php'],
             ),
+            $store->load($this->workspace . '/.greph-index'),
         );
         $selection = $this->invokeArrayMethod(
             $this->searcher,
@@ -437,23 +440,20 @@ final class IndexedTextSearcherTest extends TestCase
             $this->searcher,
             'contentsContainLiteral',
             "NEEDLE\n",
-            'needle',
-            true,
+            new LiteralSearcher('needle', caseInsensitive: true),
         );
         $lastLineCount = $this->invokeMethod(
             $this->searcher,
             'countLiteralMatchingLines',
             "one\nneedle",
-            'needle',
-            false,
+            new LiteralSearcher('needle'),
             null,
         );
         $caseInsensitiveCount = $this->invokeMethod(
             $this->searcher,
             'countLiteralMatchingLines',
             "NEEDLE\nhay\n",
-            'needle',
-            true,
+            new LiteralSearcher('needle', caseInsensitive: true),
             1,
         );
         $candidateIdsBreak = $this->invokeMethod(
@@ -510,6 +510,122 @@ final class IndexedTextSearcherTest extends TestCase
             array_map(static fn (TextFileResult $result): int => $result->matchCount(), $rootResults),
             array_map(static fn (TextFileResult $result): int => $result->matchCount(), $cachedRootResults),
         );
+    }
+
+    #[Test]
+    public function itBypassesTheQueryCacheWhileTheIndexIsStale(): void
+    {
+        Workspace::writeFile($this->workspace, 'src/Alpha.php', "<?php\nfunction alpha() { return new Foo(); }\n");
+        Workspace::writeFile($this->workspace, 'src/Beta.php', "<?php\n\$x = new Bar();\n");
+        Greph::refreshTextIndex($this->workspace);
+        $options = new TextSearchOptions(fixedString: true);
+        $lines = static function (array $results): array {
+            $lines = [];
+
+            foreach ($results as $result) {
+                if (!$result instanceof TextFileResult) {
+                    continue;
+                }
+
+                foreach ($result->matches as $match) {
+                    $lines[] = basename($result->file) . ':' . $match->content;
+                }
+            }
+
+            sort($lines);
+
+            return $lines;
+        };
+
+        $warm = $this->searcher->search('new', $this->workspace, $options);
+        $this->assertSame(
+            ['Alpha.php:function alpha() { return new Foo(); }', 'Beta.php:$x = new Bar();'],
+            $lines($warm),
+        );
+        $this->assertNotSame([], glob($this->workspace . '/.greph-index/queries/*.phpbin') ?: []);
+
+        Workspace::writeFile($this->workspace, 'src/Alpha.php', "<?php\nfunction alpha() { return 1; }\n");
+        touch($this->workspace . '/src/Alpha.php', time() + 5);
+
+        $stale = $this->searcher->search('new', $this->workspace, $options);
+        $staleList = $this->searcher->search('new', $this->workspace, new TextSearchOptions(fixedString: true, filesWithMatches: true));
+        $plan = $this->searcher->plan('new', $this->workspace, $options);
+
+        $this->assertSame(['Beta.php:$x = new Bar();'], $lines($stale));
+        $this->assertSame(['Beta.php'], array_values(array_map(
+            static fn (TextFileResult $result): string => basename($result->file),
+            array_filter($staleList, static fn (TextFileResult $result): bool => $result->hasMatches()),
+        )));
+        $this->assertIsArray($plan['cache']);
+        $this->assertFalse($plan['cache']['query_cache_eligible']);
+        $this->assertFalse($plan['cache']['query_cache_populate']);
+
+        Greph::refreshTextIndex($this->workspace);
+        $refreshedPlan = $this->searcher->plan('new', $this->workspace, $options);
+
+        $this->assertSame(['Beta.php:$x = new Bar();'], $lines($this->searcher->search('new', $this->workspace, $options)));
+        $this->assertIsArray($refreshedPlan['cache']);
+        $this->assertTrue($refreshedPlan['cache']['query_cache_eligible']);
+    }
+
+    #[Test]
+    public function itFoldsUnicodeCaseForIndexedFixedStrings(): void
+    {
+        Workspace::writeFile($this->workspace, 'fold/upper.txt', "CAFÉ menu\n");
+        Workspace::writeFile($this->workspace, 'fold/kelvin.txt', "\u{212A}elvin scale\n");
+        Workspace::writeFile($this->workspace, 'fold/plain.txt', "kelvin cafe\n");
+        Greph::refreshTextIndex($this->workspace);
+        $matchingFiles = static function (array $results): array {
+            $files = [];
+
+            foreach ($results as $result) {
+                if ($result instanceof TextFileResult && $result->hasMatches()) {
+                    $files[] = basename($result->file);
+                }
+            }
+
+            sort($files);
+
+            return $files;
+        };
+        $cases = [
+            'café' => ['upper.txt'],
+            'CAFÉ' => ['upper.txt'],
+            'kelvin' => ['kelvin.txt', 'plain.txt'],
+            'KELVIN' => ['kelvin.txt', 'plain.txt'],
+        ];
+
+        foreach ($cases as $needle => $expected) {
+            foreach ([false, true] as $wholeWord) {
+                $variants = [
+                    'lines' => new TextSearchOptions(fixedString: true, caseInsensitive: true, wholeWord: $wholeWord),
+                    'files' => new TextSearchOptions(fixedString: true, caseInsensitive: true, wholeWord: $wholeWord, filesWithMatches: true),
+                    'count' => new TextSearchOptions(fixedString: true, caseInsensitive: true, wholeWord: $wholeWord, countOnly: true),
+                ];
+
+                foreach ($variants as $variant => $options) {
+                    $label = sprintf('%s %s %s', $needle, $wholeWord ? '-w' : '', $variant);
+
+                    $this->assertSame($expected, $matchingFiles($this->searcher->search($needle, $this->workspace, $options)), $label);
+                    $this->assertSame($expected, $matchingFiles($this->searcher->search($needle, $this->workspace, $options)), $label . ' cached');
+                }
+            }
+
+            $quiet = $this->searcher->search($needle, $this->workspace . '/fold', new TextSearchOptions(fixedString: true, caseInsensitive: true, quiet: true));
+            $this->assertCount(1, array_filter($quiet, static fn (TextFileResult $result): bool => $result->hasMatches()), $needle . ' -q');
+        }
+
+        $kelvinPlan = $this->searcher->plan('kelvin', $this->workspace, new TextSearchOptions(fixedString: true, caseInsensitive: true, wholeWord: true));
+        $cafePlan = $this->searcher->plan('café', $this->workspace, new TextSearchOptions(fixedString: true, caseInsensitive: true));
+        $sensitivePlan = $this->searcher->plan('kelvin', $this->workspace, new TextSearchOptions(fixedString: true, wholeWord: true));
+
+        $this->assertIsArray($kelvinPlan['plan']);
+        $this->assertSame('trigram-postings', $kelvinPlan['plan']['candidate_source']);
+        $this->assertSame(['elvin'], $kelvinPlan['plan']['seeds']);
+        $this->assertIsArray($cafePlan['plan']);
+        $this->assertSame(['caf'], $cafePlan['plan']['seeds']);
+        $this->assertIsArray($sensitivePlan['plan']);
+        $this->assertSame('word-postings', $sensitivePlan['plan']['candidate_source']);
     }
 
     private function invokeMethod(object $object, string $method, mixed ...$arguments): mixed

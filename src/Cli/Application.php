@@ -383,7 +383,7 @@ final class Application
                 break;
             }
 
-            if ($argument[0] !== '-') {
+            if (!str_starts_with($argument, '-')) {
                 if ($parsed['astPattern'] === null && $parsed['pattern'] === null) {
                     $parsed['pattern'] = $argument;
                 } else {

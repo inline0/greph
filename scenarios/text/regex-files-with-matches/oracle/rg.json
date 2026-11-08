@@ -1,0 +1,9 @@
+[
+    {
+        "file": "setup/logger.php",
+        "line": 3,
+        "column": 6,
+        "content": "$x = new Logger();",
+        "matched_text": "new Logger"
+    }
+]

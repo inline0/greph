@@ -80,6 +80,59 @@ final class LiteralSearcherTest extends TestCase
     }
 
     #[Test]
+    public function itFoldsUnicodeCaseOnlyWhenTheContentsNeedIt(): void
+    {
+        $accented = new LiteralSearcher('café', caseInsensitive: true);
+        $kelvin = new LiteralSearcher('kelvin', caseInsensitive: true);
+        $safe = new LiteralSearcher('needle', caseInsensitive: true);
+        $sensitive = new LiteralSearcher('café');
+
+        $this->assertTrue($accented->requiresUnicodeCaseFolding('plain ascii'));
+        $this->assertFalse($kelvin->requiresUnicodeCaseFolding('plain kelvin'));
+        $this->assertTrue($kelvin->requiresUnicodeCaseFolding("\u{212A}elvin"));
+        $this->assertTrue($kelvin->requiresUnicodeCaseFolding("\u{017F}tar"));
+        $this->assertFalse($safe->requiresUnicodeCaseFolding("\u{212A}elvin"));
+        $this->assertFalse($sensitive->requiresUnicodeCaseFolding('CAFÉ'));
+
+        $this->assertTrue($accented->mayMatchContents("x\nCAFÉ\n"));
+        $this->assertFalse($accented->mayMatchContents("x\nCAFE\n"));
+        $this->assertTrue($kelvin->mayMatchContents("\u{212A}ELVIN"));
+        $this->assertTrue($kelvin->mayMatchContents("prefix \xFF \u{212A}elvin"));
+
+        $match = $accented->match('the CAFÉ menu');
+        $this->assertNotNull($match);
+        $this->assertSame(5, $match->column);
+        $this->assertSame('CAFÉ', $match->matchedText);
+        $this->assertNull($accented->match('the CAFE menu'));
+        $this->assertNotNull($kelvin->match("\u{212A}elvin"));
+        $this->assertNotNull($kelvin->match("\xFF \u{212A} KELVIN"));
+        $this->assertNull($sensitive->match('CAFÉ'));
+    }
+
+    #[Test]
+    public function itMatchesAnEmptyWholeWordOnlyBetweenNonWordCharacters(): void
+    {
+        $wholeWord = new LiteralSearcher('', wholeWord: true);
+
+        $this->assertNotNull($wholeWord->match(''));
+        $this->assertNotNull($wholeWord->match('a (b)'));
+        $this->assertNull($wholeWord->match('colour'));
+        $this->assertNull($wholeWord->match('foo bar'));
+        $this->assertNotNull((new LiteralSearcher(''))->match('colour'));
+    }
+
+    #[Test]
+    public function itFoldsUnicodeCaseForWholeWordFixedStrings(): void
+    {
+        $wholeWord = new LiteralSearcher('kelvin', caseInsensitive: true, wholeWord: true);
+
+        $this->assertTrue($wholeWord->mayMatchContents("\u{212A}elvin scale"));
+        $this->assertNotNull($wholeWord->match("\u{212A}elvin scale"));
+        $this->assertNull($wholeWord->match("\u{212A}elvins"));
+        $this->assertFalse($wholeWord->mayMatchContents("\u{212A}elvins"));
+    }
+
+    #[Test]
     public function itFallsBackToUnicodeRegexForNonAsciiWholeWordMatching(): void
     {
         $wholeWord = new LiteralSearcher('word', wholeWord: true);

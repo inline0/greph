@@ -125,6 +125,42 @@ PHP,
     }
 
     #[Test]
+    public function itAnswersQuietIndexedSearchesWithTheExitCodeOnly(): void
+    {
+        Workspace::writeFile($this->workspace, 'set/.greph-index-set.json', (string) json_encode([
+            'name' => 'quiet',
+            'indexes' => [
+                ['name' => 'text', 'root' => '..', 'mode' => 'text'],
+            ],
+        ]));
+        $harness = $this->newApplication();
+        $application = $harness['application'];
+
+        $buildExit = $application->run(['greph-index', 'build', '.']);
+        $buildOutput = $this->readStream($harness['stdout']);
+        $quietExit = $application->run(['greph-index', 'search', '-q', '-F', 'needle', '.']);
+        $longQuietExit = $application->run(['greph-index', 'search', '--quiet', 'ne+dle', '.']);
+        $quietJsonExit = $application->run(['greph-index', 'search', '-q', '--json', '-F', 'needle', '.']);
+        $quietMissExit = $application->run(['greph-index', 'search', '-q', '-F', 'missing', '.']);
+        $quietWordExit = $application->run(['greph-index', 'search', '-q', '-F', '-w', '-i', 'needle', '.']);
+        $quietEmptyExit = $application->run(['greph-index', 'search', '-q', '', '.']);
+        $quietSetExit = $application->run(['greph-index', 'set', 'search', '--manifest', 'set/.greph-index-set.json', '-q', '-F', 'needle', '.']);
+        $quietSetMissExit = $application->run(['greph-index', 'set', 'search', '--manifest', 'set/.greph-index-set.json', '--quiet', '-F', 'missing', '.']);
+
+        $this->assertSame(0, $buildExit);
+        $this->assertSame(0, $quietExit);
+        $this->assertSame(0, $longQuietExit);
+        $this->assertSame(0, $quietJsonExit);
+        $this->assertSame(1, $quietMissExit);
+        $this->assertSame(0, $quietWordExit);
+        $this->assertSame(0, $quietEmptyExit);
+        $this->assertSame(0, $quietSetExit);
+        $this->assertSame(1, $quietSetMissExit);
+        $this->assertSame($buildOutput, $this->readStream($harness['stdout']));
+        $this->assertSame('', $this->readStream($harness['stderr']));
+    }
+
+    #[Test]
     public function itReportsMissingPatternsAndUnknownSubcommands(): void
     {
         $harness = $this->newApplication();

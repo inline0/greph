@@ -8,6 +8,8 @@ use Greph\Exceptions\PatternException;
 
 final class RegexSearcher implements TextMatcher
 {
+    private const DELIMITERS = ['#', '~', '/', '%', '!', '@', ';', ',', '`', '=', "\x01", "\x02", "\x03", "\x04", "\x05", "\x06", "\x07", "\x08", "\x0E", "\x0F", "\x7F"];
+
     private string $regex;
 
     private ?string $fallbackRegex = null;
@@ -24,8 +26,8 @@ final class RegexSearcher implements TextMatcher
 
         $modifiers = $caseInsensitive ? 'iu' : 'u';
         $fallbackModifiers = $caseInsensitive ? 'i' : '';
-        $this->regex = $this->wrapPattern($pattern, $modifiers);
-        $this->fallbackRegex = $this->wrapPattern($pattern, $fallbackModifiers);
+        $this->regex = self::wrapPattern($pattern, $modifiers);
+        $this->fallbackRegex = self::wrapPattern($pattern, $fallbackModifiers);
 
         if (@preg_match($this->regex, '') === false && @preg_match($this->fallbackRegex, '') === false) {
             throw new PatternException(sprintf('Invalid regex pattern: %s', $pattern));
@@ -111,8 +113,34 @@ final class RegexSearcher implements TextMatcher
         return new LineMatch($firstMatch[1] + 1, $firstMatch[0], $captures);
     }
 
-    private function wrapPattern(string $pattern, string $modifiers): string
+    private static function wrapPattern(string $pattern, string $modifiers): string
     {
-        return '#' . str_replace('#', '\#', $pattern) . '#' . $modifiers;
+        foreach (self::DELIMITERS as $delimiter) {
+            if (!str_contains($pattern, $delimiter)) {
+                return $delimiter . $pattern . $delimiter . $modifiers;
+            }
+        }
+
+        return '#' . self::escapeDelimiter($pattern, '#') . '#' . $modifiers;
+    }
+
+    private static function escapeDelimiter(string $pattern, string $delimiter): string
+    {
+        $escaped = '';
+        $length = strlen($pattern);
+
+        for ($position = 0; $position < $length; $position++) {
+            $character = $pattern[$position];
+
+            if ($character === '\\' && $position + 1 < $length) {
+                $escaped .= $character . $pattern[++$position];
+
+                continue;
+            }
+
+            $escaped .= $character === $delimiter ? '\\' . $delimiter : $character;
+        }
+
+        return $escaped;
     }
 }

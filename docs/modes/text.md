@@ -49,7 +49,7 @@ By default the pattern is treated as a PCRE2 regular expression. PHP's `preg_*` 
 
 Switch off the regex engine with `-F` to treat the pattern as a literal byte sequence. Fixed-string mode is the fast path: it uses `strpos()` for matching and skips the PCRE2 compile step entirely.
 
-`-i` makes both modes case-insensitive. `-w` adds whole-word boundaries on either side of the match.
+`-i` makes both modes case-insensitive with Unicode case folding, like ripgrep: `-F -i café` matches `CAFÉ`, and `-F -i kelvin` matches a word that starts with the Kelvin sign (U+212A). ASCII patterns keep the `stripos()` fast path unless the file contains the Kelvin sign or the long s. `-w` adds whole-word boundaries on either side of the match.
 
 ## Filtering files
 
